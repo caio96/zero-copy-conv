@@ -1,0 +1,20 @@
+# Change these variables --------------------------------------------------------------------
+
+# Repo root
+REPO_ROOT="${HOME}/tensor-layout/yaconv-update"
+
+LLVM_INSTALL="${HOME}/git/llvm-17"
+# Version of clang used
+CLANG_VERSION="17.0.1"
+
+# Path to blis installation
+BLIS_INSTALL="${HOME}/tensor-layout/yaconv-new/blis-install"
+
+# Set this only if google-benchmark not installed globally
+# Path to install location of google benchmark
+GOOGLE_BENCHMARK_INSTALL="${HOME}/git/benchmark-install"
+
+CLANG="${LLVM_INSTALL}/bin/clang"
+OPT="${LLVM_INSTALL}/bin/opt"
+CLANGPP="${LLVM_INSTALL}/bin/clang++"
+LLVM_LLD="${LLVM_INSTALL}/bin/ld.lld"

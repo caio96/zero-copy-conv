@@ -1,0 +1,34 @@
+2024-09-11T15:48:54-06:00
+Running /home/csalvado/tensor-layout/yaconv-update/output/kernel02/kernel.exe
+Run on (28 X 5500 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x14)
+  L1 Instruction 32 KiB (x14)
+  L2 Unified 2048 KiB (x14)
+  L3 Unified 33792 KiB (x1)
+Load Average: 0.12, 0.09, 0.04
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+----------------------------------------------------------------------
+Benchmark                            Time             CPU   Iterations
+----------------------------------------------------------------------
+conv-2d/iterations:1_mean          271 us          271 us            3
+conv-2d/iterations:1_median        258 us          258 us            3
+conv-2d/iterations:1_stddev       24.4 us         23.8 us            3
+conv-2d/iterations:1_cv           8.99 %          8.81 %             3
+
+ Performance counter stats for '/home/csalvado/tensor-layout/yaconv-update/output/kernel02/kernel.exe --benchmark_repetitions=3':
+
+         3,096,299      cpu_core/mem_load_retired.l1_hit/                                      
+            60,047      cpu_core/frontend_retired.l1i_miss/                                      
+            28,073      cpu_core/mem_load_retired.l1_miss/                                      
+            23,661      cpu_core/mem_load_retired.l2_hit/                                      
+             4,447      cpu_core/mem_load_retired.l2_miss/                                      
+     <not counted>      cpu_core/mem_load_retired.l3_hit/                                        (0.00%)
+     <not counted>      cpu_core/mem_load_retired.l3_miss/                                        (0.00%)
+
+       0.002920042 seconds time elapsed
+
+       0.002961000 seconds user
+       0.000000000 seconds sys
+
+
