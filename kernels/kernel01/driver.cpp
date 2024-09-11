@@ -1,31 +1,40 @@
 #include "kernel.h"
 #include <benchmark/benchmark.h>
 
-extern "C" void conv_2d(int8_t *__restrict__ input, int8_t *__restrict__ output,
-             int8_t *__restrict__ filter, int input_height, int input_width,
-             int depth, int filter_height,
-             int filter_width, int stride);
-
+extern "C" void conv_2d(float *__restrict__ input, float *__restrict__ output,
+                        float *__restrict__ filter, int N, int H, int W, int C,
+                        int FH, int FW, int M, int PH, int PW);
 
 static void BM_MAIN(benchmark::State &state) {
-  int8_t *input;
-  int8_t *filter;
-  int8_t *output;
 
-  int input_size = 56;
-  int filter_size = 3;
-  int depth = 16;
-  int stride = 1;
-  int output_size = (input_size - filter_size) / stride + 1;
+  const int N = 1;
+  const int H = 56;
+  const int W = 56;
+  const int C = 64;
+  const int FH = 3;
+  const int FW = 3;
+  const int M = 256;
+  const int PH = 1;
+  const int PW = 1;
+  const int OH = H + 2 * PH - FH + 1;
+  const int OW = W + 2 * PW - FW + 1;
 
-  input = (int8_t *)malloc(input_size * input_size * depth * sizeof(int8_t));
-  filter = (int8_t *)malloc(filter_size * filter_size * depth * sizeof(int8_t));
-  output = (int8_t *)malloc(output_size * output_size * sizeof(int8_t));
+  float *input;
+  float *filter;
+  float *output;
+
+  input = (float *)malloc(N * H * W * C * sizeof(float));
+  filter = (float *)malloc(FH * FW * C * M * sizeof(float));
+  output = (float *)malloc(N * OH * OW * M * sizeof(float));
+
+  if (input == NULL || filter == NULL || output == NULL) {
+    fprintf(stderr, "Some error in malloc!\n");
+    exit(-1);
+  }
 
   // Run kernel
   for (auto _ : state) {
-    conv_2d(input, output, filter, input_size, input_size, depth, filter_size,
-          filter_size, stride);
+    conv_2d(input, output, filter, N, H, W, C, FH, FW, M, PH, PW);
   }
 
   free(input);
@@ -36,7 +45,7 @@ static void BM_MAIN(benchmark::State &state) {
 }
 
 BENCHMARK(BM_MAIN)
-    ->Name("conv-im2col")
+    ->Name("conv-2d")
     ->Unit(benchmark::kMicrosecond)
     ->Iterations(1)
     ->ReportAggregatesOnly(true);
