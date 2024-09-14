@@ -1,11 +1,5 @@
 #include "blis/blis.h"
 
-// Taken from Caffe implementation
-// https://github.com/BVLC/caffe/blob/master/src/caffe/util/im2col.cpp
-inline unsigned int is_a_ge_zero_and_a_lt_b(int a, int b) {
-  return (unsigned int)a < (unsigned int)b;
-}
-
 // Converts the input image to an im2col matrix
 // C,H,W -> C,FH,FW x OH,OW
 void im2col(float *__restrict__ input, float *__restrict__ im2col_buffer,
@@ -33,11 +27,8 @@ void im2col(float *__restrict__ input, float *__restrict__ im2col_buffer,
             int iw = ow * stride_w + fw - padding_width;
 
             // If the input index is within bounds, get the value
-            if (is_a_ge_zero_and_a_lt_b(ih, input_height) &&
-                is_a_ge_zero_and_a_lt_b(iw, input_width)) {
-              int input_idx =
-                  ((input_channels + ic) * input_height + ih) * input_width +
-                  iw;
+            if (ih >= 0 && ih < input_height && iw >= 0 && iw < input_width) {
+              int input_idx = (ic * input_height + ih) * input_width + iw;
               im2col_buffer[index++] = input[input_idx];
             } else {
               // Zero-padding case
@@ -54,10 +45,12 @@ void im2col(float *__restrict__ input, float *__restrict__ im2col_buffer,
 // Input is in NCHW format
 // Filters are in OIHW format
 void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
-                    float *__restrict__ filters, int batch, int input_height,
-                    int input_width, int input_channels, int filter_height,
-                    int filter_width, int output_channels, int padding_height,
-                    int padding_width, int stride_h, int stride_w) {
+                    float *__restrict__ filters,
+                    float *__restrict__ im2col_buffer, int batch,
+                    int input_height, int input_width, int input_channels,
+                    int filter_height, int filter_width, int output_channels,
+                    int padding_height, int padding_width, int stride_h,
+                    int stride_w) {
 
   // Calculate the output dimensions
   int output_height =
@@ -65,17 +58,12 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
   int output_width =
       (input_width + 2 * padding_width - filter_width) / stride_w + 1;
 
-  // Allocate space for the im2col matrix (C,FH,FW, x OH,OW)
-  float *im2col_buffer =
-      (float *)malloc(input_channels * filter_height * filter_width *
-                      output_height * output_width * sizeof(float));
-
   // Convolve each batch
   for (int b = 0; b < batch; ++b) {
     float *input_buffer =
-        input + b * input_channels * input_height * input_width;
+        &input[b * input_channels * input_height * input_width];
     float *output_buffer =
-        output + b * output_channels * output_height * output_width;
+        &output[b * output_channels * output_height * output_width];
 
     // Apply im2col to the input
     // C,H,W -> C,FH,FW x OH,OW
@@ -99,6 +87,4 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
     bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M, N, K, &alpha, filters, K,
               1, im2col_buffer, N, 1, &beta, output_buffer, N, 1);
   }
-
-  free(im2col_buffer);
 }
