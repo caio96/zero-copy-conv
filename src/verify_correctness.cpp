@@ -12,7 +12,7 @@ conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
 
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
-               float *__restrict__ filters, float *__restrict__ im2col_buffer,
+               float *__restrict__ filters,
                int batch, int input_height, int input_width, int input_channels,
                int filter_height, int filter_width, int output_channels,
                int padding_height, int padding_width, int stride_h,
@@ -59,15 +59,12 @@ int main() {
   size_t output_size = batch * output_channels * output_height * output_width;
   size_t filter_size =
       output_channels * input_channels * filter_height * filter_width;
-  size_t im2col_size = input_channels * filter_height * filter_width *
-                       output_height * output_width;
 
   // Allocate memory for input, output, filters, and im2col buffer
   float *input = new float[input_size];
   float *output_naive = new float[output_size];
   float *output_im2col = new float[output_size];
   float *filters = new float[filter_size];
-  float *im2col_buffer = new float[im2col_size];
 
   // Initialize input and filters with random values
   initialize_data(input, input_size);
@@ -78,7 +75,7 @@ int main() {
                 input_channels, filter_height, filter_width, output_channels,
                 padding_height, padding_width, stride_h, stride_w);
 
-  conv_2d_im2col(input, output_im2col, filters, im2col_buffer, batch,
+  conv_2d_im2col(input, output_im2col, filters, batch,
                  input_height, input_width, input_channels, filter_height,
                  filter_width, output_channels, padding_height, padding_width,
                  stride_h, stride_w);
@@ -99,6 +96,5 @@ int main() {
   delete[] output_naive;
   delete[] output_im2col;
   delete[] filters;
-  delete[] im2col_buffer;
   bli_finalize();
 }
