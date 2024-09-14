@@ -37,11 +37,11 @@ static void Benchmark_Conv2D_Im2Col(benchmark::State &state) {
   size_t im2col_size = input_channels * filter_height * filter_width *
                        output_height * output_width;
 
-  // Allocate memory for input, output, and filters
-  float *input = (float *)malloc(input_size * sizeof(float));
-  float *output = (float *)malloc(output_size * sizeof(float));
-  float *filters = (float *)malloc(filter_size * sizeof(float));
-  float *im2col_buffer = (float *)malloc(im2col_size * sizeof(float));
+  // Allocate memory for input, output, filters, and im2col buffer
+  float *input = new float[input_size];
+  float *output = new float[output_size];
+  float *filters = new float[filter_size];
+  float *im2col_buffer = new float[im2col_size];
 
   // Initialize input and filters with random values
   initialize_data(input, input_size);
@@ -55,10 +55,10 @@ static void Benchmark_Conv2D_Im2Col(benchmark::State &state) {
   }
 
   // Clean up
-  free(input);
-  free(output);
-  free(filters);
-  free(im2col_buffer);
+  delete[] input;
+  delete[] output;
+  delete[] filters;
+  delete[] im2col_buffer;
   bli_finalize();
 }
 
