@@ -1,3 +1,0 @@
--I/home/csalvado/git/benchmark-install/include
--L/home/csalvado/git/benchmark-install/lib
--I/home/csalvado/tensor-layout/yaconv-new/blis-install/include
