@@ -23,19 +23,25 @@ add_executable(benchmark_naive
     src/driver_conv_naive.cpp
     src/kernel_conv_naive.c
 )
+target_include_directories(benchmark_naive PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(benchmark_naive benchmark::benchmark pthread)
+set_target_properties(benchmark_naive PROPERTIES COMPILE_FLAGS "-O3 -march=native")
+
 add_executable(benchmark_im2col
     src/driver_conv_im2col.cpp
     src/kernel_conv_im2col.c
 )
-
-target_include_directories(benchmark_naive PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(benchmark_im2col PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(benchmark_im2col PRIVATE ${BLIS_INCLUDE_DIR})
-
-# Add link libraries
-target_link_libraries(benchmark_naive benchmark::benchmark pthread)
 target_link_libraries(benchmark_im2col benchmark::benchmark pthread ${BLIS_LIBRARY})
-
-# Add optimization flags
-set_target_properties(benchmark_naive PROPERTIES COMPILE_FLAGS "-O3 -march=native")
 set_target_properties(benchmark_im2col PROPERTIES COMPILE_FLAGS "-O3 -march=native")
+
+add_executable(correctness
+    src/verify_correctness.cpp
+    src/kernel_conv_im2col.c
+    src/kernel_conv_naive.c
+)
+target_include_directories(correctness PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(correctness PRIVATE ${BLIS_INCLUDE_DIR})
+target_link_libraries(correctness benchmark::benchmark pthread ${BLIS_LIBRARY})
+set_target_properties(correctness PROPERTIES COMPILE_FLAGS "-O3 -march=native")
