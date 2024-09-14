@@ -45,8 +45,7 @@ void im2col(float *__restrict__ input, float *__restrict__ im2col_buffer,
 // Input is in NCHW format
 // Filters are in OIHW format
 void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
-                    float *__restrict__ filters,
-                    float *__restrict__ im2col_buffer, int batch,
+                    float *__restrict__ filters, int batch,
                     int input_height, int input_width, int input_channels,
                     int filter_height, int filter_width, int output_channels,
                     int padding_height, int padding_width, int stride_h,
@@ -57,6 +56,11 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
       (input_height + 2 * padding_height - filter_height) / stride_h + 1;
   int output_width =
       (input_width + 2 * padding_width - filter_width) / stride_w + 1;
+
+  // Get the im2col buffer size
+  size_t im2col_size = input_channels * filter_height * filter_width *
+                       output_height * output_width;
+  float* im2col_buffer = (float*)malloc(im2col_size * sizeof(float));
 
   // Convolve each batch
   for (int b = 0; b < batch; ++b) {
@@ -87,4 +91,6 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
     bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M, N, K, &alpha, filters, K,
               1, im2col_buffer, N, 1, &beta, output_buffer, N, 1);
   }
+
+  free(im2col_buffer);
 }
