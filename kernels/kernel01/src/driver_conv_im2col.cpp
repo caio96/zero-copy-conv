@@ -1,3 +1,4 @@
+#include "blis/blis.h"
 #include "utils.hpp"
 #include <benchmark/benchmark.h>
 
@@ -58,6 +59,7 @@ static void Benchmark_Conv2D_Im2Col(benchmark::State &state) {
   free(output);
   free(filters);
   free(im2col_buffer);
+  bli_finalize();
 }
 
 BENCHMARK(Benchmark_Conv2D_Im2Col)
