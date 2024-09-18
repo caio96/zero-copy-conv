@@ -36,6 +36,15 @@ target_include_directories(benchmark_im2col PRIVATE ${BLIS_INCLUDE_DIR})
 target_link_libraries(benchmark_im2col benchmark::benchmark pthread ${BLIS_LIBRARY})
 set_target_properties(benchmark_im2col PROPERTIES COMPILE_FLAGS "-O3 -march=native")
 
+add_executable(benchmark_yaconv
+    src/driver_conv_yaconv.cpp
+    src/kernel_conv_yaconv.c
+)
+target_include_directories(benchmark_yaconv PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(benchmark_yaconv PRIVATE ${BLIS_INCLUDE_DIR})
+target_link_libraries(benchmark_yaconv benchmark::benchmark pthread ${BLIS_LIBRARY})
+set_target_properties(benchmark_yaconv PROPERTIES COMPILE_FLAGS "-O3 -march=native -g -gdwarf-4")
+
 add_executable(correctness
     src/verify_correctness.cpp
     src/kernel_conv_im2col.c
