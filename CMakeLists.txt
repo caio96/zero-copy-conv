@@ -12,8 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(benchmark REQUIRED PATHS "/home/csalvado/git/benchmark-install")
 
 # Find BLIS library and headers
-find_path(BLIS_INCLUDE_DIR blis.h PATHS "/home/csalvado/tensor-layout/yaconv-new/blis-install/include")
-find_library(BLIS_LIBRARY NAMES blis PATHS "/home/csalvado/tensor-layout/yaconv-new/blis-install/lib")
+find_path(BLIS_INCLUDE_DIR blis PATHS "/home/csalvado/tensor-layout/blis-install/include")
+find_library(BLIS_LIBRARY NAMES blis PATHS "/home/csalvado/tensor-layout/blis-install/lib")
 
 if(NOT BLIS_INCLUDE_DIR OR NOT BLIS_LIBRARY)
     message(FATAL_ERROR "BLIS library not found. Please ensure it is installed.")
