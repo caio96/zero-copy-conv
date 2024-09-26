@@ -1,5 +1,8 @@
 #include "blis/blis.h"
 
+// Yaconv convolution
+// Input is in NHWC format
+// Filters are in HWIO format
 void conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                     float *__restrict__ filters, int batch, int input_height,
                     int input_width, int input_channels, int filter_height,

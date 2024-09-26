@@ -52,6 +52,7 @@ add_executable(correctness
     src/verify_correctness.cpp
     src/kernel_conv_im2col.c
     src/kernel_conv_naive.c
+    src/kernel_conv_yaconv.c
     src/utils.cpp
 )
 target_include_directories(correctness PRIVATE ${PROJECT_SOURCE_DIR}/include)
