@@ -22,6 +22,7 @@ endif()
 add_executable(benchmark_naive
     src/driver_conv_naive.cpp
     src/kernel_conv_naive.c
+    src/utils.cpp
 )
 target_include_directories(benchmark_naive PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(benchmark_naive benchmark::benchmark pthread)
@@ -30,6 +31,7 @@ set_target_properties(benchmark_naive PROPERTIES COMPILE_FLAGS "-O3 -march=nativ
 add_executable(benchmark_im2col
     src/driver_conv_im2col.cpp
     src/kernel_conv_im2col.c
+    src/utils.cpp
 )
 target_include_directories(benchmark_im2col PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(benchmark_im2col PRIVATE ${BLIS_INCLUDE_DIR})
@@ -39,6 +41,7 @@ set_target_properties(benchmark_im2col PROPERTIES COMPILE_FLAGS "-O3 -march=nati
 add_executable(benchmark_yaconv
     src/driver_conv_yaconv.cpp
     src/kernel_conv_yaconv.c
+    src/utils.cpp
 )
 target_include_directories(benchmark_yaconv PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(benchmark_yaconv PRIVATE ${BLIS_INCLUDE_DIR})
@@ -49,6 +52,7 @@ add_executable(correctness
     src/verify_correctness.cpp
     src/kernel_conv_im2col.c
     src/kernel_conv_naive.c
+    src/utils.cpp
 )
 target_include_directories(correctness PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(correctness PRIVATE ${BLIS_INCLUDE_DIR})
