@@ -41,11 +41,11 @@ bool compare_outputs(float *output1, float *output2, size_t size) {
 
 int main() {
   // Convolution parameters
-  int batch = 1;
-  int input_channels = 1;
-  int input_height = 8;
-  int input_width = 8;
-  int output_channels = 1;
+  int batch = 2;
+  int input_channels = 64;
+  int input_height = 56;
+  int input_width = 56;
+  int output_channels = 128;
   int filter_height = 3;
   int filter_width = 3;
   int padding_height = 1;
@@ -124,13 +124,6 @@ int main() {
   yaconv_to_NHWC(output_yaconv, output_yaconv_NHWC, batch, output_channels,
                  output_height, output_width, yaconv_before_off,
                  yaconv_after_off);
-
-  std::cout << "Naive." << std::endl;
-  print_tensor_NHWC(output_naive_NHWC, batch, output_channels, output_height,
-                    output_width);
-  std::cout << "Yaconv." << std::endl;
-  print_tensor_NHWC(output_yaconv_NHWC, batch, output_channels, output_height,
-                    output_width);
 
   // Verify if the outputs match
   is_correct =
