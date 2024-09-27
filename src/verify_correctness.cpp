@@ -96,7 +96,6 @@ int main() {
   float *input_yaconv = new float[input_size];
   float *filters_yaconv = new float[filter_size];
   float *output_naive_NHWC = new float[output_size];
-  float *output_yaconv_NHWC = new float[output_size];
 
   // Convert input and filters to the layout used by yaconv
   NCHW_to_NHWC(input, input_yaconv, batch, input_channels, input_height,
@@ -107,27 +106,17 @@ int main() {
   NCHW_to_NHWC(output_naive, output_naive_NHWC, batch, output_channels,
                output_height, output_width);
 
-  // Create output for yaconv with extra spaces
-  int yaconv_before_off = yaconv_extra_size_before(
-      filter_height, padding_height, output_width, output_channels);
-  int yaconv_after_off =
-      yaconv_extra_size_after(input_height, filter_height, padding_height,
-                              output_width, output_channels, NULL);
   float *output_yaconv =
-      new float[output_size + batch * (yaconv_before_off + yaconv_after_off)];
+      new float[output_size];
 
   conv_2d_yaconv(input_yaconv, output_yaconv, filters_yaconv, batch,
                  input_height, input_width, input_channels, filter_height,
                  filter_width, output_channels, padding_height, padding_width,
                  stride_h, stride_w);
 
-  yaconv_to_NHWC(output_yaconv, output_yaconv_NHWC, batch, output_channels,
-                 output_height, output_width, yaconv_before_off,
-                 yaconv_after_off);
-
   // Verify if the outputs match
   is_correct =
-      compare_outputs(output_naive_NHWC, output_yaconv_NHWC, output_size);
+      compare_outputs(output_naive_NHWC, output_yaconv, output_size);
   // Print the result
   if (is_correct) {
     std::cout << "Yaconv produces the same output." << std::endl;
@@ -141,7 +130,6 @@ int main() {
   delete[] output_naive;
   delete[] output_im2col;
   delete[] output_yaconv;
-  delete[] output_yaconv_NHWC;
   delete[] output_naive_NHWC;
   delete[] filters;
   delete[] filters_yaconv;
