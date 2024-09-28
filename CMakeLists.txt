@@ -46,7 +46,8 @@ add_executable(benchmark_yaconv
 target_include_directories(benchmark_yaconv PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(benchmark_yaconv PRIVATE ${BLIS_INCLUDE_DIR})
 target_link_libraries(benchmark_yaconv benchmark::benchmark pthread ${BLIS_LIBRARY})
-set_target_properties(benchmark_yaconv PROPERTIES COMPILE_FLAGS "-O3 -march=native -g -gdwarf-4")
+# set_target_properties(benchmark_yaconv PROPERTIES COMPILE_FLAGS "-O3 -march=native -g -gdwarf-4")
+set_target_properties(benchmark_yaconv PROPERTIES COMPILE_FLAGS "-O3 -march=native")
 
 add_executable(correctness
     src/verify_correctness.cpp
@@ -58,4 +59,5 @@ add_executable(correctness
 target_include_directories(correctness PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(correctness PRIVATE ${BLIS_INCLUDE_DIR})
 target_link_libraries(correctness benchmark::benchmark pthread ${BLIS_LIBRARY})
+# set_target_properties(correctness PROPERTIES COMPILE_FLAGS "-O3 -march=native -g -gdwarf-4")
 set_target_properties(correctness PROPERTIES COMPILE_FLAGS "-O3 -march=native")
