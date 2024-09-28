@@ -27,6 +27,7 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
 bool almost_equal(float a, float b) { return std::fabs(a - b) < (0.125); }
 
 // Helper function to compare two arrays element-wise
+// Returns true if the arrays match, false otherwise
 bool compare_outputs(float *output1, float *output2, size_t size) {
 
   for (size_t i = 0; i < size; ++i) {
@@ -53,12 +54,13 @@ int main() {
   int stride_h = 1;
   int stride_w = 1;
 
-  // Calculate output dimensions
+  // Output dimensions
   int output_height =
       (input_height + 2 * padding_height - filter_height) / stride_h + 1;
   int output_width =
       (input_width + 2 * padding_width - filter_width) / stride_w + 1;
 
+  // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
   size_t filter_size =
@@ -82,43 +84,40 @@ int main() {
   initialize_data(input_NCHW, input_size);
   initialize_data(filters_OIHW, filter_size);
 
-  // Call convolution implementations and save outputs in different arrays
-  conv_2d_naive(input_NCHW, output_naive_NCHW, filters_OIHW, batch, input_height, input_width,
-                input_channels, filter_height, filter_width, output_channels,
-                padding_height, padding_width, stride_h, stride_w);
+  // Convert input, filters
+  NCHW_to_NHWC(input_NCHW, input_NHWC, batch, input_channels, input_height,
+               input_width);
+  OIHW_to_HWIO(filters_OIHW, filters_HWIO, output_channels, input_channels,
+               filter_height, filter_width);
 
+  conv_2d_naive(input_NCHW, output_naive_NCHW, filters_OIHW, batch,
+                input_height, input_width, input_channels, filter_height,
+                filter_width, output_channels, padding_height, padding_width,
+                stride_h, stride_w);
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
                  output_channels, padding_height, padding_width, stride_h,
                  stride_w);
+  conv_2d_yaconv(input_NHWC, output_yaconv, filters_HWIO, batch, input_height,
+                 input_width, input_channels, filter_height, filter_width,
+                 output_channels, padding_height, padding_width, stride_h,
+                 stride_w);
 
-  // Verify if the outputs match
-  bool is_correct = compare_outputs(output_naive_NCHW, output_im2col, output_size);
-  // Print the result
+  // Verify if the Im2col output match
+  bool is_correct =
+      compare_outputs(output_naive_NCHW, output_im2col, output_size);
   if (is_correct) {
     std::cout << "Im2col produces the same output." << std::endl;
   } else {
     std::cout << "Im2col produces a different output!" << std::endl;
   }
 
-  // Convert input, filters, and output to NHWC
-  NCHW_to_NHWC(input_NCHW, input_NHWC, batch, input_channels, input_height,
-               input_width);
-  OIHW_to_HWIO(filters_OIHW, filters_HWIO, output_channels, input_channels,
-               filter_height, filter_width);
-  // Convert output to NHWC layout
+  // Convert naive output to channel last
   NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
                output_height, output_width);
 
-  // Call Yaconv implementation
-  conv_2d_yaconv(input_NHWC, output_yaconv, filters_HWIO, batch,
-                 input_height, input_width, input_channels, filter_height,
-                 filter_width, output_channels, padding_height, padding_width,
-                 stride_h, stride_w);
-
-  // Verify if the outputs match
+  // Verify if the Yaconv output match
   is_correct = compare_outputs(output_naive_NHWC, output_yaconv, output_size);
-  // Print the result
   if (is_correct) {
     std::cout << "Yaconv produces the same output." << std::endl;
   } else {
@@ -128,11 +127,11 @@ int main() {
   // Clean up
   delete[] input_NCHW;
   delete[] input_NHWC;
+  delete[] filters_OIHW;
+  delete[] filters_HWIO;
   delete[] output_naive_NCHW;
   delete[] output_im2col;
   delete[] output_yaconv;
   delete[] output_naive_NHWC;
-  delete[] filters_OIHW;
-  delete[] filters_HWIO;
   bli_finalize();
 }

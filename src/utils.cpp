@@ -4,8 +4,7 @@
 
 void initialize_data(float *data, size_t size) {
   for (size_t i = 0; i < size; ++i) {
-    // data[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-    data[i] = (float)(i % 10);
+    data[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
   }
 }
 
@@ -46,7 +45,8 @@ void yaconv_to_NHWC(float *input, float *output, int batch, int channels,
     for (int h = 0; h < height; ++h) {
       for (int w = 0; w < width; ++w) {
         for (int c = 0; c < channels; ++c) {
-          int idx_input = (((b * height + h) * width + w) * channels + c) + (b + 1) * offset_before + b * offset_after;
+          int idx_input = (((b * height + h) * width + w) * channels + c) +
+                          (b + 1) * offset_before + b * offset_after;
           int idx_output = ((b * height + h) * width + w) * channels + c;
           output[idx_output] = input[idx_input];
         }

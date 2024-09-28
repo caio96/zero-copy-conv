@@ -1,5 +1,5 @@
-#include <benchmark/benchmark.h>
 #include "utils.hpp"
+#include <benchmark/benchmark.h>
 
 extern "C" void
 conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
@@ -22,23 +22,24 @@ static void Benchmark_Conv2D_Naive(benchmark::State &state) {
   int stride_h = state.range(9);
   int stride_w = state.range(10);
 
-  // Calculate output dimensions
+  // Output dimensions
   int output_height =
       (input_height + 2 * padding_height - filter_height) / stride_h + 1;
   int output_width =
       (input_width + 2 * padding_width - filter_width) / stride_w + 1;
 
+  // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
   size_t filter_size =
       output_channels * input_channels * filter_height * filter_width;
 
-  // Allocate memory for input, output, and filters
+  // Allocate memory for buffers
   float *input = new float[input_size];
   float *output = new float[output_size];
   float *filters = new float[filter_size];
 
-  // Initialize input and filters with random values
+  // Initialize input and filters
   initialize_data(input, input_size);
   initialize_data(filters, filter_size);
 

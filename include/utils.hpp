@@ -3,7 +3,7 @@
 
 #include <cstdlib>
 
-// Initialize data with random values from 0.0 to 10.0
+// Initialize data with random values between 0.0 and 1.0
 void initialize_data(float *data, size_t size);
 
 // Layout conversion helpers
@@ -12,8 +12,7 @@ void NCHW_to_NHWC(float *input, float *output, int batch, int channels,
 void NHWC_to_NCHW(float *input, float *output, int batch, int channels,
                   int height, int width);
 void yaconv_to_NHWC(float *input, float *output, int batch, int channels,
-                    int height, int width, int offset_before,
-                    int offset_after);
+                    int height, int width, int offset_before, int offset_after);
 void OIHW_to_HWIO(float *input, float *output, int output_channels,
                   int input_channels, int filter_height, int filter_width);
 void HWIO_to_OIHW(float *input, float *output, int output_channels,
