@@ -7,6 +7,7 @@ Usage:
 ```sh
 git clone git@github.com:caio96/blis-conv.git
 cd blis-conv
+git checkout yaconv-update
 ./configure --prefix=/path/to/blis-install -a yaconv auto
 make install -j
 ```
