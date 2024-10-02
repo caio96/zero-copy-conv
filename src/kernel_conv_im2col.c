@@ -61,10 +61,15 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
   int output_width =
       (input_width + 2 * padding_width - filter_width) / stride_w + 1;
 
-  // Allocate im2col buffer size
+  bool pointwise = (filter_height == 1 && filter_width == 1 && stride_h == 1 &&
+                    stride_w == 1 && padding_width == 0 && padding_height == 0);
+
+  // Allocate im2col buffer size only if not pointwise
   size_t im2col_size = input_channels * filter_height * filter_width *
                        output_height * output_width;
-  float *im2col_buffer = (float *)malloc(im2col_size * sizeof(float));
+  float *im2col_buffer;
+  if (!pointwise)
+    im2col_buffer = (float *)malloc(im2col_size * sizeof(float));
 
   // Convolve each batch
   for (int b = 0; b < batch; ++b) {
@@ -75,9 +80,13 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
         &output[b * output_channels * output_height * output_width];
 
     // Apply im2col to the input
-    im2col(input_buffer, im2col_buffer, input_height, input_width,
-           input_channels, filter_height, filter_width, padding_height,
-           padding_width, stride_h, stride_w);
+    if (!pointwise) {
+      im2col(input_buffer, im2col_buffer, input_height, input_width,
+             input_channels, filter_height, filter_width, padding_height,
+             padding_width, stride_h, stride_w);
+    } else {
+      im2col_buffer = input_buffer;
+    }
 
     // A: filter matrix (OC, IC*FH*FW)
     // B: im2col matrix (IC*FH*FW, OH*OW)
@@ -95,5 +104,6 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
   }
 
   // Deallocate the im2col buffer
-  free(im2col_buffer);
+  if (!pointwise)
+    free(im2col_buffer);
 }
