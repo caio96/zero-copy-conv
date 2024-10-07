@@ -66,8 +66,6 @@ static void Benchmark_Conv2D_Yaconv(benchmark::State &state) {
 
 BENCHMARK(Benchmark_Conv2D_Yaconv)
     ->Unit(benchmark::kMillisecond)
-    ->ReportAggregatesOnly(true)
-    ->Iterations(1)
-    ->Args({1, 64, 56, 56, 128, 3, 3, 1, 1, 1, 1}); // Example: Conv layer
+    ->Args({1, 64, 64, 64, 128, 3, 3, 1, 1, 1, 1}); // Example: Conv layer
 
 BENCHMARK_MAIN();
