@@ -1,14 +1,15 @@
+#include "blis/blis.h"
 #include "utils.hpp"
 #include <benchmark/benchmark.h>
 
 extern "C" void
-conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
-              float *__restrict__ filters, int batch, int input_height,
-              int input_width, int input_channels, int filter_height,
-              int filter_width, int output_channels, int padding_height,
-              int padding_width, int stride_h, int stride_w);
+conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
+               float *__restrict__ filters, int batch, int input_height,
+               int input_width, int input_channels, int filter_height,
+               int filter_width, int output_channels, int padding_height,
+               int padding_width, int stride_h, int stride_w);
 
-static void Benchmark_Conv2D_Naive(benchmark::State &state) {
+static void Benchmark_Conv2D_Yaconv_Prepack(benchmark::State &state) {
   // Convolution parameters
   int batch = state.range(0);
   int input_channels = state.range(1);
@@ -21,6 +22,10 @@ static void Benchmark_Conv2D_Naive(benchmark::State &state) {
   int padding_width = state.range(8);
   int stride_h = state.range(9);
   int stride_w = state.range(10);
+
+  // Yaconv only supports stride 1
+  if (stride_h != 1 || stride_w != 1)
+    state.SkipWithError("stride_h and stride_w must be 1");
 
   // Output dimensions
   int output_height =
@@ -35,6 +40,9 @@ static void Benchmark_Conv2D_Naive(benchmark::State &state) {
       output_channels * input_channels * filter_height * filter_width;
 
   // Allocate memory for buffers
+  // Because the implementation calls the micro kernel using the input directly
+  // (without packing it), it requires that the input is aligned. The default
+  // alignment is to a page size, but it can work with smaller alignments.
   float *input =
       static_cast<float *>(aligned_alloc(64, input_size * sizeof(float)));
   float *output =
@@ -47,21 +55,20 @@ static void Benchmark_Conv2D_Naive(benchmark::State &state) {
   initialize_data(filters, filter_size);
 
   for (auto _ : state) {
-    conv_2d_naive(input, output, filters, batch, input_height, input_width,
-                  input_channels, filter_height, filter_width, output_channels,
-                  padding_height, padding_width, stride_h, stride_w);
+    conv_2d_yaconv(input, output, filters, batch, input_height, input_width,
+                   input_channels, filter_height, filter_width, output_channels,
+                   padding_height, padding_width, stride_h, stride_w);
   }
 
   // Clean up
   free(input);
   free(output);
   free(filters);
+  bli_finalize();
 }
 
-BENCHMARK(Benchmark_Conv2D_Naive)
+BENCHMARK(Benchmark_Conv2D_Yaconv_Prepack)
     ->Unit(benchmark::kMillisecond)
-    ->ReportAggregatesOnly(true)
-    ->Iterations(1)
-    ->Args({1, 64, 56, 56, 128, 3, 3, 1, 1, 1, 1}); // Example: Conv layer
+    ->Args({1, 64, 64, 64, 128, 3, 3, 1, 1, 1, 1}); // Example: Conv layer
 
 BENCHMARK_MAIN();

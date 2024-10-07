@@ -68,8 +68,9 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
   size_t im2col_size = input_channels * filter_height * filter_width *
                        output_height * output_width;
   float *im2col_buffer;
-  if (!pointwise)
-    im2col_buffer = (float *)malloc(im2col_size * sizeof(float));
+  if (!pointwise) {
+    im2col_buffer = (float *)aligned_alloc(4096, im2col_size * sizeof(float));
+  }
 
   // Convolve each batch
   for (int b = 0; b < batch; ++b) {
