@@ -1,104 +1,132 @@
 #!/usr/bin/env python
+import argparse
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 
+
 def pytorch_conv2d(images, filters, padding):
-    # Convert NumPy arrays to PyTorch tensors
-    images_torch = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)  # N, H, W, C -> N, C, H, W
-    filters_torch = torch.tensor(filters, dtype=torch.float32).permute(3, 2, 0, 1)  # FH, FW, C, M -> M, C, FH, FW
+    # (N, H, W, C) -> (N, C, H, W)
+    # (FH, FW, C, M) -> (M, C, FH, FW)
+    images_torch = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)
+    filters_torch = torch.tensor(filters, dtype=torch.float32).permute(3, 2, 0, 1)
 
     # Perform 2D convolution
-    outputs = F.conv2d(images_torch, filters_torch, stride=1, padding=padding)
+    outputs_torch = F.conv2d(images_torch, filters_torch, stride=1, padding=padding)
 
-    # Convert the output tensor back to NumPy array and permute to match the original output shape
-    return outputs.permute(0, 2, 3, 1).numpy()  # N, C_out, H_out, W_out -> N, H_out, W_out, C_out
+    # (N, M, HO, WO) -> (N, HO, WO, M)
+    return outputs_torch.permute(0, 2, 3, 1).numpy()
+
 
 def yaconv_conv2d(images, filters, padding):
-    N,H,W,C = images.shape
-    FH,FW,C,M = filters.shape
-    PH,PW = padding
-    OH = H + 2 * PH - FH + 1;
-    OW = W + 2 * PW - FW + 1;
+    N, H, W, C = images.shape
+    FH, FW, _, M = filters.shape
+    PH, PW = padding
+    OH, OW = H + 2 * PH - FH + 1, W + 2 * PW - FW + 1
 
-    outputs = np.zeros((N,OH,OW,M))
+    outputs = np.zeros((N, OH, OW, M))
+
     for n in range(N):
         # H,W,C -> W,C,H
-        single_image = np.transpose(images[n], (1,2,0))
+        single_image = np.transpose(images[n], (1, 2, 0))
         single_output = outputs[n]
 
         for fh in range(FH):
             for ow in range(OW):
-                # Slice of FW size of image W dimension
-                ow_padding = ow - PW;
-                image_start = ow_padding;
-                image_end = min(W, image_start + FW);
-                if (ow_padding < 0):
-                  image_start = 0;
-                w_slice = image_end - image_start;
-                assert(w_slice > 0)
+                # Calculate width slice indices
+                ow_offset = ow - PW
+                width_start = max(0, ow_offset)
+                width_end = min(W, ow_offset + FW)
+                filter_width_slice = width_end - width_start
 
-                if (ow_padding < 0):
-                  filter = filters[fh, -1 * ow_padding: -1 * ow_padding+w_slice, :, :]
-                  a = np.transpose(np.reshape(filter, ((FW+ow_padding)*C, M)))
+                # Select filter slice
+                if ow_offset < 0:
+                    filter_slice = filters[
+                        fh, -ow_offset : -ow_offset + filter_width_slice, :, :
+                    ]
                 else:
-                  filter = filters[fh, :w_slice, :, :]
-                  # a is (M, FW*C)
-                  a = np.transpose(np.reshape(filter, (w_slice*C, M)))
+                    filter_slice = filters[fh, :filter_width_slice, :, :]
 
-                oh_padding = fh - PH
-                height_start = oh_padding
-                height_end = min(H, height_start+OH)
-                if (height_start < 0):
-                  height_start = 0
-                h_slice = height_end - height_start
+                # Calculate height slice indices
+                height_offset = fh - PH
+                height_start = max(0, height_offset)
+                height_end = min(H, height_offset + OH)
+                height_slice = height_end - height_start
 
-                single_image_slice = single_image[image_start:image_end, :, height_start:height_end]
-                b = np.reshape(single_image_slice, (single_image_slice.shape[0]*single_image_slice.shape[1],single_image_slice.shape[2]))
+                # Select image slice
+                image_slice = single_image[
+                    width_start:width_end, :, height_start:height_end
+                ]
 
-                # b is (FW*C, OH)
-                # print("\nFilter ", a.shape)
-                # print(np.squeeze(a))
-                # print("\nImage ", b.shape)
-                # print(np.squeeze(b))
+                # Perform the convolution
+                flattened_filter = np.transpose(
+                    np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
+                )
+                flattened_image = np.reshape(image_slice, (-1, image_slice.shape[-1]))
+                result = np.transpose(np.matmul(flattened_filter, flattened_image))
 
-                c = np.transpose(np.matmul(a,b))
-
-                # print("\nC ", c.shape)
-                # print(np.squeeze(c))
-                # print(height_start, height_end)
-
-                if (oh_padding < 0):
-                    single_output[-1 * oh_padding: -1 * oh_padding+h_slice, ow, :] += c
+                # Place the result in the output matrix
+                if height_offset < 0:
+                    single_output[
+                        -height_offset : -height_offset + height_slice, ow, :
+                    ] += result
                 else:
-                    single_output[:h_slice, ow, :] += c
+                    single_output[:height_slice, ow, :] += result
 
-                # print("\nOutput ", single_output.shape)
-                # print(np.squeeze(single_output))
     return outputs
 
 
 if __name__ == "__main__":
-    # N,H,W,C = 1,3,3,1
-    # FH,FW,M = 2,2,1
-    # PH, PW = 0,0
-    # images = np.reshape(np.arange(1, N*H*W*C+1),(N,H,W,C))
-    # filters = np.reshape(np.arange(1, FH*FW*C*M+1),(FH,FW,C,M))
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="Perform 2D convolution with a simplified version of Yaconv."
+    )
 
-    N,H,W,C = 2,16,16,3
-    FH,FW,M = 3,3,8
-    PH, PW = 1,1
-    images = np.random.rand(N,H,W,C)
-    filters = np.random.rand(FH,FW,C,M)
+    # Image parameters
+    parser.add_argument(
+        "--N", type=int, default=2, help="Number of images (batch size)"
+    )
+    parser.add_argument("--H", type=int, default=56, help="Height of images")
+    parser.add_argument("--W", type=int, default=56, help="Width of images")
+    parser.add_argument("--C", type=int, default=3, help="Number of channels in images")
 
-    # print("images\n", images)
-    # print("\nfilters\n", filters)
+    # Filter parameters
+    parser.add_argument("--FH", type=int, default=3, help="Height of filters")
+    parser.add_argument("--FW", type=int, default=3, help="Width of filters")
+    parser.add_argument(
+        "--M", type=int, default=8, help="Number of filters (output channels)"
+    )
 
-    pytorch_output = pytorch_conv2d(images, filters, padding=(PH, PW))
-    yaconv_output = yaconv_conv2d(images, filters, padding=(PH, PW))
+    # Padding
+    parser.add_argument("--PH", type=int, default=1, help="Padding height")
+    parser.add_argument("--PW", type=int, default=1, help="Padding width")
 
+    # Seed for reproducibility
+    parser.add_argument(
+        "--seed", type=int, default=None, help="Random seed for reproducibility"
+    )
+
+    args = parser.parse_args()
+
+    # Set random seed if provided
+    if args.seed is not None:
+        np.random.seed(args.seed)
+
+    # Create random images and filters
+    images = np.random.rand(args.N, args.H, args.W, args.C)
+    filters = np.random.rand(args.FH, args.FW, args.C, args.M)
+
+    # Print configurations (optional, can be commented out)
+    print(f"Images: {images.shape}")
+    print(f"Filters: {filters.shape}")
+
+    # Perform convolution with both implementations
+    pytorch_output = pytorch_conv2d(images, filters, padding=(args.PH, args.PW))
+    yaconv_output = yaconv_conv2d(images, filters, padding=(args.PH, args.PW))
+
+    # Compare results
     if np.allclose(pytorch_output, yaconv_output):
         print("✅ Yaconv and Torch match")
     else:
         print("❌ Yaconv and Torch differ")
-
