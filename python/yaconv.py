@@ -30,49 +30,54 @@ def yaconv_conv2d(images, filters, padding):
     for n in range(N):
         # H,W,C -> W,C,H
         single_image = np.transpose(images[n], (1, 2, 0))
+        # OH,OW,M
         single_output = outputs[n]
 
         for fh in range(FH):
             for ow in range(OW):
-                # Calculate width slice indices
+                # Calculate width slice of size FW and handle edge cases
                 ow_offset = ow - PW
                 width_start = max(0, ow_offset)
                 width_end = min(W, ow_offset + FW)
                 filter_width_slice = width_end - width_start
 
-                # Select filter slice
+                # Filter is FH,FW,C,M
+                # Select filter slice of size 1,FW,C,M
                 if ow_offset < 0:
-                    filter_slice = filters[
-                        fh, -ow_offset : -ow_offset + filter_width_slice, :, :
-                    ]
+                    filter_slice = filters[fh, -ow_offset : -ow_offset + filter_width_slice, :, :]
                 else:
                     filter_slice = filters[fh, :filter_width_slice, :, :]
 
-                # Calculate height slice indices
+                # Calculate height slice of size OH and handle edge cases
                 height_offset = fh - PH
                 height_start = max(0, height_offset)
                 height_end = min(H, height_offset + OH)
                 height_slice = height_end - height_start
 
-                # Select image slice
-                image_slice = single_image[
-                    width_start:width_end, :, height_start:height_end
-                ]
+                # Single image is W,C,H
+                # Select image slice of size FW,C,OH
+                image_slice = single_image[width_start:width_end, :, height_start:height_end]
 
-                # Perform the convolution
+                # Flattened filter: 1,FW,C,M -> M,FWxC
                 flattened_filter = np.transpose(
                     np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
                 )
+                # Flattened image: FW,C,OH -> FWxC,OH
                 flattened_image = np.reshape(image_slice, (-1, image_slice.shape[-1]))
+                # Results is M,OH, then, transposed to OH,M
                 result = np.transpose(np.matmul(flattened_filter, flattened_image))
 
-                # Place the result in the output matrix
+                # Single output is OH,OW,M
+                # Select output slice of size OH,1,M and handle edge cases
                 if height_offset < 0:
-                    single_output[
+                    output_slice = single_output[
                         -height_offset : -height_offset + height_slice, ow, :
-                    ] += result
+                    ]
                 else:
-                    single_output[:height_slice, ow, :] += result
+                    output_slice = single_output[:height_slice, ow, :]
+
+                # Place the result in the output matrix
+                output_slice += result
 
     return outputs
 
@@ -84,9 +89,7 @@ if __name__ == "__main__":
     )
 
     # Image parameters
-    parser.add_argument(
-        "--N", type=int, default=2, help="Number of images (batch size)"
-    )
+    parser.add_argument("--N", type=int, default=2, help="Number of images (batch size)")
     parser.add_argument("--H", type=int, default=56, help="Height of images")
     parser.add_argument("--W", type=int, default=56, help="Width of images")
     parser.add_argument("--C", type=int, default=3, help="Number of channels in images")
@@ -94,18 +97,14 @@ if __name__ == "__main__":
     # Filter parameters
     parser.add_argument("--FH", type=int, default=3, help="Height of filters")
     parser.add_argument("--FW", type=int, default=3, help="Width of filters")
-    parser.add_argument(
-        "--M", type=int, default=8, help="Number of filters (output channels)"
-    )
+    parser.add_argument("--M", type=int, default=8, help="Number of filters (output channels)")
 
     # Padding
     parser.add_argument("--PH", type=int, default=1, help="Padding height")
     parser.add_argument("--PW", type=int, default=1, help="Padding width")
 
     # Seed for reproducibility
-    parser.add_argument(
-        "--seed", type=int, default=None, help="Random seed for reproducibility"
-    )
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
 
     args = parser.parse_args()
 
