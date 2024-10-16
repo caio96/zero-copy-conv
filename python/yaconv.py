@@ -28,8 +28,8 @@ def yaconv_conv2d(images, filters, padding):
     outputs = np.zeros((N, OH, OW, M))
 
     for n in range(N):
-        # H,W,C -> W,C,H
-        single_image = np.transpose(images[n], (1, 2, 0))
+        # H,W,C
+        single_image = images[n]
         # OH,OW,M
         single_output = outputs[n]
 
@@ -54,18 +54,16 @@ def yaconv_conv2d(images, filters, padding):
                 height_end = min(H, height_offset + OH)
                 height_slice = height_end - height_start
 
-                # Single image is W,C,H
-                # Select image slice of size FW,C,OH
-                image_slice = single_image[width_start:width_end, :, height_start:height_end]
+                # Single image is H,W,C
+                # Select image slice of size OH,FW,C
+                image_slice = single_image[height_start:height_end, width_start:width_end, :]
 
-                # Flattened filter: 1,FW,C,M -> M,FWxC
-                flattened_filter = np.transpose(
-                    np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
-                )
-                # Flattened image: FW,C,OH -> FWxC,OH
-                flattened_image = np.reshape(image_slice, (-1, image_slice.shape[-1]))
-                # Results is M,OH, then, transposed to OH,M
-                result = np.transpose(np.matmul(flattened_filter, flattened_image))
+                # Flattened filter: 1,FW,C,M -> FWxC,M
+                flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
+                # Flattened image: OH,FW,C -> OH,FWxC
+                flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
+                # Results OH,M
+                result = np.matmul(flattened_image, flattened_filter)
 
                 # Single output is OH,OW,M
                 # Select output slice of size OH,1,M and handle edge cases
