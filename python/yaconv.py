@@ -27,55 +27,52 @@ def yaconv_conv2d(images, filters, padding):
 
     outputs = np.zeros((N, OH, OW, M))
 
-    for n in range(N):
-        # H,W,C
-        single_image = images[n]
-        # OH,OW,M
-        single_output = outputs[n]
+    for fh in range(FH):
+        for ow in range(OW):
+            # Calculate width slice of size FW and handle edge cases
+            ow_offset = ow - PW
+            width_start = max(0, ow_offset)
+            width_end = min(W, ow_offset + FW)
+            filter_width_slice = width_end - width_start
 
-        for fh in range(FH):
-            for ow in range(OW):
-                # Calculate width slice of size FW and handle edge cases
-                ow_offset = ow - PW
-                width_start = max(0, ow_offset)
-                width_end = min(W, ow_offset + FW)
-                filter_width_slice = width_end - width_start
+            # Filter is FH,FW,C,M
+            # Select filter slice of size 1,FW,C,M
+            if ow_offset < 0:
+                filter_slice = filters[fh, -ow_offset : -ow_offset + filter_width_slice, :, :]
+            else:
+                filter_slice = filters[fh, :filter_width_slice, :, :]
 
-                # Filter is FH,FW,C,M
-                # Select filter slice of size 1,FW,C,M
-                if ow_offset < 0:
-                    filter_slice = filters[fh, -ow_offset : -ow_offset + filter_width_slice, :, :]
-                else:
-                    filter_slice = filters[fh, :filter_width_slice, :, :]
+            # Calculate height slice of size OH and handle edge cases
+            height_offset = fh - PH
+            height_start = max(0, height_offset)
+            height_end = min(H, height_offset + OH)
+            height_slice = height_end - height_start
 
-                # Calculate height slice of size OH and handle edge cases
-                height_offset = fh - PH
-                height_start = max(0, height_offset)
-                height_end = min(H, height_offset + OH)
-                height_slice = height_end - height_start
+            # Image is N,H,W,C
+            # Select image slice of size N,OH,FW,C
+            image_slice = images[:, height_start:height_end, width_start:width_end, :]
 
-                # Single image is H,W,C
-                # Select image slice of size OH,FW,C
-                image_slice = single_image[height_start:height_end, width_start:width_end, :]
+            # Flattened filter: 1,FW,C,M -> FWxC,M
+            flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
+            # Flattened image: N,OH,FW,C -> NxOH,FWxC
+            flattened_image = np.reshape(
+                image_slice, (image_slice.shape[0] * image_slice.shape[1], -1)
+            )
+            # Results: NxOH,M -> N,OH,M
+            result = np.reshape(
+                np.matmul(flattened_image, flattened_filter),
+                (N, image_slice.shape[1], filter_slice.shape[-1]),
+            )
 
-                # Flattened filter: 1,FW,C,M -> FWxC,M
-                flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
-                # Flattened image: OH,FW,C -> OH,FWxC
-                flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
-                # Results OH,M
-                result = np.matmul(flattened_image, flattened_filter)
+            # Output is N,OH,OW,M
+            # Select output slice of size N,OH,1,M and handle edge cases
+            if height_offset < 0:
+                output_slice = outputs[:, -height_offset : -height_offset + height_slice, ow, :]
+            else:
+                output_slice = outputs[:, :height_slice, ow, :]
 
-                # Single output is OH,OW,M
-                # Select output slice of size OH,1,M and handle edge cases
-                if height_offset < 0:
-                    output_slice = single_output[
-                        -height_offset : -height_offset + height_slice, ow, :
-                    ]
-                else:
-                    output_slice = single_output[:height_slice, ow, :]
-
-                # Place the result in the output matrix
-                output_slice += result
+            # Place the result in the output matrix
+            output_slice += result
 
     return outputs
 
