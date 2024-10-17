@@ -27,7 +27,20 @@ def yaconv_conv2d(images, filters, padding):
 
     outputs = np.zeros((N, OH, OW, M))
 
+    # print("\nAll image ", images.shape)
+    # print(np.squeeze(images))
+    #
+    # print("\nAll filters ", filters.shape)
+    # print(np.squeeze(filters))
+
     for fh in range(FH):
+
+        # Calculate height slice of size OH and handle edge cases
+        height_offset = fh - PH
+        height_start = max(0, height_offset)
+        height_end = min(H, height_offset + OH)
+        height_slice = height_end - height_start
+
         for ow in range(OW):
             # Calculate width slice of size FW and handle edge cases
             ow_offset = ow - PW
@@ -42,12 +55,6 @@ def yaconv_conv2d(images, filters, padding):
             else:
                 filter_slice = filters[fh, :filter_width_slice, :, :]
 
-            # Calculate height slice of size OH and handle edge cases
-            height_offset = fh - PH
-            height_start = max(0, height_offset)
-            height_end = min(H, height_offset + OH)
-            height_slice = height_end - height_start
-
             # Image is N,H,W,C
             # Select image slice of size N,OH,FW,C
             image_slice = images[:, height_start:height_end, width_start:width_end, :]
@@ -58,11 +65,20 @@ def yaconv_conv2d(images, filters, padding):
             flattened_image = np.reshape(
                 image_slice, (image_slice.shape[0] * image_slice.shape[1], -1)
             )
+
+            # print("\nImage ", flattened_image.shape)
+            # print(np.squeeze(flattened_image))
+            # print("\nFilter ", flattened_filter.shape)
+            # print(np.squeeze(flattened_filter))
+
             # Results: NxOH,M -> N,OH,M
             result = np.reshape(
                 np.matmul(flattened_image, flattened_filter),
                 (N, image_slice.shape[1], filter_slice.shape[-1]),
             )
+
+            # print("\nResult ", result.shape)
+            # print(np.squeeze(result))
 
             # Output is N,OH,OW,M
             # Select output slice of size N,OH,1,M and handle edge cases
@@ -73,6 +89,9 @@ def yaconv_conv2d(images, filters, padding):
 
             # Place the result in the output matrix
             output_slice += result
+
+            # print("\nOutput Slice ", output_slice.shape)
+            # print(np.squeeze(output_slice))
 
     return outputs
 
@@ -110,6 +129,14 @@ if __name__ == "__main__":
     # Create random images and filters
     images = np.random.rand(args.N, args.H, args.W, args.C)
     filters = np.random.rand(args.FH, args.FW, args.C, args.M)
+
+    # # Create images and filters with values from 1 to their size
+    # images = np.arange(1, args.N * args.H * args.W * args.C + 1).reshape(
+    #     args.N, args.H, args.W, args.C
+    # )
+    # filters = np.arange(1, args.FH * args.FW * args.C * args.M + 1).reshape(
+    #     args.FH, args.FW, args.C, args.M
+    # )
 
     # Print configurations (optional, can be commented out)
     print(f"Images: {images.shape}")
