@@ -25,7 +25,7 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int padding_width, int stride_h, int stride_w);
 
 extern "C" void
-conv_2d_yaconv_naive(float *__restrict__ input, float *__restrict__ output,
+conv_2d_yaconv_var1(float *__restrict__ input, float *__restrict__ output,
                      float *__restrict__ filters, int batch, int input_height,
                      int input_width, int input_channels, int filter_height,
                      int filter_width, int output_channels, int padding_height,
@@ -110,7 +110,7 @@ int main() {
                  input_width, input_channels, filter_height, filter_width,
                  output_channels, padding_height, padding_width, stride_h,
                  stride_w);
-  conv_2d_yaconv_naive(input_NHWC, output_naive_yaconv, filters_HWIO, batch,
+  conv_2d_yaconv_var1(input_NHWC, output_naive_yaconv, filters_HWIO, batch,
                        input_height, input_width, input_channels, filter_height,
                        filter_width, output_channels, padding_height,
                        padding_width, stride_h, stride_w);
