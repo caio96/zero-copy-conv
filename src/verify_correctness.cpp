@@ -24,6 +24,13 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int filter_width, int output_channels, int padding_height,
                int padding_width, int stride_h, int stride_w);
 
+extern "C" void
+conv_2d_yaconv_naive(float *__restrict__ input, float *__restrict__ output,
+                     float *__restrict__ filters, int batch, int input_height,
+                     int input_width, int input_channels, int filter_height,
+                     int filter_width, int output_channels, int padding_height,
+                     int padding_width, int stride_h, int stride_w);
+
 bool almost_equal(float a, float b) { return std::fabs(a - b) < (0.125); }
 
 // Helper function to compare two arrays element-wise
@@ -42,15 +49,15 @@ bool compare_outputs(float *output1, float *output2, size_t size) {
 
 int main() {
   // Convolution test parameters
-  int batch = 2;
-  int input_channels = 64;
-  int input_height = 56;
-  int input_width = 56;
-  int output_channels = 128;
-  int filter_height = 3;
-  int filter_width = 3;
-  int padding_height = 1;
-  int padding_width = 1;
+  int batch = 1;
+  int input_channels = 1;
+  int input_height = 3;
+  int input_width = 3;
+  int output_channels = 2;
+  int filter_height = 2;
+  int filter_width = 2;
+  int padding_height = 0;
+  int padding_width = 0;
   int stride_h = 1;
   int stride_w = 1;
 
@@ -79,6 +86,7 @@ int main() {
   float *output_naive_NHWC = new float[output_size];
   float *output_im2col = new float[output_size];
   float *output_yaconv = new float[output_size];
+  float *output_naive_yaconv = new float[output_size];
 
   // Initialize input and filters with random values
   initialize_data(input_NCHW, input_size);
@@ -102,6 +110,10 @@ int main() {
                  input_width, input_channels, filter_height, filter_width,
                  output_channels, padding_height, padding_width, stride_h,
                  stride_w);
+  conv_2d_yaconv_naive(input_NHWC, output_naive_yaconv, filters_HWIO, batch,
+                       input_height, input_width, input_channels, filter_height,
+                       filter_width, output_channels, padding_height,
+                       padding_width, stride_h, stride_w);
 
   // Verify if the Im2col output match
   bool is_correct =
@@ -124,6 +136,22 @@ int main() {
     std::cout << "Yaconv produces a different output!" << std::endl;
   }
 
+  // Verify if the Yaconv output match
+  is_correct =
+      compare_outputs(output_naive_NHWC, output_naive_yaconv, output_size);
+  if (is_correct) {
+    std::cout << "Yaconv naive produces the same output." << std::endl;
+  } else {
+    std::cout << "Yaconv naive produces a different output!" << std::endl;
+  }
+
+  std::cout << "Ref output:" << std::endl;
+  print_tensor_NHWC(output_naive_NHWC, batch, output_channels, output_height,
+                    output_width);
+  std::cout << "Yaconv naive output:" << std::endl;
+  print_tensor_NHWC(output_naive_yaconv, batch, output_channels, output_height,
+                    output_width);
+
   // Clean up
   delete[] input_NCHW;
   delete[] input_NHWC;
@@ -132,6 +160,7 @@ int main() {
   delete[] output_naive_NCHW;
   delete[] output_im2col;
   delete[] output_yaconv;
+  delete[] output_naive_yaconv;
   delete[] output_naive_NHWC;
   bli_finalize();
 }

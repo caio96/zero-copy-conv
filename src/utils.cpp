@@ -5,6 +5,7 @@
 void initialize_data(float *data, size_t size) {
   for (size_t i = 0; i < size; ++i) {
     data[i] = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    // data[i] = static_cast<float>(i + 1);
   }
 }
 
