@@ -49,15 +49,15 @@ bool compare_outputs(float *output1, float *output2, size_t size) {
 
 int main() {
   // Convolution test parameters
-  int batch = 1;
-  int input_channels = 1;
-  int input_height = 3;
-  int input_width = 3;
-  int output_channels = 2;
-  int filter_height = 2;
-  int filter_width = 2;
-  int padding_height = 0;
-  int padding_width = 0;
+  int batch = 2;
+  int input_channels = 64;
+  int input_height = 56;
+  int input_width = 56;
+  int output_channels = 128;
+  int filter_height = 3;
+  int filter_width = 3;
+  int padding_height = 1;
+  int padding_width = 1;
   int stride_h = 1;
   int stride_w = 1;
 
