@@ -22,7 +22,7 @@ void conv_2d_yaconv_naive(float *__restrict__ input, float *__restrict__ output,
 
   float *a, *b, *c;
   float *image_buffer =
-      (float *)aligned_alloc(4096, OH * W * C * sizeof(float));
+      (float *)aligned_alloc(4096, OH * FW * C * sizeof(float));
   float *output_buffer =
       (float *)aligned_alloc(4096, OW * OH * M * sizeof(float));
 
@@ -42,22 +42,6 @@ void conv_2d_yaconv_naive(float *__restrict__ input, float *__restrict__ output,
       int height_end = bli_min(H, height_offset + OH);
       int height_slice = height_end - height_start;
 
-      // Copy input slice to image buffer
-      for (int h = height_start, h_buf=0; h < height_end; ++h, ++h_buf) {
-        for (int w = 0; w < W; ++w) {
-          for (int c = 0; c < C; ++c) {
-            image_buffer[h_buf * W * C + w * C + c] =
-                single_input[h * W * C + w * C + c];
-          }
-        }
-      }
-
-      // printf("Height start: %d\n", height_start);
-      // printf("Height end: %d\n", height_end);
-      // printf("input buffer\n");
-      // print_matrix(image_buffer, OH, W);
-      // printf("\n");
-
       // For every output width element
       for (int ow = 0; ow < OW; ++ow) {
 
@@ -74,8 +58,18 @@ void conv_2d_yaconv_naive(float *__restrict__ input, float *__restrict__ output,
           b = &filters[fh * FW * C * M];
         }
 
+        // Copy input slice to image buffer
+        int buf_index = 0;
+        for (int h = height_start; h < height_end; ++h) {
+          for (int w = width_start; w < width_end; ++w) {
+            for (int c = 0; c < C; ++c) {
+              image_buffer[buf_index++] = single_input[h * W * C + w * C + c];
+            }
+          }
+        }
+
         // Start of the image block of size OH,FW,C
-        a = &image_buffer[width_start * C];
+        a = image_buffer;
 
         // Start of the output block of size 1,OH,M
         if (height_offset < 0) {
@@ -90,25 +84,8 @@ void conv_2d_yaconv_naive(float *__restrict__ input, float *__restrict__ output,
         float alpha = 1.0f;
         float beta = 1.0f;
 
-        // printf("A\n");
-        // print_matrix(a, M_dim, K_dim);
-        // printf("\n");
-        //
-        // printf("B\n");
-        // print_matrix(b, K_dim, N_dim);
-        // printf("\n");
-        //
-        // printf("C\n");
-        // print_matrix(c, M_dim, N_dim);
-        // printf("\n");
-
-        // TODO: transpose A
         bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M_dim, N_dim, K_dim,
-                  &alpha, a, W * C, 1, b, N_dim, 1, &beta, c, N, 1);
-
-        // printf("Output\n");
-        // print_matrix(output_buffer, OW, OH);
-        // printf("\n");
+                  &alpha, a, K_dim, 1, b, N_dim, 1, &beta, c, N_dim, 1);
       }
     }
 
@@ -116,7 +93,8 @@ void conv_2d_yaconv_naive(float *__restrict__ input, float *__restrict__ output,
     for (int oh = 0; oh < OH; ++oh) {
       for (int ow = 0; ow < OW; ++ow) {
         for (int m = 0; m < M; ++m) {
-          output[n * OH * OW * M + oh * OW * M + ow * M + m] = output_buffer[ow * OH * M + oh * M + m];
+          output[n * OH * OW * M + oh * OW * M + ow * M + m] =
+              output_buffer[ow * OH * M + oh * M + m];
         }
       }
     }

@@ -89,13 +89,13 @@ int main() {
   float *output_naive_yaconv = new float[output_size];
 
   // Initialize input and filters with random values
-  initialize_data(input_NCHW, input_size);
-  initialize_data(filters_OIHW, filter_size);
+  initialize_data(input_NHWC, input_size);
+  initialize_data(filters_HWIO, filter_size);
 
   // Convert input, filters
-  NCHW_to_NHWC(input_NCHW, input_NHWC, batch, input_channels, input_height,
+  NHWC_to_NCHW(input_NHWC, input_NCHW, batch, input_channels, input_height,
                input_width);
-  OIHW_to_HWIO(filters_OIHW, filters_HWIO, output_channels, input_channels,
+  HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels, input_channels,
                filter_height, filter_width);
 
   conv_2d_naive(input_NCHW, output_naive_NCHW, filters_OIHW, batch,
@@ -145,12 +145,12 @@ int main() {
     std::cout << "Yaconv naive produces a different output!" << std::endl;
   }
 
-  std::cout << "Ref output:" << std::endl;
-  print_tensor_NHWC(output_naive_NHWC, batch, output_channels, output_height,
-                    output_width);
-  std::cout << "Yaconv naive output:" << std::endl;
-  print_tensor_NHWC(output_naive_yaconv, batch, output_channels, output_height,
-                    output_width);
+  // std::cout << "Ref output:" << std::endl;
+  // print_tensor_NHWC(output_naive_NHWC, batch, output_channels, output_height,
+  //                   output_width);
+  // std::cout << "Yaconv naive output:" << std::endl;
+  // print_tensor_NHWC(output_naive_yaconv, batch, output_channels, output_height,
+  //                   output_width);
 
   // Clean up
   delete[] input_NCHW;
