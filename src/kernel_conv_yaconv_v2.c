@@ -12,7 +12,7 @@ void print_matrix(float *matrix, int rows, int cols) {
 
 // Input is in NHWC format
 // Filters are in HWIO format
-void conv_2d_yaconv_var1(float *__restrict__ input, float *__restrict__ output,
+void conv_2d_yaconv_v2_var1(float *__restrict__ input, float *__restrict__ output,
                          float *__restrict__ filters, int N, int H, int W,
                          int C, int FH, int FW, int M, int PH, int PW, int SH,
                          int SW) {
@@ -108,7 +108,7 @@ void conv_2d_yaconv_var1(float *__restrict__ input, float *__restrict__ output,
 
 // Input is in NHWC format
 // Filters are in HWIO format
-void conv_2d_yaconv_var2(float *__restrict__ input, float *__restrict__ output,
+void conv_2d_yaconv_v2_var2(float *__restrict__ input, float *__restrict__ output,
                          float *__restrict__ filters, int N, int H, int W,
                          int C, int FH, int FW, int M, int PH, int PW, int SH,
                          int SW) {

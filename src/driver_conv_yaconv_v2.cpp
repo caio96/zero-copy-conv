@@ -3,13 +3,13 @@
 #include <benchmark/benchmark.h>
 
 extern "C" void
-conv_2d_yaconv_var1(float *__restrict__ input, float *__restrict__ output,
+conv_2d_yaconv_v2_var1(float *__restrict__ input, float *__restrict__ output,
                      float *__restrict__ filters, int batch, int input_height,
                      int input_width, int input_channels, int filter_height,
                      int filter_width, int output_channels, int padding_height,
                      int padding_width, int stride_h, int stride_w);
 
-static void Benchmark_Conv2D_Yaconv_Naive(benchmark::State &state) {
+static void Benchmark_Conv2D_Yaconv_V2(benchmark::State &state) {
   // Convolution parameters
   int batch = state.range(0);
   int input_channels = state.range(1);
@@ -48,7 +48,7 @@ static void Benchmark_Conv2D_Yaconv_Naive(benchmark::State &state) {
   initialize_data(filters, filter_size);
 
   for (auto _ : state) {
-    conv_2d_yaconv_var1(input, output, filters, batch, input_height,
+    conv_2d_yaconv_v2_var1(input, output, filters, batch, input_height,
                          input_width, input_channels, filter_height,
                          filter_width, output_channels, padding_height,
                          padding_width, stride_h, stride_w);
@@ -61,7 +61,7 @@ static void Benchmark_Conv2D_Yaconv_Naive(benchmark::State &state) {
   bli_finalize();
 }
 
-BENCHMARK(Benchmark_Conv2D_Yaconv_Naive)
+BENCHMARK(Benchmark_Conv2D_Yaconv_V2)
     ->Unit(benchmark::kMillisecond)
     ->Args({1, 64, 64, 64, 128, 3, 3, 1, 1, 1, 1}); // Example: Conv layer
 
