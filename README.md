@@ -35,4 +35,4 @@ cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
 make
 ```
 
-- To run benchmarks, run the executables `benchmark_im2col`, `benchmark_naive`, `benchmark_yaconv`, and `correctness`
+- To run benchmarks, run the executables `benchmark_[conv version name]` and `correctness`
