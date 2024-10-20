@@ -38,7 +38,10 @@ def yaconv_conv2d(images, filters, padding, stride):
 
         # Calculate height slice of size OH and handle edge cases
         height_offset = fh - PH
-        height_start = max(0, height_offset)
+        if height_offset < 0:
+            height_start = max(0, height_offset%SH)
+        else:
+            height_start = max(0, fh - PH)
         height_end = min(H, height_offset + OH * SH)
         height_slice = math.ceil((height_end - height_start) / SH)
 
@@ -46,7 +49,8 @@ def yaconv_conv2d(images, filters, padding, stride):
             continue
 
         # print height variables
-        # print(f"\nHeight Offset: {height_offset}")
+        # print(f"\nFilter Height: {fh} ----------------")
+        # print(f"Height Offset: {height_offset}")
         # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
 
         for ow in range(OW):
@@ -69,13 +73,6 @@ def yaconv_conv2d(images, filters, padding, stride):
 
             # Image is N,H,W,C
             # Select image slice of size N,OH,FW,C
-            # if height_offset < 0:
-            #     print("Height start: ", height_start-height_offset)
-            #     print("Height end: ", height_end-height_offset)
-            #     image_slice = images[:, height_start-height_offset:height_end-height_offset:SH, width_start:width_end, :]
-            # else:
-            # print("Height start: ", height_start)
-            # print("Height end: ", height_end)
             image_slice = images[:, height_start:height_end:SH, width_start:width_end, :]
 
             # Flattened filter: 1,FW,C,M -> FWxC,M
