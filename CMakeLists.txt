@@ -56,7 +56,7 @@ add_executable(benchmark_yaconv_v2
 )
 target_include_directories(benchmark_yaconv_v2 PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(benchmark_yaconv_v2 PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(benchmark_yaconv_v2 benchmark::benchmark pthread ${BLIS_LIBRARY})
+target_link_libraries(benchmark_yaconv_v2 benchmark::benchmark pthread ${BLIS_LIBRARY} m)
 # set_target_properties(benchmark_yaconv_v2 PROPERTIES COMPILE_FLAGS "-O3 -march=native -g -gdwarf-4")
 set_target_properties(benchmark_yaconv_v2 PROPERTIES COMPILE_FLAGS "-O3 -march=native")
 
