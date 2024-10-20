@@ -1,63 +1,82 @@
 #!/usr/bin/env python
 import argparse
+import math
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 
-def pytorch_conv2d(images, filters, padding):
+def pytorch_conv2d(images, filters, padding, stride):
     # (N, H, W, C) -> (N, C, H, W)
     # (FH, FW, C, M) -> (M, C, FH, FW)
     images_torch = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)
     filters_torch = torch.tensor(filters, dtype=torch.float32).permute(3, 2, 0, 1)
 
     # Perform 2D convolution
-    outputs_torch = F.conv2d(images_torch, filters_torch, stride=1, padding=padding)
+    outputs_torch = F.conv2d(images_torch, filters_torch, stride=stride, padding=padding)
 
     # (N, M, HO, WO) -> (N, HO, WO, M)
     return outputs_torch.permute(0, 2, 3, 1).numpy()
 
-
-def yaconv_conv2d(images, filters, padding):
+def yaconv_conv2d(images, filters, padding, stride):
     N, H, W, C = images.shape
     FH, FW, _, M = filters.shape
     PH, PW = padding
-    OH, OW = H + 2 * PH - FH + 1, W + 2 * PW - FW + 1
+    SH, SW = stride
+    OH, OW = (H + 2 * PH - FH) // SH + 1, (W + 2 * PW - FW) // SW + 1
 
     outputs = np.zeros((N, OH, OW, M))
 
     # print("\nAll image ", images.shape)
     # print(np.squeeze(images))
-    #
     # print("\nAll filters ", filters.shape)
     # print(np.squeeze(filters))
+    # print(f"\nOutput shape: {outputs.shape}")
 
     for fh in range(FH):
 
         # Calculate height slice of size OH and handle edge cases
         height_offset = fh - PH
         height_start = max(0, height_offset)
-        height_end = min(H, height_offset + OH)
-        height_slice = height_end - height_start
+        height_end = min(H, height_offset + OH * SH)
+        height_slice = math.ceil((height_end - height_start) / SH)
+
+        if height_slice <= 0:
+            continue
+
+        # print height variables
+        # print(f"\nHeight Offset: {height_offset}")
+        # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
 
         for ow in range(OW):
             # Calculate width slice of size FW and handle edge cases
-            ow_offset = ow - PW
-            width_start = max(0, ow_offset)
-            width_end = min(W, ow_offset + FW)
+            # ow_offset = ow - PW
+            iw = ow * SW - PW
+            width_start = max(0, iw)
+            width_end = min(W, iw + FW)
             filter_width_slice = width_end - width_start
+
+            if filter_width_slice <= 0:
+                continue
 
             # Filter is FH,FW,C,M
             # Select filter slice of size 1,FW,C,M
-            if ow_offset < 0:
-                filter_slice = filters[fh, -ow_offset : -ow_offset + filter_width_slice, :, :]
+            if iw < 0:
+                filter_slice = filters[fh, -iw : -iw + filter_width_slice, :, :]
             else:
                 filter_slice = filters[fh, :filter_width_slice, :, :]
 
             # Image is N,H,W,C
             # Select image slice of size N,OH,FW,C
-            image_slice = images[:, height_start:height_end, width_start:width_end, :]
+            # if height_offset < 0:
+            #     print("Height start: ", height_start-height_offset)
+            #     print("Height end: ", height_end-height_offset)
+            #     image_slice = images[:, height_start-height_offset:height_end-height_offset:SH, width_start:width_end, :]
+            # else:
+            # print("Height start: ", height_start)
+            # print("Height end: ", height_end)
+            image_slice = images[:, height_start:height_end:SH, width_start:width_end, :]
 
             # Flattened filter: 1,FW,C,M -> FWxC,M
             flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
@@ -92,6 +111,8 @@ def yaconv_conv2d(images, filters, padding):
 
             # print("\nOutput Slice ", output_slice.shape)
             # print(np.squeeze(output_slice))
+            # print("\nOutput", outputs.shape)
+            # print(np.squeeze(outputs))
 
     return outputs
 
@@ -116,6 +137,10 @@ if __name__ == "__main__":
     # Padding
     parser.add_argument("--PH", type=int, default=1, help="Padding height")
     parser.add_argument("--PW", type=int, default=1, help="Padding width")
+
+    # Stride
+    parser.add_argument("--SH", type=int, default=1, help="Stride height")
+    parser.add_argument("--SW", type=int, default=1, help="Stride width")
 
     # Seed for reproducibility
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
@@ -143,8 +168,12 @@ if __name__ == "__main__":
     print(f"Filters: {filters.shape}")
 
     # Perform convolution with both implementations
-    pytorch_output = pytorch_conv2d(images, filters, padding=(args.PH, args.PW))
-    yaconv_output = yaconv_conv2d(images, filters, padding=(args.PH, args.PW))
+    pytorch_output = pytorch_conv2d(
+        images, filters, padding=(args.PH, args.PW), stride=(args.SH, args.SW)
+    )
+    yaconv_output = yaconv_conv2d(
+        images, filters, padding=(args.PH, args.PW), stride=(args.SH, args.SW)
+    )
 
     # Compare results
     if np.allclose(pytorch_output, yaconv_output):
