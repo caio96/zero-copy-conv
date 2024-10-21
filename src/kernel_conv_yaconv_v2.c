@@ -24,15 +24,13 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input, float *__restrict__ outpu
   float *a, *b, *c;
   float *image_buffer =
       (float *)aligned_alloc(4096, OH * FW * C * sizeof(float));
-  float *output_buffer =
-      (float *)aligned_alloc(4096, OW * OH * M * sizeof(float));
+
+  // Initialize output to zeros
+  bli_ssetv(BLIS_NO_CONJUGATE,N * OH * OW * M, bli_s0, output, 1);
 
   // For every batch element
   for (int n = 0; n < N; ++n) {
     float *single_input = &input[n * H * W * C];
-
-    // Initialize output to zeros
-    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, output_buffer, 1);
 
     // For every element in the filter height
     for (int fh = 0; fh < FH; ++fh) {
@@ -93,9 +91,9 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input, float *__restrict__ outpu
         // Start of the output block of size 1,OH,M
         if (height_offset < 0) {
           int offset = floorf(height_offset/(float)SH);
-          c = &output_buffer[ow * OH * M - offset * M];
+          c = &output[n*OH*OW*M + ow * OH * M - offset * M];
         } else {
-          c = &output_buffer[ow * OH * M];
+          c = &output[n*OH*OW*M + ow * OH * M];
         }
 
         int M_dim = height_slice;
@@ -114,21 +112,10 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input, float *__restrict__ outpu
                   &alpha, a, K_dim, 1, b, N_dim, 1, &beta, c, N_dim, 1);
       }
     }
-
-    // Copy output buffer to output
-    for (int oh = 0; oh < OH; ++oh) {
-      for (int ow = 0; ow < OW; ++ow) {
-        for (int m = 0; m < M; ++m) {
-          output[n * OH * OW * M + oh * OW * M + ow * M + m] =
-              output_buffer[ow * OH * M + oh * M + m];
-        }
-      }
-    }
   }
 
   // Deallocate the image buffer
   free(image_buffer);
-  free(output_buffer);
 }
 
 

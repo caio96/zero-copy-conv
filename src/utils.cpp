@@ -56,6 +56,21 @@ void yaconv_to_NHWC(float *input, float *output, int batch, int channels,
   }
 }
 
+void NHWC_to_NWHC(float *input, float *output, int batch, int channels,
+                  int height, int width) {
+  for (int b = 0; b < batch; ++b) {
+    for (int w = 0; w < width; ++w) {
+      for (int h = 0; h < height; ++h) {
+        for (int c = 0; c < channels; ++c) {
+          int idx_input = ((b * height + h) * width + w) * channels + c;
+          int idx_output = ((b * width + w) * height + h) * channels + c;
+          output[idx_output] = input[idx_input];
+        }
+      }
+    }
+  }
+}
+
 void OIHW_to_HWIO(float *input, float *output, int output_channels,
                   int input_channels, int filter_height, int filter_width) {
   for (int oc = 0; oc < output_channels; ++oc) {
