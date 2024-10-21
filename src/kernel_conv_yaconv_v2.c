@@ -26,12 +26,12 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input,
   float *image_buffer =
       (float *)aligned_alloc(4096, OH * FW * C * sizeof(float));
 
-  // Initialize output to zeros
-  bli_ssetv(BLIS_NO_CONJUGATE, N * OH * OW * M, bli_s0, output, 1);
-
   // For every batch element
   for (int n = 0; n < N; ++n) {
     float *single_input = &input[n * H * W * C];
+
+    // Initialize output to zeros
+    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, &output[n * OH * OW * M], 1);
 
     // For every element in the filter height
     for (int fh = 0; fh < FH; ++fh) {
