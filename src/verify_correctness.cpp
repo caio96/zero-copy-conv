@@ -133,7 +133,7 @@ void verify_correctness(int batch, int input_channels, int input_height,
     }
   }
 
-  NHWC_to_NWHC(output_yaconv_v2, output_yaconv_v2_transposed, batch,
+  transpose_HW(output_yaconv_v2, output_yaconv_v2_transposed, batch,
                output_channels, output_height, output_width);
 
   // Verify if the Yaconv output match
@@ -148,7 +148,7 @@ void verify_correctness(int batch, int input_channels, int input_height,
   // std::cout << "Ref output:" << std::endl;
   // print_tensor_NHWC(output_naive_NHWC, batch, output_channels, output_height,
   //                   output_width);
-  // std::cout << "Yaconv V2 output:" << std::endl;
+  // std::cout << "Yaconv V2 output transposed:" << std::endl;
   // print_tensor_NHWC(output_yaconv_v2_transposed, batch, output_channels,
   //                   output_height, output_width);
 

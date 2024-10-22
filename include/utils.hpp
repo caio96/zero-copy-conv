@@ -13,7 +13,7 @@ void NHWC_to_NCHW(float *input, float *output, int batch, int channels,
                   int height, int width);
 void yaconv_to_NHWC(float *input, float *output, int batch, int channels,
                     int height, int width, int offset_before, int offset_after);
-void NHWC_to_NWHC(float *input, float *output, int batch, int channels,
+void transpose_HW(float *input, float *output, int batch, int channels,
                   int height, int width);
 void OIHW_to_HWIO(float *input, float *output, int output_channels,
                   int input_channels, int filter_height, int filter_width);
