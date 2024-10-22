@@ -11,6 +11,20 @@ void print_matrix(float *matrix, int rows, int cols) {
   }
 }
 
+void print_matrix2(float *matrix, int rsc, int csc, int rows, int cols) {
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      printf("%f ", matrix[i * rsc + j * csc]);
+    }
+    printf("\n");
+  }
+}
+
+int modulo(int a, int b) {
+  const int result = a % b;
+  return result >= 0 ? result : result + b;
+}
+
 // Input is in NHWC format
 // Filters are in HWIO format
 void conv_2d_yaconv_v2_var1(float *__restrict__ input,
@@ -23,15 +37,14 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input,
   const int OW = (W + 2 * PW - FW) / SW + 1;
 
   float *a, *b, *c;
-  float *image_buffer =
-      (float *)aligned_alloc(4096, OH * FW * C * sizeof(float));
 
   // For every batch element
   for (int n = 0; n < N; ++n) {
     float *single_input = &input[n * H * W * C];
 
     // Initialize output to zeros
-    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, &output[n * OH * OW * M], 1);
+    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, &output[n * OH * OW * M],
+              1);
 
     // For every element in the filter height
     for (int fh = 0; fh < FH; ++fh) {
@@ -40,8 +53,7 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input,
       int height_offset = fh - PH;
       int height_start;
       if (height_offset < 0) {
-        // Use modulo to handle negative values (python implementation of %)
-        height_start = bli_max(0, ((height_offset % SH) + SH) % SH);
+        height_start = bli_max(0, modulo(height_offset, SH));
       } else {
         height_start = bli_max(0, height_offset);
       }
@@ -61,7 +73,7 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input,
       for (int ow = 0; ow < OW; ++ow) {
 
         // Calculate width slice of size FW and handle edge cases
-        int iw = ow * SH - PW;
+        int iw = ow * SW - PW;
         int width_start = bli_max(0, iw);
         int width_end = bli_min(W, iw + FW);
         int width_slice = width_end - width_start;
@@ -76,18 +88,8 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input,
           b = &filters[fh * FW * C * M];
         }
 
-        // Copy input slice to image buffer
-        int buf_index = 0;
-        for (int h = height_start; h < height_end; h += SH) {
-          for (int w = width_start; w < width_end; ++w) {
-            for (int c = 0; c < C; ++c) {
-              image_buffer[buf_index++] = single_input[h * W * C + w * C + c];
-            }
-          }
-        }
-
         // Start of the image block of size OH,FW,C
-        a = image_buffer;
+        a = &single_input[height_start * W * C + width_start * C];
 
         // Start of the output block of size 1,OH,M
         if (height_offset < 0) {
@@ -105,16 +107,16 @@ void conv_2d_yaconv_v2_var1(float *__restrict__ input,
 
         // print A and B
         // printf("\nA\n");
-        // print_matrix(a, M_dim, K_dim);
+        // print_matrix2(a, W * C * SH, 1, M_dim, K_dim);
         // printf("B\n");
         // print_matrix(b, K_dim, N_dim);
 
         bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M_dim, N_dim, K_dim,
-                  &alpha, a, K_dim, 1, b, N_dim, 1, &beta, c, N_dim, 1);
+                  &alpha, a, W * C * SH, 1, b, N_dim, 1, &beta, c, N_dim, 1);
+
+        // printf("C\n");
+        // print_matrix(output, OW, OH);
       }
     }
   }
-
-  // Deallocate the image buffer
-  free(image_buffer);
 }
