@@ -24,14 +24,12 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int filter_width, int output_channels, int padding_height,
                int padding_width, int stride_h, int stride_w);
 
-extern "C" void conv_2d_yaconv_v2_var1(float *__restrict__ input,
-                                       float *__restrict__ output,
-                                       float *__restrict__ filters, int batch,
-                                       int input_height, int input_width,
-                                       int input_channels, int filter_height,
-                                       int filter_width, int output_channels,
-                                       int padding_height, int padding_width,
-                                       int stride_h, int stride_w);
+extern "C" void
+conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
+                  float *__restrict__ filters, int batch, int input_height,
+                  int input_width, int input_channels, int filter_height,
+                  int filter_width, int output_channels, int padding_height,
+                  int padding_width, int stride_h, int stride_w);
 
 bool almost_equal(float a, float b) { return std::fabs(a - b) < (0.125); }
 
@@ -105,10 +103,10 @@ void verify_correctness(int batch, int input_channels, int input_height,
                    output_channels, padding_height, padding_width, stride_h,
                    stride_w);
   }
-  conv_2d_yaconv_v2_var1(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
-                         input_height, input_width, input_channels,
-                         filter_height, filter_width, output_channels,
-                         padding_height, padding_width, stride_h, stride_w);
+  conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
+                    input_height, input_width, input_channels, filter_height,
+                    filter_width, output_channels, padding_height,
+                    padding_width, stride_h, stride_w);
 
   // Verify if the Im2col output match
   bool is_correct =
