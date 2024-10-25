@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
 import pickle
-import shutil
-import subprocess
 import sys
-import time
-import warnings
-from math import ceil, log10
 from pathlib import Path
 
-import ipywidgets as widgets
-import matplotlib.pyplot as plt
 import pandas as pd
-from tqdm import tqdm
 
 
 ## split pickle key
@@ -116,7 +107,7 @@ def pickle_to_df(pickle_data):
 
     # Create pandas dataframe
     df = pd.DataFrame(table, columns=conv_info)
-    df = df.drop(columns=["Transposed"])
+    df = df.drop(columns=["key", "Output batch", "Transposed", "Bias", "model", "model attr"])
 
     return df
 
@@ -195,4 +186,4 @@ if __name__ == "__main__":
     filtered_df = eval(expression)
 
     # Save df to csv
-    filtered_df.loc[:, "Image batch":"Bias"].to_csv(output_csv, index_label="ID")
+    filtered_df.loc[:, "Image batch":"Grouped"].to_csv(output_csv, index_label="ID")
