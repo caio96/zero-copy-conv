@@ -55,6 +55,9 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   int dilation_w = arguments[16];
   int grouped = arguments[17];
 
+  // Ensure that the number of iterations run is at least 10
+  state.KeepRunningBatch(10);
+
   // Output dimensions: This does not always match the arguments if the division
   // is not exact, so we use the argument values instead of the formula.
   // int output_height =
