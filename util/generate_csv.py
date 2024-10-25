@@ -182,7 +182,7 @@ if __name__ == "__main__":
     # Process pickle data to a pandas dataframe
     df = pickle_to_df(pickle_data)
 
-    # filter pandas dataframe
+    # Filter pandas dataframe
     filtered_df = eval(expression)
 
     # Save df to csv
