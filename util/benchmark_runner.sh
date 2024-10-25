@@ -140,6 +140,14 @@ for executable in "${executables[@]}"; do
 done
 echo ""
 
+# Export google benchmark output format
+export BENCHMARK_FORMAT="csv"
+
+# Add header to output log if not appending
+if [[ "$APPEND_OUTPUT" == "false" ]]; then
+  "${executables[0]}" 2> /dev/null | head -n1 | tee -a "$OUTPUT_LOG"
+fi
+
 # For each repetition
 for repeat in $(seq "$REPEATS"); do
   echo "Starting repetition $repeat of $REPEATS --------------------"
@@ -164,8 +172,6 @@ for repeat in $(seq "$REPEATS"); do
 
     # For each executable (shuffled order)
     for executable in $(shuf -e "${executables[@]}"); do
-      # Export google benchmark output format
-      export BENCHMARK_FORMAT="csv"
       # Get random number
       CORE_NUM=$(grep ^cpu\\scores /proc/cpuinfo | uniq |  awk '{print $4}')
       # Run executable in a random core
