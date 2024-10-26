@@ -36,30 +36,51 @@ if __name__ == "__main__":
 
     # Split the 'name' column into 'conv_type' and 'conv_parameters'
     df[["conv_type", "conv_parameters"]] = df["name"].str.split("/", n=1, expand=True)
-    # Create a new DataFrame with the split columns and remove the name column
-    df = df[df.columns.tolist()[1:]]
-    # Group by 'conv_type'
+    df = df.drop(columns=["name"])
+
+    # Separate df by 'conv_type'
     groups = df.groupby(by=["conv_type"])
-    # Convert groupby object to dictionary of conv_type to dataframe
     df_dict = {}
     for name, group in groups:
-        df_dict[str(name[0])] = group.sort_values(by=["conv_type"]).reset_index(drop=True)
-        # TODO: avoid deleting other columns
-        df_dict[str(name[0])] = (
-            df_dict[str(name[0])]
-            .groupby(by="conv_parameters")
-            .agg(time_mean=("real_time", "mean"), time_std=("real_time", "std"))
-            .reset_index()
+        name = name[0]
+        # Aggregate results of repeated runs (that have the same 'conv_parameters' value)
+        df_dict[name] = (
+            group.groupby(by="conv_parameters", as_index=False)
+            .agg(
+                total_iterations=("iterations", "sum"),
+                mean_time=("real_time", "mean"),
+                std_time=("real_time", "std"),
+                time_unit=("time_unit", "first"),
+                error_occurred=("error_occurred", "any"),
+            )
+            .sort_values(by=["conv_parameters"])
+            .reset_index(drop=True)
         )
 
-    # distribution = (
-    #     df_dict["Conv2D_Im2col"]["time_mean"] / df_dict["Conv2D_Yaconv_v2"]["time_mean"]
-    # ).sort_values(ascending=False)
-    # distribution = distribution - 1
+    old_method_name = "Im2col"
+    new_method_name = "Yaconv_v2"
+
+    old_method = df_dict.pop("Conv2D_" + old_method_name)
+    new_method = df_dict.pop("Conv2D_" + new_method_name)
+
+    joined_results = pd.merge(
+        old_method.loc[:, ["conv_parameters", "mean_time", "error_occurred"]],
+        new_method.loc[:, ["conv_parameters", "mean_time", "error_occurred"]],
+        how="inner",
+        on="conv_parameters",
+        suffixes=("_" + old_method_name, "_" + new_method_name),
+    )
+    joined_results = joined_results.loc[
+        (joined_results["error_occurred_" + old_method_name] == False)
+        & (joined_results["error_occurred_" + new_method_name] == False)
+    ]
 
     distribution = (
-        (df_dict["Conv2D_Im2col"]["time_mean"] - df_dict["Conv2D_Yaconv_v2"]["time_mean"])
-        / df_dict["Conv2D_Yaconv_v2"]["time_mean"]
+        (
+            joined_results["mean_time_" + old_method_name]
+            - joined_results["mean_time_" + new_method_name]
+        )
+        / joined_results["mean_time_" + new_method_name]
     ).sort_values(ascending=False)
 
     num_points = distribution.shape[0]
@@ -80,8 +101,8 @@ if __name__ == "__main__":
     ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="r")
 
     ax.set_ylabel("Speedup/Slowdown")
-    ax.set_ylim((-1.5, 4.0))
-    ax.set_yticks([-1.0, -0.5, 0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0])
+    # ax.set_ylim((-25, 50.0))
+    # ax.set_yticks([-1.0, -0.5, 0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0])
 
     # pos boxplot
     ax.boxplot([pos, neg], showfliers=False, positions=[-25, num_points + 25], widths=20)
@@ -109,5 +130,9 @@ if __name__ == "__main__":
         )
 
     # save figure
-    plt.savefig(output_dir / "conv2d_im2col_vs_yaconv_v2.png", bbox_inches="tight", dpi=300)
+    plt.savefig(
+        output_dir / f"conv2d_{old_method_name}_vs_{new_method_name}.png",
+        bbox_inches="tight",
+        dpi=300,
+    )
     plt.close()
