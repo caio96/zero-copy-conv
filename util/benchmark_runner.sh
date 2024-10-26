@@ -175,7 +175,7 @@ for repeat in $(seq "$REPEATS"); do
       # Get random number
       CORE_NUM=$(grep ^cpu\\scores /proc/cpuinfo | uniq |  awk '{print $4}')
       # Run executable in a random core
-      numactl -C $(( $RANDOM % $CORE_NUM )) "$executable" "$BATCH_SIZE" "$ic" "$ih" "$iw" "$oc" "$oh" "$ow" "$fh" "$hw" "$pt" "$pb" "$pl" "$pr" "$sh" "$sw" "$dh" "$dw" "$gr" 2> /dev/null | tail -n1 | tee -a "$OUTPUT_LOG"
+      numactl --physcpubind $(( $RANDOM % $CORE_NUM )) "$executable" "$BATCH_SIZE" "$ic" "$ih" "$iw" "$oc" "$oh" "$ow" "$fh" "$hw" "$pt" "$pb" "$pl" "$pr" "$sh" "$sw" "$dh" "$dw" "$gr" 2> /dev/null | tail -n1 | tee -a "$OUTPUT_LOG"
     done
 
   done < "$CSV_FILE"
