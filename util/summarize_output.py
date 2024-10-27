@@ -75,14 +75,21 @@ if __name__ == "__main__":
         & (joined_results["error_occurred_" + new_method_name] == False)
     ]
 
-    distribution = (
+    joined_results["speedup"] = (
         (
             joined_results["mean_time_" + old_method_name]
             - joined_results["mean_time_" + new_method_name]
         )
         / joined_results["mean_time_" + new_method_name]
-    ).sort_values(ascending=False)
+    )
+    joined_results = joined_results.sort_values(by="speedup", ascending=False)
 
+    # Save resulst to csv
+    joined_results.to_csv(
+        output_dir / f"conv2d_{old_method_name}_vs_{new_method_name}.csv", index=False
+    )
+
+    distribution = joined_results["speedup"]
     num_points = distribution.shape[0]
 
     inflection = num_points
@@ -94,15 +101,12 @@ if __name__ == "__main__":
     neg = distribution.loc[lambda x: x < 0].reset_index(drop=True)
 
     fig, ax = plt.subplots()
-    # fig.set_size_inches((18, 12))
 
     # barplot
     ax.bar(pos.index, pos)
     ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="r")
 
     ax.set_ylabel("Speedup/Slowdown")
-    # ax.set_ylim((-25, 50.0))
-    # ax.set_yticks([-1.0, -0.5, 0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0])
 
     # pos boxplot
     ax.boxplot([pos, neg], showfliers=False, positions=[-25, num_points + 25], widths=20)
