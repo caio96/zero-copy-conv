@@ -61,9 +61,9 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   // Output dimensions: This does not always match the arguments if the division
   // is not exact, so we use the argument values instead of the formula.
   // int output_height =
-  //     (input_height + 2 * padding_height - filter_height) / stride_h + 1;
+  //     (input_height + 2 * padding_top - filter_height) / stride_h + 1;
   // int output_width =
-  //     (input_width + 2 * padding_width - filter_width) / stride_w + 1;
+  //     (input_width + 2 * padding_right - filter_width) / stride_w + 1;
 
   // Sanity checks
   if (padding_top != padding_bottom || padding_left != padding_right)
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   std::vector<int> arguments;
   if (argc == 1) {
     // Default arguments
-    arguments = {1, 64, 64, 64, 128, 67, 67, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    arguments = {1, 64, 64, 64, 128, 64, 64, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1};
   } else {
     // Command line arguments
     for (int i = 1; i < argc; ++i) {
