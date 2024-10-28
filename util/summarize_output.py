@@ -140,6 +140,7 @@ if __name__ == "__main__":
     # Split the 'name' column into 'conv_type' and 'conv_parameters'
     df[["conv_type", "conv_parameters"]] = df["name"].str.split("/", n=1, expand=True)
     df = df.drop(columns=["name"])
+    df["conv_parameters"] = df["conv_parameters"].str.replace("/", " ")
 
     # Separate df by 'conv_type'
     groups = df.groupby(by=["conv_type"])
