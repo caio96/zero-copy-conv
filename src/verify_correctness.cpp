@@ -2,6 +2,9 @@
 #include "utils.hpp"
 #include <iomanip>
 #include <iostream>
+#include <iterator>
+#include <sstream>
+#include <vector>
 
 extern "C" void
 conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
@@ -31,31 +34,81 @@ conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
                   int filter_width, int output_channels, int padding_height,
                   int padding_width, int stride_h, int stride_w);
 
-bool almost_equal(float a, float b) { return std::fabs(a - b) < (0.125); }
+// Returns the maximum difference between two arrays
+float get_max_diff(float *output1, float *output2, size_t size) {
+  float diff = 0.0;
+  for (size_t i = 0; i < size; ++i)
+    diff = std::max(diff, std::fabs(output1[i] - output2[i]));
 
-// Helper function to compare two arrays element-wise
-// Returns true if the arrays match, false otherwise
-bool compare_outputs(float *output1, float *output2, size_t size) {
-
-  for (size_t i = 0; i < size; ++i) {
-    if (!almost_equal(output1[i], output2[i])) {
-      std::cout << std::setprecision(8) << "Mismatch at index " << i << ": "
-                << output1[i] << " vs " << output2[i] << std::endl;
-      return false;
-    }
-  }
-  return true;
+  return diff;
 }
 
-void verify_correctness(int batch, int input_channels, int input_height,
-                        int input_width, int output_channels, int filter_height,
-                        int filter_width, int padding_height, int padding_width,
-                        int stride_h, int stride_w) {
+void print_header() {
+  std::string header = {"name,max_diff,error_occurred,error_message"};
+  std::cout << header << std::endl;
+}
+
+void print_diff(const std::string &method_name, float diff) {
+  std::cout << std::fixed << method_name << "," << diff << ",,," << std::endl;
+}
+
+void print_error(const std::string &method_name, const std::string &message) {
+  std::cout << method_name << ",,true," << message << std::endl;
+}
+
+void print_error_for_all(std::vector<std::string> &methods,
+                         const std::string &message) {
+  for (auto name : methods) {
+    print_error(name, message);
+  }
+}
+
+void verify_correctness(const std::vector<int> &arguments) {
+  // Convolution parameters
+  int batch = arguments[0];
+  int input_channels = arguments[1];
+  int input_height = arguments[2];
+  int input_width = arguments[3];
+  int output_channels = arguments[4];
+  int output_height = arguments[5];
+  int output_width = arguments[6];
+  int filter_height = arguments[7];
+  int filter_width = arguments[8];
+  int padding_top = arguments[9];
+  int padding_bottom = arguments[10];
+  int padding_left = arguments[11];
+  int padding_right = arguments[12];
+  int stride_h = arguments[13];
+  int stride_w = arguments[14];
+  int dilation_h = arguments[15];
+  int dilation_w = arguments[16];
+  int grouped = arguments[17];
+
   // Output dimensions
-  int output_height =
-      (input_height + 2 * padding_height - filter_height) / stride_h + 1;
-  int output_width =
-      (input_width + 2 * padding_width - filter_width) / stride_w + 1;
+  // int output_height =
+  //     (input_height + 2 * padding_top - filter_height) / stride_h + 1;
+  // int output_width =
+  //     (input_width + 2 * padding_right - filter_width) / stride_w + 1;
+
+  // Transform arguments into a string
+  std::stringstream parameters;
+  std::copy(arguments.begin(), arguments.end(),
+            std::ostream_iterator<int>(parameters, "/"));
+  std::string s = parameters.str();
+  s = s.substr(0, s.length() - 1);
+
+  std::vector<std::string> method_names = {"Im2col", "Yaconv", "Yaconv V2"};
+
+  // Sanity checks
+  if (padding_top != padding_bottom || padding_left != padding_right) {
+    print_error_for_all(method_names, "Unequal padding not supported!");
+    return;
+  }
+
+  if (dilation_h != 1 || dilation_w != 1) {
+    print_error_for_all(method_names, "Dilation > 1 not supported!");
+    return;
+  }
 
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
@@ -79,152 +132,90 @@ void verify_correctness(int batch, int input_channels, int input_height,
   float *output_yaconv_v2 = new float[output_size];
   float *output_yaconv_v2_transposed = new float[output_size];
 
-  // Initialize input and filters with random values
+  // Initialize input and filters
   initialize_data(input_NHWC, input_size);
   initialize_data(filters_HWIO, filter_size);
 
-  // Convert input, filters
+  // Convert input and filters
   NHWC_to_NCHW(input_NHWC, input_NCHW, batch, input_channels, input_height,
                input_width);
   HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels, input_channels,
                filter_height, filter_width);
 
+  // Run all convolution methods
   conv_2d_naive(input_NCHW, output_naive_NCHW, filters_OIHW, batch,
                 input_height, input_width, input_channels, filter_height,
-                filter_width, output_channels, padding_height, padding_width,
+                filter_width, output_channels, padding_top, padding_right,
                 stride_h, stride_w);
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
-                 output_channels, padding_height, padding_width, stride_h,
+                 output_channels, padding_top, padding_right, stride_h,
                  stride_w);
   if (stride_w == 1 && stride_h == 1) {
     conv_2d_yaconv(input_NHWC, output_yaconv, filters_HWIO, batch, input_height,
                    input_width, input_channels, filter_height, filter_width,
-                   output_channels, padding_height, padding_width, stride_h,
+                   output_channels, padding_top, padding_right, stride_h,
                    stride_w);
   }
   conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
                     input_height, input_width, input_channels, filter_height,
-                    filter_width, output_channels, padding_height,
-                    padding_width, stride_h, stride_w);
-
-  // Verify if the Im2col output match
-  bool is_correct =
-      compare_outputs(output_naive_NCHW, output_im2col, output_size);
-  if (is_correct) {
-    std::cout << "Im2col produces the same output." << std::endl;
-  } else {
-    std::cout << "Im2col produces a different output!" << std::endl;
-  }
+                    filter_width, output_channels, padding_top,
+                    padding_right, stride_h, stride_w);
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
                output_height, output_width);
 
-  if (stride_w == 1 && stride_h == 1) {
-    // Verify if the Yaconv output match
-    is_correct = compare_outputs(output_naive_NHWC, output_yaconv, output_size);
-    if (is_correct) {
-      std::cout << "Yaconv produces the same output." << std::endl;
-    } else {
-      std::cout << "Yaconv produces a different output!" << std::endl;
-    }
-  }
-
+  // Transpose HW of yaconv_v2 as it flips HW to WH
   transpose_HW(output_yaconv_v2, output_yaconv_v2_transposed, batch,
                output_channels, output_height, output_width);
 
-  // Verify if the Yaconv output match
-  is_correct = compare_outputs(output_naive_NHWC, output_yaconv_v2_transposed,
-                               output_size);
-  if (is_correct) {
-    std::cout << "Yaconv V2 produces the same output." << std::endl;
+  // Print output header
+  print_header();
+  float diff;
+
+  diff = get_max_diff(output_naive_NCHW, output_im2col, output_size);
+  print_diff("Im2col", diff);
+
+  if (stride_w == 1 && stride_h == 1) {
+    diff = get_max_diff(output_naive_NHWC, output_yaconv, output_size);
+    print_diff("Yaconv", diff);
   } else {
-    std::cout << "Yaconv V2 produces a different output!" << std::endl;
+    print_error("Yaconv", "Stride > 1 not supported");
   }
 
-  // std::cout << "Ref output:" << std::endl;
-  // print_tensor_NHWC(output_naive_NHWC, batch, output_channels, output_height,
-  //                   output_width);
-  // std::cout << "Yaconv V2 output transposed:" << std::endl;
-  // print_tensor_NHWC(output_yaconv_v2_transposed, batch, output_channels,
-  //                   output_height, output_width);
-
-  // Clean up
-  delete[] input_NCHW;
-  delete[] input_NHWC;
-  delete[] filters_OIHW;
-  delete[] filters_HWIO;
-  delete[] output_naive_NCHW;
-  delete[] output_im2col;
-  delete[] output_yaconv;
-  delete[] output_yaconv_v2;
-  delete[] output_yaconv_v2_transposed;
-  delete[] output_naive_NHWC;
+  diff = get_max_diff(output_naive_NHWC, output_yaconv_v2_transposed, output_size);
+  print_diff("Yaconv_v2", diff);
 }
 
 int main(int argc, char *argv[]) {
+  if (argc != 19 && argc != 1) {
+    std::cerr << "Usage: " << argv[0]
+              << " <Image batch> <Image channel> <Image height> <Image width> "
+                 "<Output depth> <Output height> <Output width> <Filter "
+                 "height> <Filter width> <Padding top> <Padding bottom> "
+                 "<Padding left> <Padding right> <Stride height> <Stride "
+                 "width> <Dilation height> <Dilation width> <Grouped>"
+              << std::endl;
+    return 1;
+  }
+
+  std::vector<int> arguments;
+  if (argc == 1) {
+    // Default arguments
+    arguments = {1, 64, 64, 64, 128, 64, 64, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  } else {
+    // Command line arguments
+    for (int i = 1; i < argc; ++i) {
+      arguments.push_back(std::atoi(argv[i]));
+    }
+  }
+
   // Initialize BLIS
   bli_init();
 
-  // Default convolution parameters
-  int batch = 2;
-  int input_channels = 3;
-  int input_height = 56;
-  int input_width = 56;
-  int output_channels = 16;
-  int filter_height = 3;
-  int filter_width = 3;
-  int padding_height = 1;
-  int padding_width = 1;
-  int stride_h = 1;
-  int stride_w = 1;
-
-  if (argc == 1) {
-    // No command line arguments provided, use default values
-    printf("Using default configuration:\n");
-  } else if (argc == 12) {
-    // Command line arguments provided, use them
-    batch = atoi(argv[1]);
-    input_channels = atoi(argv[2]);
-    input_height = atoi(argv[3]);
-    input_width = atoi(argv[4]);
-    output_channels = atoi(argv[5]);
-    filter_height = atoi(argv[6]);
-    filter_width = atoi(argv[7]);
-    padding_height = atoi(argv[8]);
-    padding_width = atoi(argv[9]);
-    stride_h = atoi(argv[10]);
-    stride_w = atoi(argv[11]);
-
-    printf("Using custom configuration:\n");
-  } else {
-    // Incorrect number of arguments
-    printf("Usage: %s [batch input_channels input_height input_width "
-           "output_channels filter_height filter_width padding_height "
-           "padding_width stride_h stride_w]\n",
-           argv[0]);
-    bli_finalize();
-    return -1;
-  }
-
-  // Print the parameters being used
-  printf(" - Batch: %d\n", batch);
-  printf(" - Input Channels: %d\n", input_channels);
-  printf(" - Input Height: %d\n", input_height);
-  printf(" - Input Width: %d\n", input_width);
-  printf(" - Output Channels: %d\n", output_channels);
-  printf(" - Filter Height: %d\n", filter_height);
-  printf(" - Filter Width: %d\n", filter_width);
-  printf(" - Padding Height: %d\n", padding_height);
-  printf(" - Padding Width: %d\n", padding_width);
-  printf(" - Stride Height: %d\n", stride_h);
-  printf(" - Stride Width: %d\n\n", stride_w);
-
   // Verify correctness
-  verify_correctness(batch, input_channels, input_height, input_width,
-                     output_channels, filter_height, filter_width,
-                     padding_height, padding_width, stride_h, stride_w);
+  verify_correctness(arguments);
 
   bli_finalize();
   return 0;
