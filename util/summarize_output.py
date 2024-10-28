@@ -2,11 +2,114 @@
 
 import argparse
 import sys
-from math import log10
+from math import ceil, floor, log10
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+
+
+# Saves a csv with results and produces an speedup graph
+def compare_methods(joined_results, old_method_name, new_method_name):
+
+    # Remove rows where an error occurred in either method
+    joined_results = joined_results.loc[
+        (joined_results["error_occurred_" + old_method_name] == False)
+        & (joined_results["error_occurred_" + new_method_name] == False)
+    ]
+
+    speedup_results = pd.DataFrame()
+    speedup_results["conv_parameters"] = joined_results["conv_parameters"]
+
+    # Compute speedup
+    speedup_results["speedup"] = (
+        joined_results["mean_time_" + old_method_name]
+        - joined_results["mean_time_" + new_method_name]
+    ) / joined_results["mean_time_" + new_method_name]
+    speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
+
+    # Save resulst to csv
+    speedup_results.to_csv(
+        output_dir / f"conv2d_{old_method_name}_vs_{new_method_name}.csv", index=False
+    )
+
+    speedup = speedup_results["speedup"]
+    num_points = speedup.shape[0]
+
+    inflection = num_points
+    for i in range(0, num_points - 1):
+        if speedup.iloc[i] > 0 and speedup.iloc[i + 1] < 0:
+            inflection = i + 0.5
+
+    pos = speedup.loc[lambda x: x >= 0].reset_index(drop=True)
+    neg = speedup.loc[lambda x: x < 0].reset_index(drop=True)
+
+    fig, ax = plt.subplots()
+
+    # barplot
+    ax.bar(pos.index, pos, color="#2c7bb6")
+    ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="#d7191c")
+
+    # boxplot
+    _, x_max = ax.get_xlim()
+    ax.set_xlim((-x_max * 0.05, num_points + x_max * 0.05))
+    ax.boxplot(
+        [pos, neg],
+        showfliers=False,
+        positions=[-x_max * 0.025, num_points + x_max * 0.025],
+        widths=x_max * 0.02,
+    )
+
+    ax.set_ylabel("Speedup/Slowdown")
+    ax.set_xlabel("Convolutions Layers")
+    ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
+
+    y_factor = 0.1
+    y_min, y_max = ax.get_ylim()
+    if y_min < 0:
+        relative_y = min(-y_min * y_factor, y_max * y_factor)
+    else:
+        relative_y = y_max * y_factor
+
+    y_total = y_max - y_min
+
+    ax.hlines(-y_total * 0.05, 1, inflection, "#2c7bb6")
+    ax.vlines(1, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#2c7bb6")
+    ax.vlines(
+        inflection, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#2c7bb6"
+    )
+    ax.text(
+        (inflection / 2),
+        -y_total * 0.08,
+        f"{pos.shape[0]}",
+        horizontalalignment="center",
+        verticalalignment="center",
+    )
+
+    if neg.shape[0] != 0:
+        ax.hlines(y_total * 0.05, inflection, num_points, "#d7191c")
+        ax.vlines(
+            inflection, y_total * 0.05 - y_total * 0.01, y_total * 0.05 + y_total * 0.01, "#d7191c"
+        )
+        ax.vlines(
+            num_points, y_total * 0.05 - y_total * 0.01, y_total * 0.05 + +y_total * 0.01, "#d7191c"
+        )
+        ax.text(
+            ((num_points + inflection) / 2),
+            y_total * 0.08,
+            f"{neg.shape[0]}",
+            horizontalalignment="center",
+            verticalalignment="center",
+        )
+
+    # save figure
+    plt.savefig(
+        output_dir / f"conv2d_{old_method_name}_vs_{new_method_name}.png",
+        bbox_inches="tight",
+        dpi=300,
+    )
+    plt.close()
+
 
 if __name__ == "__main__":
 
@@ -42,7 +145,7 @@ if __name__ == "__main__":
     groups = df.groupby(by=["conv_type"])
     df_dict = {}
     for name, group in groups:
-        name = name[0]
+        name = name[0].replace("Conv2D_", "")
         # Aggregate results of repeated runs (that have the same 'conv_parameters' value)
         df_dict[name] = (
             group.groupby(by="conv_parameters", as_index=False)
@@ -57,86 +160,29 @@ if __name__ == "__main__":
             .reset_index(drop=True)
         )
 
-    old_method_name = "Im2col"
-    new_method_name = "Yaconv_v2"
-
-    old_method = df_dict.pop("Conv2D_" + old_method_name)
-    new_method = df_dict.pop("Conv2D_" + new_method_name)
-
+    # Join results by 'conv_parameters'
+    method_names = list(df_dict.keys())
     joined_results = pd.merge(
-        old_method.loc[:, ["conv_parameters", "mean_time", "error_occurred"]],
-        new_method.loc[:, ["conv_parameters", "mean_time", "error_occurred"]],
+        df_dict[method_names[0]],
+        df_dict[method_names[1]].drop(columns=["time_unit"]),
         how="inner",
         on="conv_parameters",
-        suffixes=("_" + old_method_name, "_" + new_method_name),
+        suffixes=("_" + method_names[0], "_" + method_names[1]),
     )
-    joined_results = joined_results.loc[
-        (joined_results["error_occurred_" + old_method_name] == False)
-        & (joined_results["error_occurred_" + new_method_name] == False)
-    ]
+    for method_name in method_names[2:]:
+        joined_results = joined_results.merge(
+            df_dict[method_name].drop(columns=["time_unit"]).add_suffix("_" + method_name),
+            how="inner",
+            left_on="conv_parameters",
+            right_on="conv_parameters_" + method_name,
+            suffixes=(None, None),
+        ).drop(columns=["conv_parameters_" + method_name])
 
-    joined_results["speedup"] = (
-        (
-            joined_results["mean_time_" + old_method_name]
-            - joined_results["mean_time_" + new_method_name]
-        )
-        / joined_results["mean_time_" + new_method_name]
-    )
-    joined_results = joined_results.sort_values(by="speedup", ascending=False)
+    # Save joined results
+    joined_results.to_csv(output_dir / f"results.csv", index=False)
 
-    # Save resulst to csv
-    joined_results.to_csv(
-        output_dir / f"conv2d_{old_method_name}_vs_{new_method_name}.csv", index=False
-    )
+    # These tuples represent the comparisons that will be made into graphs
+    comparisons = [("Im2col", "Yaconv"), ("Im2col", "Yaconv_v2"), ("Yaconv", "Yaconv_v2")]
 
-    distribution = joined_results["speedup"]
-    num_points = distribution.shape[0]
-
-    inflection = num_points
-    for i in range(0, num_points - 1):
-        if distribution.iloc[i] > 0 and distribution.iloc[i + 1] < 0:
-            inflection = i + 0.5
-
-    pos = distribution.loc[lambda x: x >= 0].reset_index(drop=True)
-    neg = distribution.loc[lambda x: x < 0].reset_index(drop=True)
-
-    fig, ax = plt.subplots()
-
-    # barplot
-    ax.bar(pos.index, pos)
-    ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="r")
-
-    ax.set_ylabel("Speedup/Slowdown")
-
-    # pos boxplot
-    ax.boxplot([pos, neg], showfliers=False, positions=[-25, num_points + 25], widths=20)
-
-    ax.set_xlabel("Convolution")
-    ax.set_xlim((-50.0, num_points + 50))
-    ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
-
-    # plt.vlines(inflection, -1, 2.0, color="r", linewidth=1.4, alpha=.4)
-
-    ax.vlines(1, -0.65, -0.35, "r")
-    ax.hlines(-0.5, 1, inflection, "r")
-    ax.vlines(inflection, -0.65, -0.35, "r")
-    ax.text((inflection / 2), -0.75, f"{pos.shape[0]} Convolutions", horizontalalignment="center")
-
-    if neg.shape[0] != 0:
-        ax.vlines(inflection, 0.65, 0.35, "r")
-        ax.hlines(0.5, inflection, num_points, "r")
-        ax.vlines(num_points, 0.65, 0.35, "r")
-        ax.text(
-            ((num_points + inflection) / 2),
-            0.75,
-            f"{neg.shape[0]} Convolutions",
-            horizontalalignment="center",
-        )
-
-    # save figure
-    plt.savefig(
-        output_dir / f"conv2d_{old_method_name}_vs_{new_method_name}.png",
-        bbox_inches="tight",
-        dpi=300,
-    )
-    plt.close()
+    for old_method, new_method in comparisons:
+        compare_methods(joined_results, old_method, new_method)
