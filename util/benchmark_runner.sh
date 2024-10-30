@@ -22,6 +22,7 @@ function Help()
    echo -e "\t--append-output: Allow output to be appended to existing file."
    echo -e "\t--batch-size [size]: Specify a custom batch size. Default is 1."
    echo -e "\t--repeats [repeats]: Specify the number of times each benchmark is repeated. Default is 1."
+   echo -e "\t--check-correctness: Run each benchmark once to check correctness. Ignores --repeats and --append-output."
    echo -e "\t-h: Print this Help."
    echo -e "\t-v: Verbose mode."
    echo
@@ -41,8 +42,9 @@ function CheckPerfParanoid()
 BATCH_SIZE="1"
 REPEATS="1"
 APPEND_OUTPUT="false"
+CHECK_CORRECTNESS="false"
 # Parse Arguments
-PARSED_ARGUMENTS=$(getopt -a -n "benchmark_runner" -o hv --long append-output,repeats:,batch-size: -- "$@")
+PARSED_ARGUMENTS=$(getopt -a -n "benchmark_runner" -o hv --long append-output,check-correctness,repeats:,batch-size: -- "$@")
 if [ $? -ne 0 ]; then
   echo "Invalid option." >&2
   Help
@@ -69,6 +71,10 @@ while true; do
       ;;
     --append-output)
       APPEND_OUTPUT="true"
+      shift
+      ;;
+    --check-correctness)
+      CHECK_CORRECTNESS="true"
       shift
       ;;
     --)
@@ -134,6 +140,13 @@ for executable in $(find "$BUILD_DIR" -type f -name "benchmark_*" | sort); do
   executables+=("$executable")
 done
 
+CORRECTNESS_EXECUTABLE="$BUILD_DIR/correctness"
+if [[ "$CHECK_CORRECTNESS" == "true" ]] && [[ ! -f "$CORRECTNESS_EXECUTABLE" ]]; then
+  echo "Correctness executable not found. Maybe the name changed?"
+  echo "Looking for $CORRECTNESS_EXECUTABLE"
+  exit 1
+fi
+
 echo "Found ${#executables[@]} executables in $BUILD_DIR"
 for executable in "${executables[@]}"; do
   echo "  - $(basename "$executable")"
@@ -144,8 +157,13 @@ echo ""
 export BENCHMARK_FORMAT="csv"
 
 # Add header to output log if not appending
-if [[ "$APPEND_OUTPUT" == "false" ]]; then
+if [[ "$APPEND_OUTPUT" == "false" ]] && [[ "$CHECK_CORRECTNESS" == "false" ]]; then
   "${executables[0]}" 2> /dev/null | head -n1 | tee -a "$OUTPUT_LOG"
+fi
+
+# Add header to correctness output
+if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
+  $CORRECTNESS_EXECUTABLE | head -n1 | tee -a "$OUTPUT_LOG"
 fi
 
 # For each repetition
@@ -170,12 +188,18 @@ for repeat in $(seq "$REPEATS"); do
     echo "  - Dilation: $dh $dw"
     echo "  - Groups: $gr"
 
+    # Check correctness
+    if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
+      "$CORRECTNESS_EXECUTABLE" "$BATCH_SIZE" "$ic" "$ih" "$iw" "$oc" "$oh" "$ow" "$fh" "$hw" "$pt" "$pb" "$pl" "$pr" "$sh" "$sw" "$dh" "$dw" "$gr" | tail -n +2 | tee -a "$OUTPUT_LOG"
+      continue
+    fi
+
     # For each executable (shuffled order)
     for executable in $(shuf -e "${executables[@]}"); do
       # Get random number
       CORE_NUM=$(grep ^cpu\\scores /proc/cpuinfo | uniq |  awk '{print $4}')
       # Run executable in a random core
-      numactl --physcpubind $(( $RANDOM % $CORE_NUM )) "$executable" "$BATCH_SIZE" "$ic" "$ih" "$iw" "$oc" "$oh" "$ow" "$fh" "$hw" "$pt" "$pb" "$pl" "$pr" "$sh" "$sw" "$dh" "$dw" "$gr" 2> /dev/null | tail -n1 | tee -a "$OUTPUT_LOG"
+      numactl --physcpubind $(( $RANDOM % $CORE_NUM )) "$executable" "$BATCH_SIZE" "$ic" "$ih" "$iw" "$oc" "$oh" "$ow" "$fh" "$hw" "$pt" "$pb" "$pl" "$pr" "$sh" "$sw" "$dh" "$dw" "$gr" 2> /dev/null | tail -n +2 | tee -a "$OUTPUT_LOG"
     done
 
   done < "$CSV_FILE"

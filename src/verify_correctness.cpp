@@ -44,22 +44,29 @@ float get_max_diff(float *output1, float *output2, size_t size) {
 }
 
 void print_header() {
-  std::string header = {"name,max_diff,error_occurred,error_message"};
+  std::string header = {
+      "method,conv_parameters,max_diff,error_occurred,error_message"};
   std::cout << header << std::endl;
 }
 
-void print_diff(const std::string &method_name, float diff) {
-  std::cout << std::fixed << method_name << "," << diff << ",,," << std::endl;
+void print_diff(const std::string &method_name,
+                const std::string &conv_parameters, float diff) {
+  std::cout << std::fixed << method_name << "," << conv_parameters << ","
+            << diff << ",,," << std::endl;
 }
 
-void print_error(const std::string &method_name, const std::string &message) {
-  std::cout << method_name << ",,true," << message << std::endl;
+void print_error(const std::string &method_name,
+                 const std::string &conv_parameters,
+                 const std::string &message) {
+  std::cout << method_name << "," << conv_parameters << ",,true," << message
+            << std::endl;
 }
 
 void print_error_for_all(std::vector<std::string> &methods,
+                         const std::string &conv_parameters,
                          const std::string &message) {
   for (auto name : methods) {
-    print_error(name, message);
+    print_error(name, conv_parameters, message);
   }
 }
 
@@ -91,22 +98,24 @@ void verify_correctness(const std::vector<int> &arguments) {
   //     (input_width + 2 * padding_right - filter_width) / stride_w + 1;
 
   // Transform arguments into a string
-  std::stringstream parameters;
+  std::stringstream parameters_stream;
   std::copy(arguments.begin(), arguments.end(),
-            std::ostream_iterator<int>(parameters, "/"));
-  std::string s = parameters.str();
-  s = s.substr(0, s.length() - 1);
+            std::ostream_iterator<int>(parameters_stream, "/"));
+  std::string conv_parameters = parameters_stream.str();
+  conv_parameters = conv_parameters.substr(0, conv_parameters.length() - 1);
 
   std::vector<std::string> method_names = {"Im2col", "Yaconv", "Yaconv V2"};
 
   // Sanity checks
   if (padding_top != padding_bottom || padding_left != padding_right) {
-    print_error_for_all(method_names, "Unequal padding not supported!");
+    print_error_for_all(method_names, conv_parameters,
+                        "Unequal padding not supported!");
     return;
   }
 
   if (dilation_h != 1 || dilation_w != 1) {
-    print_error_for_all(method_names, "Dilation > 1 not supported!");
+    print_error_for_all(method_names, conv_parameters,
+                        "Dilation > 1 not supported!");
     return;
   }
 
@@ -159,8 +168,8 @@ void verify_correctness(const std::vector<int> &arguments) {
   }
   conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
                     input_height, input_width, input_channels, filter_height,
-                    filter_width, output_channels, padding_top,
-                    padding_right, stride_h, stride_w);
+                    filter_width, output_channels, padding_top, padding_right,
+                    stride_h, stride_w);
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
@@ -175,17 +184,18 @@ void verify_correctness(const std::vector<int> &arguments) {
   float diff;
 
   diff = get_max_diff(output_naive_NCHW, output_im2col, output_size);
-  print_diff("Im2col", diff);
+  print_diff("Im2col", conv_parameters, diff);
 
   if (stride_w == 1 && stride_h == 1) {
     diff = get_max_diff(output_naive_NHWC, output_yaconv, output_size);
-    print_diff("Yaconv", diff);
+    print_diff("Yaconv", conv_parameters, diff);
   } else {
-    print_error("Yaconv", "Stride > 1 not supported");
+    print_error("Yaconv", conv_parameters, "Stride > 1 not supported");
   }
 
-  diff = get_max_diff(output_naive_NHWC, output_yaconv_v2_transposed, output_size);
-  print_diff("Yaconv_v2", diff);
+  diff =
+      get_max_diff(output_naive_NHWC, output_yaconv_v2_transposed, output_size);
+  print_diff("Yaconv_v2", conv_parameters, diff);
 }
 
 int main(int argc, char *argv[]) {
