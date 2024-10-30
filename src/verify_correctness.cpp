@@ -45,7 +45,7 @@ float get_max_diff(float *output1, float *output2, size_t size) {
 
 void print_header() {
   std::string header = {
-      "method,conv_parameters,max_diff,error_occurred,error_message"};
+      "conv_type,conv_parameters,max_diff,error_occurred,error_message"};
   std::cout << header << std::endl;
 }
 
