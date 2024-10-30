@@ -10,13 +10,14 @@ inline unsigned int is_a_ge_zero_and_a_lt_b(int a, int b) {
 void conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
                    float *__restrict__ filters, int batch, int input_height,
                    int input_width, int input_channels, int filter_height,
-                   int filter_width, int output_channels, int padding_height,
-                   int padding_width, int stride_h, int stride_w) {
-  // Output dimensions
-  int output_height =
-      (input_height + 2 * padding_height - filter_height) / stride_h + 1;
-  int output_width =
-      (input_width + 2 * padding_width - filter_width) / stride_w + 1;
+                   int filter_width, int output_height, int output_width,
+                   int output_channels, int padding_height, int padding_width,
+                   int stride_h, int stride_w) {
+  // // Output dimensions
+  // int output_height =
+  //     (input_height + 2 * padding_height - filter_height) / stride_h + 1;
+  // int output_width =
+  //     (input_width + 2 * padding_width - filter_width) / stride_w + 1;
 
   // For each output element
   for (int b = 0; b < batch; ++b) {

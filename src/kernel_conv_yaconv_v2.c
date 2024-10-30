@@ -29,10 +29,11 @@ int modulo(int a, int b) {
 // Filters are in HWIO format
 void conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
                        float *__restrict__ filters, int N, int H, int W, int C,
-                       int FH, int FW, int M, int PH, int PW, int SH, int SW) {
-  // Output dimensions
-  const int OH = (H + 2 * PH - FH) / SH + 1;
-  const int OW = (W + 2 * PW - FW) / SW + 1;
+                       int FH, int FW, int OH, int OW, int M, int PH, int PW,
+                       int SH, int SW) {
+  // // Output dimensions
+  // const int OH = (H + 2 * PH - FH) / SH + 1;
+  // const int OW = (W + 2 * PW - FW) / SW + 1;
 
   float *a, *b, *c;
 

@@ -2,36 +2,40 @@
 #include "utils.hpp"
 #include <benchmark/benchmark.h>
 #include <iostream>
-#include <sstream>
 #include <iterator>
+#include <sstream>
 
 extern "C" void
 conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               float *__restrict__ filters, int batch, int input_height,
               int input_width, int input_channels, int filter_height,
-              int filter_width, int output_channels, int padding_height,
-              int padding_width, int stride_h, int stride_w);
+              int filter_width, int output_height, int output_width,
+              int output_channels, int padding_height, int padding_width,
+              int stride_h, int stride_w);
 
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                float *__restrict__ filters, int batch, int input_height,
                int input_width, int input_channels, int filter_height,
-               int filter_width, int output_channels, int padding_height,
-               int padding_width, int stride_h, int stride_w);
+               int filter_width, int output_height, int output_width,
+               int output_channels, int padding_height, int padding_width,
+               int stride_h, int stride_w);
 
 extern "C" void
 conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                float *__restrict__ filters, int batch, int input_height,
                int input_width, int input_channels, int filter_height,
-               int filter_width, int output_channels, int padding_height,
-               int padding_width, int stride_h, int stride_w);
+               int filter_width, int output_height, int output_width,
+               int output_channels, int padding_height, int padding_width,
+               int stride_h, int stride_w);
 
 extern "C" void
 conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
                   float *__restrict__ filters, int batch, int input_height,
                   int input_width, int input_channels, int filter_height,
-                  int filter_width, int output_channels, int padding_height,
-                  int padding_width, int stride_h, int stride_w);
+                  int filter_width, int output_height, int output_width,
+                  int output_channels, int padding_height, int padding_width,
+                  int stride_h, int stride_w);
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
                            const std::vector<int> &arguments) {
@@ -97,21 +101,24 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   for (auto _ : state) {
 #ifdef NAIVE
     conv_2d_naive(input, output, filters, batch, input_height, input_width,
-                  input_channels, filter_height, filter_width, output_channels,
-                  padding_top, padding_right, stride_h, stride_w);
+                  input_channels, filter_height, filter_width, output_height,
+                  output_width, output_channels, padding_top, padding_right,
+                  stride_h, stride_w);
 #elif defined IM2COL
     conv_2d_im2col(input, output, filters, batch, input_height, input_width,
-                   input_channels, filter_height, filter_width, output_channels,
-                   padding_top, padding_right, stride_h, stride_w);
+                   input_channels, filter_height, filter_width, output_height,
+                   output_width, output_channels, padding_top, padding_right,
+                   stride_h, stride_w);
 #elif defined YACONV
     conv_2d_yaconv(input, output, filters, batch, input_height, input_width,
-                   input_channels, filter_height, filter_width, output_channels,
-                   padding_top, padding_right, stride_h, stride_w);
+                   input_channels, filter_height, filter_width, output_height,
+                   output_width, output_channels, padding_top, padding_right,
+                   stride_h, stride_w);
 #elif defined YACONV_V2
     conv_2d_yaconv_v2(input, output, filters, batch, input_height, input_width,
                       input_channels, filter_height, filter_width,
-                      output_channels, padding_top, padding_right, stride_h,
-                      stride_w);
+                      output_height, output_width, output_channels, padding_top,
+                      padding_right, stride_h, stride_w);
 #else
     state.SkipWithError("Convolution method not defined!");
 #endif
@@ -162,7 +169,8 @@ int main(int argc, char **argv) {
   // Transform arguments into a string
   std::stringstream ss;
   ss << name << "/";
-  std::copy(arguments.begin(), arguments.end(), std::ostream_iterator<int>(ss, "/"));
+  std::copy(arguments.begin(), arguments.end(),
+            std::ostream_iterator<int>(ss, "/"));
   std::string s = ss.str();
   s = s.substr(0, s.length() - 1);
 

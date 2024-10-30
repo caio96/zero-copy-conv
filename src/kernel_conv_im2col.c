@@ -10,13 +10,14 @@ inline unsigned int is_a_ge_zero_and_a_lt_b(int a, int b) {
 // C,H,W -> C,FH,FW x OH,OW
 void im2col(float *__restrict__ input, float *__restrict__ im2col_buffer,
             int input_height, int input_width, int input_channels,
-            int filter_height, int filter_width, int padding_height,
-            int padding_width, int stride_h, int stride_w) {
-  // Output dimensions
-  int output_height =
-      (input_height + 2 * padding_height - filter_height) / stride_h + 1;
-  int output_width =
-      (input_width + 2 * padding_width - filter_width) / stride_w + 1;
+            int filter_height, int filter_width, int output_height,
+            int output_width, int padding_height, int padding_width,
+            int stride_h, int stride_w) {
+  // // Output dimensions
+  // int output_height =
+  //     (input_height + 2 * padding_height - filter_height) / stride_h + 1;
+  // int output_width =
+  //     (input_width + 2 * padding_width - filter_width) / stride_w + 1;
 
   int index = 0;
   // For each sliding window location
@@ -53,13 +54,14 @@ void im2col(float *__restrict__ input, float *__restrict__ im2col_buffer,
 void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                     float *__restrict__ filters, int batch, int input_height,
                     int input_width, int input_channels, int filter_height,
-                    int filter_width, int output_channels, int padding_height,
-                    int padding_width, int stride_h, int stride_w) {
-  // Output dimensions
-  int output_height =
-      (input_height + 2 * padding_height - filter_height) / stride_h + 1;
-  int output_width =
-      (input_width + 2 * padding_width - filter_width) / stride_w + 1;
+                    int filter_width, int output_height, int output_width,
+                    int output_channels, int padding_height, int padding_width,
+                    int stride_h, int stride_w) {
+  // // Output dimensions
+  // int output_height =
+  //     (input_height + 2 * padding_height - filter_height) / stride_h + 1;
+  // int output_width =
+  //     (input_width + 2 * padding_width - filter_width) / stride_w + 1;
 
   bool pointwise = (filter_height == 1 && filter_width == 1 && stride_h == 1 &&
                     stride_w == 1 && padding_width == 0 && padding_height == 0);
@@ -83,8 +85,8 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
     // Apply im2col to the input
     if (!pointwise) {
       im2col(input_buffer, im2col_buffer, input_height, input_width,
-             input_channels, filter_height, filter_width, padding_height,
-             padding_width, stride_h, stride_w);
+             input_channels, filter_height, filter_width, output_height,
+             output_width, padding_height, padding_width, stride_h, stride_w);
     } else {
       im2col_buffer = input_buffer;
     }
