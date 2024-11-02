@@ -106,8 +106,8 @@ def yaconv_conv2d(images, filters, padding, stride, dilation):
                 # print("\nResult ", result.shape)
                 # print(np.squeeze(result))
 
-                # Output is N,OH,OW,M
-                # Select output slice of size N,OH,1,M and handle edge cases
+                # Output is OH,OW,M
+                # Select output slice of size OH,1,M and handle edge cases
                 if height_offset < 0:
                     output_slice = single_output[
                         -(height_offset // SH) : -(height_offset // SH) + height_slice, ow, :
