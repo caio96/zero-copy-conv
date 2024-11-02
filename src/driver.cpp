@@ -85,7 +85,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
   size_t filter_size =
-      output_channels * input_channels * filter_height * filter_width;
+      output_channels * (input_channels/groups) * filter_height * filter_width;
 
   // Allocate memory for buffers
   float *input =

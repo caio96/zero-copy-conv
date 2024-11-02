@@ -119,7 +119,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
   size_t filter_size =
-      output_channels * input_channels * filter_height * filter_width;
+      output_channels * (input_channels/groups) * filter_height * filter_width;
 
   // Allocate memory for input
   float *input_NCHW = new float[input_size];
@@ -144,7 +144,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   // Convert input and filters
   NHWC_to_NCHW(input_NHWC, input_NCHW, batch, input_channels, input_height,
                input_width);
-  HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels, input_channels,
+  HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels, input_channels/groups,
                filter_height, filter_width);
 
   // Run all convolution methods
@@ -164,13 +164,11 @@ void verify_correctness(const std::vector<int> &arguments) {
                    output_height, output_width, output_channels, padding_top,
                    padding_right, stride_h, stride_w, dilation_h, dilation_w, groups);
   }
-  if (groups == 1) {
-    conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
-                      input_height, input_width, input_channels, filter_height,
-                      filter_width, output_height, output_width,
-                      output_channels, padding_top, padding_right, stride_h,
-                      stride_w, dilation_h, dilation_w, groups);
-  }
+  conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
+                    input_height, input_width, input_channels, filter_height,
+                    filter_width, output_height, output_width,
+                    output_channels, padding_top, padding_right, stride_h,
+                    stride_w, dilation_h, dilation_w, groups);
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
@@ -198,13 +196,9 @@ void verify_correctness(const std::vector<int> &arguments) {
     print_diff("Yaconv", conv_parameters, diff);
   }
 
-  if (groups > 1) {
-    print_error("Yaconv_v2", conv_parameters, "Grouped convolution not supported");
-  } else {
-    diff =
-      get_max_diff(output_naive_NHWC, output_yaconv_v2_transposed, output_size);
-    print_diff("Yaconv_v2", conv_parameters, diff);
-  }
+  diff =
+    get_max_diff(output_naive_NHWC, output_yaconv_v2_transposed, output_size);
+  print_diff("Yaconv_v2", conv_parameters, diff);
 }
 
 int main(int argc, char *argv[]) {
