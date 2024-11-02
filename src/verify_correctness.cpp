@@ -11,7 +11,7 @@ conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               int input_width, int input_channels, int filter_height,
               int filter_width, int output_height, int output_width,
               int output_channels, int padding_height, int padding_width,
-              int stride_h, int stride_w, int dilation_h, int dilation_w);
+              int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
 
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
@@ -19,7 +19,7 @@ conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                int input_width, int input_channels, int filter_height,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
-               int stride_h, int stride_w, int dilation_h, int dilation_w);
+               int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
 
 extern "C" void
 conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
@@ -27,7 +27,7 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int input_width, int input_channels, int filter_height,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
-               int stride_h, int stride_w, int dilation_h, int dilation_w);
+               int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
 
 extern "C" void
 conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
@@ -35,7 +35,7 @@ conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
                   int input_width, int input_channels, int filter_height,
                   int filter_width, int output_height, int output_width,
                   int output_channels, int padding_height, int padding_width,
-                  int stride_h, int stride_w, int dilation_h, int dilation_w);
+                  int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
 
 // Returns the maximum difference between two arrays
 float get_max_diff(float *output1, float *output2, size_t size) {
@@ -109,9 +109,9 @@ void verify_correctness(const std::vector<int> &arguments) {
                         "Unequal padding not supported!");
     return;
   }
-  if (groups > 1) {
+  if (input_channels % groups != 0 || output_channels % groups != 0) {
     print_error_for_all(method_names, conv_parameters,
-                        "Grouped convolution not supported!");
+                        "Input and output channels not divisible by groups!");
     return;
   }
 
@@ -152,22 +152,25 @@ void verify_correctness(const std::vector<int> &arguments) {
                 input_height, input_width, input_channels, filter_height,
                 filter_width, output_height, output_width, output_channels,
                 padding_top, padding_right, stride_h, stride_w, dilation_h,
-                dilation_w);
+                dilation_w, groups);
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
                  output_height, output_width, output_channels, padding_top,
-                 padding_right, stride_h, stride_w, dilation_h, dilation_w);
-  if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1) {
+                 padding_right, stride_h, stride_w, dilation_h, dilation_w, groups);
+  if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1 &&
+      groups == 1) {
     conv_2d_yaconv(input_NHWC, output_yaconv, filters_HWIO, batch, input_height,
                    input_width, input_channels, filter_height, filter_width,
                    output_height, output_width, output_channels, padding_top,
-                   padding_right, stride_h, stride_w, dilation_h, dilation_w);
+                   padding_right, stride_h, stride_w, dilation_h, dilation_w, groups);
   }
-  conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
-                    input_height, input_width, input_channels, filter_height,
-                    filter_width, output_height, output_width, output_channels,
-                    padding_top, padding_right, stride_h, stride_w, dilation_h,
-                    dilation_w);
+  if (groups == 1) {
+    conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
+                      input_height, input_width, input_channels, filter_height,
+                      filter_width, output_height, output_width,
+                      output_channels, padding_top, padding_right, stride_h,
+                      stride_w, dilation_h, dilation_w, groups);
+  }
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
@@ -188,14 +191,20 @@ void verify_correctness(const std::vector<int> &arguments) {
     print_error("Yaconv", conv_parameters, "Dilation > 1 not supported");
   } else if (stride_h > 1 || stride_w > 1) {
     print_error("Yaconv", conv_parameters, "Stride > 1 not supported");
+  } else if (groups > 1) {
+    print_error("Yaconv", conv_parameters, "Grouped convolution not supported");
   } else {
     diff = get_max_diff(output_naive_NHWC, output_yaconv, output_size);
     print_diff("Yaconv", conv_parameters, diff);
   }
 
-  diff =
+  if (groups > 1) {
+    print_error("Yaconv_v2", conv_parameters, "Grouped convolution not supported");
+  } else {
+    diff =
       get_max_diff(output_naive_NHWC, output_yaconv_v2_transposed, output_size);
-  print_diff("Yaconv_v2", conv_parameters, diff);
+    print_diff("Yaconv_v2", conv_parameters, diff);
+  }
 }
 
 int main(int argc, char *argv[]) {

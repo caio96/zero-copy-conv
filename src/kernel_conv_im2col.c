@@ -51,7 +51,7 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                     int filter_width, int output_height, int output_width,
                     int output_channels, int padding_height, int padding_width,
                     int stride_h, int stride_w, int dilation_h,
-                    int dilation_w) {
+                    int dilation_w, int groups) {
 
   bool pointwise = (filter_height == 1 && filter_width == 1 && stride_h == 1 &&
                     stride_w == 1 && padding_width == 0 && padding_height == 0);
@@ -85,16 +85,22 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
     // A: filter matrix (OC, IC*FH*FW)
     // B: im2col matrix (IC*FH*FW, OH*OW)
     // C: output matrix (OC, OH*OW)
-    int M = output_channels;
+    int M = output_channels / groups;
     int N = output_height * output_width;
-    int K = input_channels * filter_height * filter_width;
+    int K = input_channels / groups * filter_height * filter_width;
     float alpha = 1.0f;
     float beta = 0.0f;
 
-    // Perform convolution using GEMM
-    // C = alpha * A * B + beta * C
-    bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M, N, K, &alpha, filters, K,
-              1, im2col_buffer, N, 1, &beta, output_buffer, N, 1);
+    for (int g = 0; g < groups; ++g) {
+      float *a = &filters[g * M * K];
+      float *b = &im2col_buffer[g * K * N];
+      float *c = &output_buffer[g * M * N];
+
+      // Perform convolution using GEMM
+      // C = alpha * A * B + beta * C
+      bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M, N, K, &alpha, a, K,
+                1, b, N, 1, &beta, c, N, 1);
+    }
   }
 
   // Deallocate the im2col buffer

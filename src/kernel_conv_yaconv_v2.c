@@ -235,8 +235,8 @@ void conv_2d_yaconv_v2_copy(float *__restrict__ input,
 void conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
                        float *__restrict__ filters, int N, int H, int W, int C,
                        int FH, int FW, int OH, int OW, int M, int PH, int PW,
-                       int SH, int SW, int DH, int DW) {
   if (DH == 1 && DW == 1) {
+                       int SH, int SW, int DH, int DW, int GR) {
     conv_2d_yaconv_v2_no_copy(input, output, filters, N, H, W, C, FH, FW, OH,
                               OW, M, PH, PW, SH, SW);
   } else {
