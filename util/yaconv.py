@@ -34,82 +34,81 @@ def yaconv_conv2d(images, filters, padding, stride):
     # print(np.squeeze(filters))
     # print(f"\nOutput shape: {outputs.shape}")
 
-    for fh in range(FH):
+    for n in range(N):
+        single_image = images[n, :, :, :]
+        single_output = outputs[n, :, :, :]
 
-        # Calculate height slice of size OH and handle edge cases
-        height_offset = fh - PH
-        if height_offset < 0:
-            height_start = max(0, height_offset%SH)
-        else:
-            height_start = max(0, fh - PH)
-        height_end = min(H, height_offset + OH * SH)
-        height_slice = math.ceil((height_end - height_start) / SH)
+        for fh in range(FH):
+            # Calculate height slice of size OH and handle edge cases
+            height_offset = fh - PH
+            if height_offset < 0:
+                height_start = max(0, height_offset%SH)
+            else:
+                height_start = max(0, fh - PH)
+            height_end = min(H, height_offset + OH * SH)
+            height_slice = math.ceil((height_end - height_start) / SH)
 
-        if height_slice <= 0:
-            continue
-
-        # print height variables
-        # print(f"\nFilter Height: {fh} ----------------")
-        # print(f"Height Offset: {height_offset}")
-        # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
-
-        for ow in range(OW):
-            # Calculate width slice of size FW and handle edge cases
-            # ow_offset = ow - PW
-            iw = ow * SW - PW
-            width_start = max(0, iw)
-            width_end = min(W, iw + FW)
-            filter_width_slice = width_end - width_start
-
-            if filter_width_slice <= 0:
+            if height_slice <= 0:
                 continue
 
-            # Filter is FH,FW,C,M
-            # Select filter slice of size 1,FW,C,M
-            if iw < 0:
-                filter_slice = filters[fh, -iw : -iw + filter_width_slice, :, :]
-            else:
-                filter_slice = filters[fh, :filter_width_slice, :, :]
+            # print height variables
+            # print(f"\nFilter Height: {fh} ----------------")
+            # print(f"Height Offset: {height_offset}")
+            # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
 
-            # Image is N,H,W,C
-            # Select image slice of size N,OH,FW,C
-            image_slice = images[:, height_start:height_end:SH, width_start:width_end, :]
+            for ow in range(OW):
+                # Calculate width slice of size FW and handle edge cases
+                # ow_offset = ow - PW
+                iw = ow * SW - PW
+                width_start = max(0, iw)
+                width_end = min(W, iw + FW)
+                filter_width_slice = width_end - width_start
 
-            # Flattened filter: 1,FW,C,M -> FWxC,M
-            flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
-            # Flattened image: N,OH,FW,C -> NxOH,FWxC
-            flattened_image = np.reshape(
-                image_slice, (image_slice.shape[0] * image_slice.shape[1], -1)
-            )
+                if filter_width_slice <= 0:
+                    continue
 
-            # print("\nImage ", flattened_image.shape)
-            # print(np.squeeze(flattened_image))
-            # print("\nFilter ", flattened_filter.shape)
-            # print(np.squeeze(flattened_filter))
+                # Filter is FH,FW,C,M
+                # Select filter slice of size 1,FW,C,M
+                if iw < 0:
+                    filter_slice = filters[fh, -iw : -iw + filter_width_slice, :, :]
+                else:
+                    filter_slice = filters[fh, :filter_width_slice, :, :]
 
-            # Results: NxOH,M -> N,OH,M
-            result = np.reshape(
-                np.matmul(flattened_image, flattened_filter),
-                (N, image_slice.shape[1], filter_slice.shape[-1]),
-            )
+                # Image is H,W,C
+                # Select image slice of size OH,FW,C
+                image_slice = single_image[height_start:height_end:SH, width_start:width_end, :]
 
-            # print("\nResult ", result.shape)
-            # print(np.squeeze(result))
+                # Flattened filter: 1,FW,C,M -> FWxC,M
+                flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
+                # Flattened image: OH,FW,C -> OH,FWxC
+                flattened_image = np.reshape(
+                    image_slice, (image_slice.shape[0], -1)
+                )
 
-            # Output is N,OH,OW,M
-            # Select output slice of size N,OH,1,M and handle edge cases
-            if height_offset < 0:
-                output_slice = outputs[:, -(height_offset//SH) : -(height_offset//SH) + height_slice, ow, :]
-            else:
-                output_slice = outputs[:, :height_slice, ow, :]
+                # print("\nImage ", flattened_image.shape)
+                # print(np.squeeze(flattened_image))
+                # print("\nFilter ", flattened_filter.shape)
+                # print(np.squeeze(flattened_filter))
 
-            # Place the result in the output matrix
-            output_slice += result
+                result = np.matmul(flattened_image, flattened_filter)
 
-            # print("\nOutput Slice ", output_slice.shape)
-            # print(np.squeeze(output_slice))
-            # print("\nOutput", outputs.shape)
-            # print(np.squeeze(outputs))
+                # print("\nResult ", result.shape)
+                # print(np.squeeze(result))
+
+                # Output is N,OH,OW,M
+                # Select output slice of size N,OH,1,M and handle edge cases
+                if height_offset < 0:
+                    output_slice = single_output[-(height_offset//SH) : -(height_offset//SH) + height_slice, ow, :]
+                else:
+                    output_slice = single_output[:height_slice, ow, :]
+
+                # Place the result in the output matrix
+                output_slice += result
+
+                # print("\nOutput Slice ", output_slice.shape)
+                # print(np.squeeze(output_slice))
+                # print("\nOutput", outputs.shape)
+                # print(np.squeeze(outputs))
 
     return outputs
 
