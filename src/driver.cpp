@@ -69,7 +69,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
 
 #if defined YACONV
   if (stride_h > 1 || stride_w > 1 || dilation_h > 1 || dilation_w > 1)
-    state.SkipWithError("Stride > 1 not supported by Yaconv!");
+    state.SkipWithError("Stride > 1 and Dilation > 1 not supported by Yaconv!");
 #endif
 
   // Buffer sizes

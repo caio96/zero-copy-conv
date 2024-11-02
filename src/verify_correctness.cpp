@@ -184,13 +184,13 @@ void verify_correctness(const std::vector<int> &arguments) {
   diff = get_max_diff(output_naive_NCHW, output_im2col, output_size);
   print_diff("Im2col", conv_parameters, diff);
 
-  if (stride_w == 1 && stride_h == 1) {
+  if (dilation_h != 1 || dilation_w != 1) {
+    print_error("Yaconv", conv_parameters, "Dilation > 1 not supported");
+  } else if (stride_h > 1 || stride_w > 1) {
+    print_error("Yaconv", conv_parameters, "Stride > 1 not supported");
+  } else {
     diff = get_max_diff(output_naive_NHWC, output_yaconv, output_size);
     print_diff("Yaconv", conv_parameters, diff);
-  } else if (dilation_h != 1 && dilation_w != 1) {
-    print_error("Yaconv", conv_parameters, "Dilation > 1 not supported");
-  } else {
-    print_error("Yaconv", conv_parameters, "Stride > 1 not supported");
   }
 
   diff =
