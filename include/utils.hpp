@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <cstdlib>
+#include <vector>
 
 // Initialize data with random values between 0.0 and 1.0
 void initialize_data(float *data, size_t size);
@@ -25,4 +26,9 @@ void print_tensor_NCHW(float *input, int batch, int channels, int height,
                        int width);
 void print_tensor_NHWC(float *input, int batch, int channels, int height,
                        int width);
+
+// Parse command line
+int parse_command_line_arguments(int argc, char **argv,
+                                 std::vector<int> &arguments);
+
 #endif // UTILS_H

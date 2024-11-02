@@ -1,6 +1,5 @@
 #include "blis/blis.h"
 #include "utils.hpp"
-#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <sstream>
@@ -93,14 +92,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   int stride_w = arguments[14];
   int dilation_h = arguments[15];
   int dilation_w = arguments[16];
-  int grouped = arguments[17];
-
-  // Output dimensions: This does not always match the arguments if the division
-  // is not exact, so we use the argument values instead of the formula.
-  // int output_height =
-  //     (input_height + 2 * padding_top - filter_height) / stride_h + 1;
-  // int output_width =
-  //     (input_width + 2 * padding_right - filter_width) / stride_w + 1;
+  int groups = arguments[17];
 
   // Transform arguments into a string
   std::stringstream parameters_stream;
@@ -115,6 +107,11 @@ void verify_correctness(const std::vector<int> &arguments) {
   if (padding_top != padding_bottom || padding_left != padding_right) {
     print_error_for_all(method_names, conv_parameters,
                         "Unequal padding not supported!");
+    return;
+  }
+  if (groups > 1) {
+    print_error_for_all(method_names, conv_parameters,
+                        "Grouped convolution not supported!");
     return;
   }
 
@@ -202,27 +199,10 @@ void verify_correctness(const std::vector<int> &arguments) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 19 && argc != 1) {
-    std::cerr << "Usage: " << argv[0]
-              << " <Image batch> <Image channel> <Image height> <Image width> "
-                 "<Output depth> <Output height> <Output width> <Filter "
-                 "height> <Filter width> <Padding top> <Padding bottom> "
-                 "<Padding left> <Padding right> <Stride height> <Stride "
-                 "width> <Dilation height> <Dilation width> <Grouped>"
-              << std::endl;
-    return 1;
-  }
-
   std::vector<int> arguments;
-  if (argc == 1) {
-    // Default arguments
-    arguments = {1, 64, 64, 64, 128, 64, 64, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-  } else {
-    // Command line arguments
-    for (int i = 1; i < argc; ++i) {
-      arguments.push_back(std::atoi(argv[i]));
-    }
-  }
+  int ret = parse_command_line_arguments(argc, argv, arguments);
+  if (ret != 0)
+    return ret;
 
   // Initialize BLIS
   bli_init();
