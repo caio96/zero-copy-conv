@@ -12,13 +12,7 @@ void conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
                    int input_width, int input_channels, int filter_height,
                    int filter_width, int output_height, int output_width,
                    int output_channels, int padding_height, int padding_width,
-                   int stride_h, int stride_w) {
-  // // Output dimensions
-  // int output_height =
-  //     (input_height + 2 * padding_height - filter_height) / stride_h + 1;
-  // int output_width =
-  //     (input_width + 2 * padding_width - filter_width) / stride_w + 1;
-
+                   int stride_h, int stride_w, int dilation_h, int dilation_w) {
   // For each output element
   for (int b = 0; b < batch; ++b) {
     for (int oc = 0; oc < output_channels; ++oc) {
@@ -31,8 +25,8 @@ void conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
             for (int fh = 0; fh < filter_height; ++fh) {
               for (int fw = 0; fw < filter_width; ++fw) {
                 // Input height and width
-                int ih = oh * stride_h + fh - padding_height;
-                int iw = ow * stride_w + fw - padding_width;
+                int ih = oh * stride_h + fh * dilation_h - padding_height;
+                int iw = ow * stride_w + fw * dilation_w - padding_width;
 
                 // If the input index is within bounds, get the value
                 // Otherwise, it is zero-padding, so no contribution

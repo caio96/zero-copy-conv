@@ -12,7 +12,7 @@ conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               int input_width, int input_channels, int filter_height,
               int filter_width, int output_height, int output_width,
               int output_channels, int padding_height, int padding_width,
-              int stride_h, int stride_w);
+              int stride_h, int stride_w, int dilation_h, int dilation_w);
 
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
@@ -20,7 +20,7 @@ conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                int input_width, int input_channels, int filter_height,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
-               int stride_h, int stride_w);
+               int stride_h, int stride_w, int dilation_h, int dilation_w);
 
 extern "C" void
 conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
@@ -28,7 +28,7 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int input_width, int input_channels, int filter_height,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
-               int stride_h, int stride_w);
+               int stride_h, int stride_w, int dilation_h, int dilation_w);
 
 extern "C" void
 conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
@@ -36,7 +36,7 @@ conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
                   int input_width, int input_channels, int filter_height,
                   int filter_width, int output_height, int output_width,
                   int output_channels, int padding_height, int padding_width,
-                  int stride_h, int stride_w);
+                  int stride_h, int stride_w, int dilation_h, int dilation_w);
 
 // Returns the maximum difference between two arrays
 float get_max_diff(float *output1, float *output2, size_t size) {
@@ -118,12 +118,6 @@ void verify_correctness(const std::vector<int> &arguments) {
     return;
   }
 
-  if (dilation_h != 1 || dilation_w != 1) {
-    print_error_for_all(method_names, conv_parameters,
-                        "Dilation > 1 not supported!");
-    return;
-  }
-
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
@@ -160,21 +154,23 @@ void verify_correctness(const std::vector<int> &arguments) {
   conv_2d_naive(input_NCHW, output_naive_NCHW, filters_OIHW, batch,
                 input_height, input_width, input_channels, filter_height,
                 filter_width, output_height, output_width, output_channels,
-                padding_top, padding_right, stride_h, stride_w);
+                padding_top, padding_right, stride_h, stride_w, dilation_h,
+                dilation_w);
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
                  output_height, output_width, output_channels, padding_top,
-                 padding_right, stride_h, stride_w);
-  if (stride_w == 1 && stride_h == 1) {
+                 padding_right, stride_h, stride_w, dilation_h, dilation_w);
+  if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1) {
     conv_2d_yaconv(input_NHWC, output_yaconv, filters_HWIO, batch, input_height,
                    input_width, input_channels, filter_height, filter_width,
                    output_height, output_width, output_channels, padding_top,
-                   padding_right, stride_h, stride_w);
+                   padding_right, stride_h, stride_w, dilation_h, dilation_w);
   }
   conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
                     input_height, input_width, input_channels, filter_height,
                     filter_width, output_height, output_width, output_channels,
-                    padding_top, padding_right, stride_h, stride_w);
+                    padding_top, padding_right, stride_h, stride_w, dilation_h,
+                    dilation_w);
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
@@ -194,6 +190,8 @@ void verify_correctness(const std::vector<int> &arguments) {
   if (stride_w == 1 && stride_h == 1) {
     diff = get_max_diff(output_naive_NHWC, output_yaconv, output_size);
     print_diff("Yaconv", conv_parameters, diff);
+  } else if (dilation_h != 1 && dilation_w != 1) {
+    print_error("Yaconv", conv_parameters, "Dilation > 1 not supported");
   } else {
     print_error("Yaconv", conv_parameters, "Stride > 1 not supported");
   }
