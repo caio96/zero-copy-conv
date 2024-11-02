@@ -201,7 +201,7 @@ int parse_command_line_arguments(int argc, char **argv,
     args[13] = std::atoi(argv[12]);
     args[14] = std::atoi(argv[13]);
     args[15] = std::atoi(argv[14]);
-    args[16] = std::atoi(argv[16]);
+    args[16] = std::atoi(argv[15]);
     args[17] = std::atoi(argv[16]);
     compute_output_dims(args[2], args[3], args[7], args[8], args[9], args[10],
                         args[11], args[12], args[13], args[14], args[15],
