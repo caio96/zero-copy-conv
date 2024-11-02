@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 
 
-def pytorch_conv2d(images, filters, padding, stride, dilation):
+def pytorch_conv2d(images, filters, padding, stride, dilation, groups):
     # (N, H, W, C) -> (N, C, H, W)
     # (FH, FW, C, M) -> (M, C, FH, FW)
     images_torch = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)
@@ -15,14 +15,19 @@ def pytorch_conv2d(images, filters, padding, stride, dilation):
 
     # Perform 2D convolution
     outputs_torch = F.conv2d(
-        images_torch, filters_torch, stride=stride, padding=padding, dilation=dilation
+        images_torch,
+        filters_torch,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        groups=groups,
     )
 
     # (N, M, HO, WO) -> (N, HO, WO, M)
     return outputs_torch.permute(0, 2, 3, 1).numpy()
 
 
-def yaconv_conv2d(images, filters, padding, stride, dilation):
+def yaconv_conv2d(images, filters, padding, stride, dilation, groups):
     N, H, W, C = images.shape
     FH, FW, _, M = filters.shape
     PH, PW = padding
@@ -30,8 +35,12 @@ def yaconv_conv2d(images, filters, padding, stride, dilation):
     DH, DW = dilation
     OH = math.floor((H + 2 * PH - DH * (FH - 1) - 1) / SH + 1)
     OW = math.floor((W + 2 * PW - DW * (FW - 1) - 1) / SW + 1)
+    GR = groups
 
     outputs = np.zeros((N, OH, OW, M))
+
+    C_GR = C // GR
+    M_GC = M // GR
 
     # print("\nAll image ", images.shape)
     # print(np.squeeze(images))
@@ -80,48 +89,61 @@ def yaconv_conv2d(images, filters, padding, stride, dilation):
                 if filter_width_slice <= 0:
                     continue
 
-                # Filter is FH,FW,C,M
-                # Select filter slice of size 1,FW,C,M
-                if iw < 0:
-                    filter_slice = filters[fh, -(iw // DW) : -(iw // DW) + filter_width_slice, :, :]
-                else:
-                    filter_slice = filters[fh, :filter_width_slice, :, :]
+                for gr in range(GR):
 
-                # Image is H,W,C
-                # Select image slice of size OH,FW,C
-                image_slice = single_image[height_start:height_end:SH, width_start:width_end:DW, :]
+                    # Filter is FH,FW,C,M
+                    # Select filter slice of size 1,FW,C,M
+                    if iw < 0:
+                        filter_slice = filters[
+                            fh,
+                            -(iw // DW) : -(iw // DW) + filter_width_slice,
+                            :,
+                            gr * M_GC : (gr + 1) * M_GC,
+                        ]
+                    else:
+                        filter_slice = filters[
+                            fh, :filter_width_slice, :, gr * M_GC : (gr + 1) * M_GC
+                        ]
 
-                # Flattened filter: 1,FW,C,M -> FWxC,M
-                flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
-                # Flattened image: OH,FW,C -> OH,FWxC
-                flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
-
-                # print("\nImage ", flattened_image.shape)
-                # print(np.squeeze(flattened_image))
-                # print("\nFilter ", flattened_filter.shape)
-                # print(np.squeeze(flattened_filter))
-
-                result = np.matmul(flattened_image, flattened_filter)
-
-                # print("\nResult ", result.shape)
-                # print(np.squeeze(result))
-
-                # Output is OH,OW,M
-                # Select output slice of size OH,1,M and handle edge cases
-                if height_offset < 0:
-                    output_slice = single_output[
-                        -(height_offset // SH) : -(height_offset // SH) + height_slice, ow, :
+                    # Image is H,W,C
+                    # Select image slice of size OH,FW,C
+                    image_slice = single_image[
+                        height_start:height_end:SH,
+                        width_start:width_end:DW,
+                        gr * C_GR : (gr + 1) * C_GR,
                     ]
-                else:
-                    output_slice = single_output[:height_slice, ow, :]
 
-                # Place the result in the output matrix
-                output_slice += result
+                    # Flattened filter: 1,FW,C,M -> FWxC,M
+                    flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
+                    # Flattened image: OH,FW,C -> OH,FWxC
+                    flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
 
-                # print("\nOutput Slice ", output_slice.shape)
-                # print(np.squeeze(output_slice))
-                # print("\nOutput", outputs.shape)
-                # print(np.squeeze(outputs))
+                    # print("\nImage ", flattened_image.shape)
+                    # print(np.squeeze(flattened_image))
+                    # print("\nFilter ", flattened_filter.shape)
+                    # print(np.squeeze(flattened_filter))
+
+                    result = np.matmul(flattened_image, flattened_filter)
+
+                    # print("\nResult ", result.shape)
+                    # print(np.squeeze(result))
+
+                    # Output is OH,OW,M
+                    # Select output slice of size OH,1,M and handle edge cases
+                    if height_offset < 0:
+                        output_slice = single_output[
+                            -(height_offset // SH) : -(height_offset // SH) + height_slice, ow, gr * M_GC : (gr + 1) * M_GC
+                        ]
+                    else:
+                        output_slice = single_output[:height_slice, ow, gr * M_GC : (gr + 1) * M_GC]
+
+                    # Place the result in the output matrix
+                    output_slice += result
+
+                    # print("\nOutput Slice ", output_slice.shape)
+                    # print(np.squeeze(output_slice))
+                    # print("\nOutput", outputs.shape)
+                    # print(np.squeeze(outputs))
 
     return outputs
 
@@ -155,6 +177,9 @@ if __name__ == "__main__":
     parser.add_argument("--DH", type=int, default=1, help="Dilation height")
     parser.add_argument("--DW", type=int, default=1, help="Dilation width")
 
+    # Groups
+    parser.add_argument("--GR", type=int, default=1, help="Groups (for grouped convolution)")
+
     # Seed for reproducibility
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
 
@@ -164,9 +189,12 @@ if __name__ == "__main__":
     if args.seed is not None:
         np.random.seed(args.seed)
 
+    assert args.C % args.GR == 0, "Number of input channels must be divisible by number of groups"
+    assert args.M % args.GR == 0, "Number of output channels must be divisible by number of groups"
+
     # Create random images and filters
     images = np.random.rand(args.N, args.H, args.W, args.C)
-    filters = np.random.rand(args.FH, args.FW, args.C, args.M)
+    filters = np.random.rand(args.FH, args.FW, args.C // args.GR, args.M)
 
     # # Create images and filters with values from 1 to their size
     # images = np.arange(1, args.N * args.H * args.W * args.C + 1).reshape(
@@ -193,6 +221,7 @@ if __name__ == "__main__":
         padding=(args.PH, args.PW),
         stride=(args.SH, args.SW),
         dilation=(args.DH, args.DW),
+        groups=args.GR,
     )
     yaconv_output = yaconv_conv2d(
         images,
@@ -200,6 +229,7 @@ if __name__ == "__main__":
         padding=(args.PH, args.PW),
         stride=(args.SH, args.SW),
         dilation=(args.DH, args.DW),
+        groups=args.GR,
     )
 
     # Compare results
