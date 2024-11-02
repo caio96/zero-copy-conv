@@ -76,11 +76,6 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     state.SkipWithError("Stride > 1, Dilation > 1, and Groups > 1 not supported by Yaconv!");
 #endif
 
-#if defined YACONV_V2
-  if (groups > 1)
-    state.SkipWithError("Groups > 1 not supported by Yaconv_v2!");
-#endif
-
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
