@@ -53,13 +53,13 @@ def yaconv_conv2d(images, filters, padding, stride, dilation):
             height_end = min(H, height_offset + OH * SH)
             height_slice = math.ceil((height_end - height_start) / SH)
 
-            if height_slice <= 0:
-                continue
-
-            # print height variables
+            # # print height variables
             # print(f"\nFilter Height: {fh} ----------------")
             # print(f"Height Offset: {height_offset}")
             # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
+
+            if height_slice <= 0:
+                continue
 
             for ow in range(OW):
                 # Calculate width slice of size FW and handle edge cases
@@ -71,6 +71,11 @@ def yaconv_conv2d(images, filters, padding, stride, dilation):
                     width_start = max(0, iw)
                 width_end = min(W, iw + FW * DW)
                 filter_width_slice = math.ceil((width_end - width_start) / DW)
+
+                # # Print width variables
+                # print(f"\nOutput Width: {ow} ----------------")
+                # print(f"Width Offset: {iw}")
+                # print(f"Width Slice: ({width_end} - {width_start}) / {DW} = {filter_width_slice}")
 
                 if filter_width_slice <= 0:
                     continue
@@ -89,9 +94,7 @@ def yaconv_conv2d(images, filters, padding, stride, dilation):
                 # Flattened filter: 1,FW,C,M -> FWxC,M
                 flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
                 # Flattened image: OH,FW,C -> OH,FWxC
-                flattened_image = np.reshape(
-                    image_slice, (image_slice.shape[0], -1)
-                )
+                flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
 
                 # print("\nImage ", flattened_image.shape)
                 # print(np.squeeze(flattened_image))
@@ -106,7 +109,9 @@ def yaconv_conv2d(images, filters, padding, stride, dilation):
                 # Output is N,OH,OW,M
                 # Select output slice of size N,OH,1,M and handle edge cases
                 if height_offset < 0:
-                    output_slice = single_output[-(height_offset//SH) : -(height_offset//SH) + height_slice, ow, :]
+                    output_slice = single_output[
+                        -(height_offset // SH) : -(height_offset // SH) + height_slice, ow, :
+                    ]
                 else:
                     output_slice = single_output[:height_slice, ow, :]
 
@@ -171,9 +176,15 @@ if __name__ == "__main__":
     #     args.FH, args.FW, args.C, args.M
     # )
 
-    # Print configurations (optional, can be commented out)
-    print(f"Images: {images.shape}")
-    print(f"Filters: {filters.shape}")
+    # # Print configurations
+    # print(f"Images: {images.shape}")
+    # print(f"Filters: {filters.shape}")
+
+    # # Print inputs
+    # print("Images:")
+    # print(np.squeeze(images))
+    # print("Filters:")
+    # print(np.squeeze(filters))
 
     # Perform convolution with both implementations
     pytorch_output = pytorch_conv2d(
@@ -196,3 +207,5 @@ if __name__ == "__main__":
         print("✅ Yaconv and Torch match")
     else:
         print("❌ Yaconv and Torch differ")
+        # print(f"Yaconv output:\n {np.squeeze(yaconv_output)}")
+        # print(f"Torch output:\n {np.squeeze(pytorch_output)}")
