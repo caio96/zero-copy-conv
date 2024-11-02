@@ -7,24 +7,29 @@ import torch
 import torch.nn.functional as F
 
 
-def pytorch_conv2d(images, filters, padding, stride):
+def pytorch_conv2d(images, filters, padding, stride, dilation):
     # (N, H, W, C) -> (N, C, H, W)
     # (FH, FW, C, M) -> (M, C, FH, FW)
     images_torch = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)
     filters_torch = torch.tensor(filters, dtype=torch.float32).permute(3, 2, 0, 1)
 
     # Perform 2D convolution
-    outputs_torch = F.conv2d(images_torch, filters_torch, stride=stride, padding=padding)
+    outputs_torch = F.conv2d(
+        images_torch, filters_torch, stride=stride, padding=padding, dilation=dilation
+    )
 
     # (N, M, HO, WO) -> (N, HO, WO, M)
     return outputs_torch.permute(0, 2, 3, 1).numpy()
 
-def yaconv_conv2d(images, filters, padding, stride):
+
+def yaconv_conv2d(images, filters, padding, stride, dilation):
     N, H, W, C = images.shape
     FH, FW, _, M = filters.shape
     PH, PW = padding
     SH, SW = stride
-    OH, OW = (H + 2 * PH - FH) // SH + 1, (W + 2 * PW - FW) // SW + 1
+    DH, DW = dilation
+    OH = math.floor((H + 2 * PH - DH * (FH - 1) - 1) / SH + 1)
+    OW = math.floor((W + 2 * PW - DW * (FW - 1) - 1) / SW + 1)
 
     outputs = np.zeros((N, OH, OW, M))
 
@@ -40,11 +45,11 @@ def yaconv_conv2d(images, filters, padding, stride):
 
         for fh in range(FH):
             # Calculate height slice of size OH and handle edge cases
-            height_offset = fh - PH
+            height_offset = fh * DH - PH
             if height_offset < 0:
-                height_start = max(0, height_offset%SH)
+                height_start = max(0, height_offset % SH)
             else:
-                height_start = max(0, fh - PH)
+                height_start = max(0, height_offset)
             height_end = min(H, height_offset + OH * SH)
             height_slice = math.ceil((height_end - height_start) / SH)
 
@@ -60,9 +65,12 @@ def yaconv_conv2d(images, filters, padding, stride):
                 # Calculate width slice of size FW and handle edge cases
                 # ow_offset = ow - PW
                 iw = ow * SW - PW
-                width_start = max(0, iw)
-                width_end = min(W, iw + FW)
-                filter_width_slice = width_end - width_start
+                if iw < 0:
+                    width_start = max(0, iw % DW)
+                else:
+                    width_start = max(0, iw)
+                width_end = min(W, iw + FW * DW)
+                filter_width_slice = math.ceil((width_end - width_start) / DW)
 
                 if filter_width_slice <= 0:
                     continue
@@ -70,13 +78,13 @@ def yaconv_conv2d(images, filters, padding, stride):
                 # Filter is FH,FW,C,M
                 # Select filter slice of size 1,FW,C,M
                 if iw < 0:
-                    filter_slice = filters[fh, -iw : -iw + filter_width_slice, :, :]
+                    filter_slice = filters[fh, -(iw // DW) : -(iw // DW) + filter_width_slice, :, :]
                 else:
                     filter_slice = filters[fh, :filter_width_slice, :, :]
 
                 # Image is H,W,C
                 # Select image slice of size OH,FW,C
-                image_slice = single_image[height_start:height_end:SH, width_start:width_end, :]
+                image_slice = single_image[height_start:height_end:SH, width_start:width_end:DW, :]
 
                 # Flattened filter: 1,FW,C,M -> FWxC,M
                 flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
@@ -138,6 +146,10 @@ if __name__ == "__main__":
     parser.add_argument("--SH", type=int, default=1, help="Stride height")
     parser.add_argument("--SW", type=int, default=1, help="Stride width")
 
+    # Dilation
+    parser.add_argument("--DH", type=int, default=1, help="Dilation height")
+    parser.add_argument("--DW", type=int, default=1, help="Dilation width")
+
     # Seed for reproducibility
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
 
@@ -165,10 +177,18 @@ if __name__ == "__main__":
 
     # Perform convolution with both implementations
     pytorch_output = pytorch_conv2d(
-        images, filters, padding=(args.PH, args.PW), stride=(args.SH, args.SW)
+        images,
+        filters,
+        padding=(args.PH, args.PW),
+        stride=(args.SH, args.SW),
+        dilation=(args.DH, args.DW),
     )
     yaconv_output = yaconv_conv2d(
-        images, filters, padding=(args.PH, args.PW), stride=(args.SH, args.SW)
+        images,
+        filters,
+        padding=(args.PH, args.PW),
+        stride=(args.SH, args.SW),
+        dilation=(args.DH, args.DW),
     )
 
     # Compare results
