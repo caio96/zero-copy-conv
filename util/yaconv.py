@@ -118,7 +118,7 @@ def yaconv_conv2d(images, filters, padding, stride, dilation, groups):
                     # Flattened image: OH,FW,C -> OH,FWxC
                     flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
 
-                    # print("\nImage ", flattened_image.shape)
+                    # print("-------\nImage ", flattened_image.shape)
                     # print(np.squeeze(flattened_image))
                     # print("\nFilter ", flattened_filter.shape)
                     # print(np.squeeze(flattened_filter))
@@ -132,7 +132,9 @@ def yaconv_conv2d(images, filters, padding, stride, dilation, groups):
                     # Select output slice of size OH,1,M and handle edge cases
                     if height_offset < 0:
                         output_slice = single_output[
-                            -(height_offset // SH) : -(height_offset // SH) + height_slice, ow, gr * M_GC : (gr + 1) * M_GC
+                            -(height_offset // SH) : -(height_offset // SH) + height_slice,
+                            ow,
+                            gr * M_GC : (gr + 1) * M_GC,
                         ]
                     else:
                         output_slice = single_output[:height_slice, ow, gr * M_GC : (gr + 1) * M_GC]
@@ -200,8 +202,8 @@ if __name__ == "__main__":
     # images = np.arange(1, args.N * args.H * args.W * args.C + 1).reshape(
     #     args.N, args.H, args.W, args.C
     # )
-    # filters = np.arange(1, args.FH * args.FW * args.C * args.M + 1).reshape(
-    #     args.FH, args.FW, args.C, args.M
+    # filters = np.arange(1, args.FH * args.FW * (args.C // args.GR) * args.M + 1).reshape(
+    #     args.FH, args.FW, (args.C // args.GR), args.M
     # )
 
     # # Print configurations
