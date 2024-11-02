@@ -38,10 +38,10 @@ void conv_2d_yaconv_v2_no_copy(float *__restrict__ input,
   // For every batch element
   for (int n = 0; n < N; ++n) {
     float *single_input = &input[n * H * W * C];
+    float *single_output = &output[n * OH * OW * M];
 
     // Initialize output to zeros
-    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, &output[n * OH * OW * M],
-              1);
+    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, single_output, 1);
 
     // For every element in the filter height
     for (int fh = 0; fh < FH; ++fh) {
@@ -91,9 +91,9 @@ void conv_2d_yaconv_v2_no_copy(float *__restrict__ input,
         // Start of the output block of size 1,OH,M
         if (height_offset < 0) {
           int offset = floorf(height_offset / (float)SH);
-          c = &output[n * OH * OW * M + ow * OH * M - offset * M];
+          c = &single_output[ow * OH * M - offset * M];
         } else {
-          c = &output[n * OH * OW * M + ow * OH * M];
+          c = &single_output[ow * OH * M];
         }
 
         int M_dim = height_slice;
@@ -112,7 +112,7 @@ void conv_2d_yaconv_v2_no_copy(float *__restrict__ input,
                   &alpha, a, W * C * SH, 1, b, N_dim, 1, &beta, c, N_dim, 1);
 
         // printf("C\n");
-        // print_matrix(output, OW, OH);
+        // print_matrix(single_output, OW, OH);
       }
     }
   }
@@ -134,9 +134,10 @@ void conv_2d_yaconv_v2_copy(float *__restrict__ input,
   // For every batch element
   for (int n = 0; n < N; ++n) {
     float *single_input = &input[n * H * W * C];
+    float *single_output = &output[n * OH * OW * M];
 
     // Initialize output to zeros
-    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, &output[n * OH * OW * M],
+    bli_ssetv(BLIS_NO_CONJUGATE, OH * OW * M, bli_s0, single_output,
               1);
 
     // For every element in the filter height
@@ -203,9 +204,9 @@ void conv_2d_yaconv_v2_copy(float *__restrict__ input,
         // Start of the output block of size 1,OH,M
         if (height_offset < 0) {
           int offset = floorf(height_offset / (float)SH);
-          c = &output[n * OH * OW * M + ow * OH * M - offset * M];
+          c = &single_output[ow * OH * M - offset * M];
         } else {
-          c = &output[n * OH * OW * M + ow * OH * M];
+          c = &single_output[ow * OH * M];
         }
 
         int M_dim = height_slice;
@@ -224,7 +225,7 @@ void conv_2d_yaconv_v2_copy(float *__restrict__ input,
                   &alpha, a, K_dim, 1, b, N_dim, 1, &beta, c, N_dim, 1);
 
         // printf("C\n");
-        // print_matrix(output, OW, OH);
+        // print_matrix(single_output, OW, OH);
       }
     }
   }
