@@ -183,7 +183,7 @@ if __name__ == "__main__":
     joined_results.to_csv(output_dir / f"results.csv", index=False)
 
     # These tuples represent the comparisons that will be made into graphs
-    comparisons = [("Im2col", "Yaconv"), ("Im2col", "Yaconv_v2"), ("Yaconv", "Yaconv_v2")]
+    comparisons = [("Im2col", "Yaconv"), ("Im2col", "ZeroCopy"), ("Yaconv", "ZeroCopy")]
 
     for old_method, new_method in comparisons:
         compare_methods(joined_results, old_method, new_method)

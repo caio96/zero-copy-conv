@@ -32,13 +32,13 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int groups);
 
 extern "C" void
-conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
-                  float *__restrict__ filters, int batch, int input_height,
-                  int input_width, int input_channels, int filter_height,
-                  int filter_width, int output_height, int output_width,
-                  int output_channels, int padding_height, int padding_width,
-                  int stride_h, int stride_w, int dilation_h, int dilation_w,
-                  int groups);
+conv_2d_zero_copy_main(float *__restrict__ input, float *__restrict__ output,
+                       float *__restrict__ filters, int batch, int input_height,
+                       int input_width, int input_channels, int filter_height,
+                       int filter_width, int output_height, int output_width,
+                       int output_channels, int padding_height,
+                       int padding_width, int stride_h, int stride_w,
+                       int dilation_h, int dilation_w, int groups);
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
                            const std::vector<int> &arguments) {
@@ -72,15 +72,17 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     state.SkipWithError("Input and output channels not divisible by groups!");
 
 #if defined YACONV
-  if (stride_h > 1 || stride_w > 1 || dilation_h > 1 || dilation_w > 1 || groups > 1)
-    state.SkipWithError("Stride > 1, Dilation > 1, and Groups > 1 not supported by Yaconv!");
+  if (stride_h > 1 || stride_w > 1 || dilation_h > 1 || dilation_w > 1 ||
+      groups > 1)
+    state.SkipWithError(
+        "Stride > 1, Dilation > 1, and Groups > 1 not supported by Yaconv!");
 #endif
 
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
-  size_t filter_size =
-      output_channels * (input_channels/groups) * filter_height * filter_width;
+  size_t filter_size = output_channels * (input_channels / groups) *
+                       filter_height * filter_width;
 
   // Allocate memory for buffers
   float *input =
@@ -110,12 +112,12 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
                    input_channels, filter_height, filter_width, output_height,
                    output_width, output_channels, padding_top, padding_right,
                    stride_h, stride_w, dilation_h, dilation_w, groups);
-#elif defined YACONV_V2
-    conv_2d_yaconv_v2(input, output, filters, batch, input_height, input_width,
-                      input_channels, filter_height, filter_width,
-                      output_height, output_width, output_channels, padding_top,
-                      padding_right, stride_h, stride_w, dilation_h,
-                      dilation_w, groups);
+#elif defined ZERO_COPY
+    conv_2d_zero_copy_main(input, output, filters, batch, input_height,
+                           input_width, input_channels, filter_height,
+                           filter_width, output_height, output_width,
+                           output_channels, padding_top, padding_right,
+                           stride_h, stride_w, dilation_h, dilation_w, groups);
 #else
     state.SkipWithError("Convolution method not defined!");
 #endif
@@ -141,8 +143,8 @@ int main(int argc, char **argv) {
   std::string name{"Conv2D_Im2col"};
 #elif defined YACONV
   std::string name{"Conv2D_Yaconv"};
-#elif defined YACONV_V2
-  std::string name{"Conv2D_Yaconv_v2"};
+#elif defined ZERO_COPY
+  std::string name{"Conv2D_ZeroCopy"};
 #else
   std::string name{"Unknown"};
 #endif

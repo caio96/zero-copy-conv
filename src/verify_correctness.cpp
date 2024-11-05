@@ -11,7 +11,8 @@ conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               int input_width, int input_channels, int filter_height,
               int filter_width, int output_height, int output_width,
               int output_channels, int padding_height, int padding_width,
-              int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
+              int stride_h, int stride_w, int dilation_h, int dilation_w,
+              int groups);
 
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
@@ -19,7 +20,8 @@ conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                int input_width, int input_channels, int filter_height,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
-               int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
+               int stride_h, int stride_w, int dilation_h, int dilation_w,
+               int groups);
 
 extern "C" void
 conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
@@ -27,15 +29,17 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int input_width, int input_channels, int filter_height,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
-               int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
+               int stride_h, int stride_w, int dilation_h, int dilation_w,
+               int groups);
 
 extern "C" void
-conv_2d_yaconv_v2(float *__restrict__ input, float *__restrict__ output,
-                  float *__restrict__ filters, int batch, int input_height,
-                  int input_width, int input_channels, int filter_height,
-                  int filter_width, int output_height, int output_width,
-                  int output_channels, int padding_height, int padding_width,
-                  int stride_h, int stride_w, int dilation_h, int dilation_w, int groups);
+conv_2d_zero_copy_main(float *__restrict__ input, float *__restrict__ output,
+                       float *__restrict__ filters, int batch, int input_height,
+                       int input_width, int input_channels, int filter_height,
+                       int filter_width, int output_height, int output_width,
+                       int output_channels, int padding_height,
+                       int padding_width, int stride_h, int stride_w,
+                       int dilation_h, int dilation_w, int groups);
 
 // Returns the maximum difference between two arrays
 float get_max_diff(float *output1, float *output2, size_t size) {
@@ -101,7 +105,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   std::string conv_parameters = parameters_stream.str();
   conv_parameters = conv_parameters.substr(0, conv_parameters.length() - 1);
 
-  std::vector<std::string> method_names = {"Im2col", "Yaconv", "Yaconv V2"};
+  std::vector<std::string> method_names = {"Im2col", "Yaconv", "Zero Copy"};
 
   // Sanity checks
   if (padding_top != padding_bottom || padding_left != padding_right) {
@@ -118,8 +122,8 @@ void verify_correctness(const std::vector<int> &arguments) {
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
-  size_t filter_size =
-      output_channels * (input_channels/groups) * filter_height * filter_width;
+  size_t filter_size = output_channels * (input_channels / groups) *
+                       filter_height * filter_width;
 
   // Allocate memory for input
   float *input_NCHW = new float[input_size];
@@ -134,8 +138,8 @@ void verify_correctness(const std::vector<int> &arguments) {
   float *output_naive_NHWC = new float[output_size];
   float *output_im2col = new float[output_size];
   float *output_yaconv = new float[output_size];
-  float *output_yaconv_v2 = new float[output_size];
-  float *output_yaconv_v2_transposed = new float[output_size];
+  float *output_zero_copy = new float[output_size];
+  float *output_zero_copy_transposed = new float[output_size];
 
   // Initialize input and filters
   initialize_data(input_NHWC, input_size);
@@ -144,8 +148,8 @@ void verify_correctness(const std::vector<int> &arguments) {
   // Convert input and filters
   NHWC_to_NCHW(input_NHWC, input_NCHW, batch, input_channels, input_height,
                input_width);
-  HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels, input_channels/groups,
-               filter_height, filter_width);
+  HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels,
+               input_channels / groups, filter_height, filter_width);
 
   // Run all convolution methods
   conv_2d_naive(input_NCHW, output_naive_NCHW, filters_OIHW, batch,
@@ -156,26 +160,28 @@ void verify_correctness(const std::vector<int> &arguments) {
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
                  output_height, output_width, output_channels, padding_top,
-                 padding_right, stride_h, stride_w, dilation_h, dilation_w, groups);
+                 padding_right, stride_h, stride_w, dilation_h, dilation_w,
+                 groups);
   if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1 &&
       groups == 1) {
     conv_2d_yaconv(input_NHWC, output_yaconv, filters_HWIO, batch, input_height,
                    input_width, input_channels, filter_height, filter_width,
                    output_height, output_width, output_channels, padding_top,
-                   padding_right, stride_h, stride_w, dilation_h, dilation_w, groups);
+                   padding_right, stride_h, stride_w, dilation_h, dilation_w,
+                   groups);
   }
-  conv_2d_yaconv_v2(input_NHWC, output_yaconv_v2, filters_HWIO, batch,
-                    input_height, input_width, input_channels, filter_height,
-                    filter_width, output_height, output_width,
-                    output_channels, padding_top, padding_right, stride_h,
-                    stride_w, dilation_h, dilation_w, groups);
+  conv_2d_zero_copy_main(
+      input_NHWC, output_zero_copy, filters_HWIO, batch, input_height,
+      input_width, input_channels, filter_height, filter_width, output_height,
+      output_width, output_channels, padding_top, padding_right, stride_h,
+      stride_w, dilation_h, dilation_w, groups);
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
                output_height, output_width);
 
-  // Transpose HW of yaconv_v2 as it flips HW to WH
-  transpose_HW(output_yaconv_v2, output_yaconv_v2_transposed, batch,
+  // Transpose HW of zero copy as it flips HW to WH
+  transpose_HW(output_zero_copy, output_zero_copy_transposed, batch,
                output_channels, output_height, output_width);
 
   // Print output header
@@ -197,8 +203,8 @@ void verify_correctness(const std::vector<int> &arguments) {
   }
 
   diff =
-    get_max_diff(output_naive_NHWC, output_yaconv_v2_transposed, output_size);
-  print_diff("Yaconv_v2", conv_parameters, diff);
+      get_max_diff(output_naive_NHWC, output_zero_copy_transposed, output_size);
+  print_diff("ZeroCopy", conv_parameters, diff);
 }
 
 int main(int argc, char *argv[]) {
