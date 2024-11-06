@@ -10,7 +10,7 @@ void initialize_data(float *data, size_t size) {
   }
 }
 
-void NCHW_to_NHWC(float *input, float *output, int batch, int channels,
+void NCHW_to_NHWC(const float *input, float *output, int batch, int channels,
                   int height, int width) {
   for (int b = 0; b < batch; ++b) {
     for (int c = 0; c < channels; ++c) {
@@ -25,7 +25,7 @@ void NCHW_to_NHWC(float *input, float *output, int batch, int channels,
   }
 }
 
-void NHWC_to_NCHW(float *input, float *output, int batch, int channels,
+void NHWC_to_NCHW(const float *input, float *output, int batch, int channels,
                   int height, int width) {
   for (int b = 0; b < batch; ++b) {
     for (int h = 0; h < height; ++h) {

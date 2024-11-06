@@ -8,9 +8,9 @@
 void initialize_data(float *data, size_t size);
 
 // Layout conversion helpers
-void NCHW_to_NHWC(float *input, float *output, int batch, int channels,
+void NCHW_to_NHWC(const float *input, float *output, int batch, int channels,
                   int height, int width);
-void NHWC_to_NCHW(float *input, float *output, int batch, int channels,
+void NHWC_to_NCHW(const float *input, float *output, int batch, int channels,
                   int height, int width);
 void yaconv_to_NHWC(float *input, float *output, int batch, int channels,
                     int height, int width, int offset_before, int offset_after);

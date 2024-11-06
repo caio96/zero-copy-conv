@@ -1,9 +1,17 @@
+#if defined IM2COL || defined YACONV || defined ZERO_COPY
 #include "blis/blis.h"
+#endif
+
+#if defined LIBTORCH
+#include <torch/torch.h>
+#endif
+
 #include "utils.hpp"
 #include <benchmark/benchmark.h>
 #include <iterator>
 #include <sstream>
 
+#if defined NAIVE
 extern "C" void
 conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               float *__restrict__ filters, int batch, int input_height,
@@ -12,7 +20,9 @@ conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               int output_channels, int padding_height, int padding_width,
               int stride_h, int stride_w, int dilation_h, int dilation_w,
               int groups);
+#endif
 
+#if defined IM2COL
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                float *__restrict__ filters, int batch, int input_height,
@@ -21,7 +31,9 @@ conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                int output_channels, int padding_height, int padding_width,
                int stride_h, int stride_w, int dilation_h, int dilation_w,
                int groups);
+#endif
 
+#if defined YACONV
 extern "C" void
 conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                float *__restrict__ filters, int batch, int input_height,
@@ -30,7 +42,9 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int output_channels, int padding_height, int padding_width,
                int stride_h, int stride_w, int dilation_h, int dilation_w,
                int groups);
+#endif
 
+#if defined ZERO_COPY
 extern "C" void
 conv_2d_zero_copy_main(float *__restrict__ input, float *__restrict__ output,
                        float *__restrict__ filters, int batch, int input_height,
@@ -39,6 +53,21 @@ conv_2d_zero_copy_main(float *__restrict__ input, float *__restrict__ output,
                        int output_channels, int padding_height,
                        int padding_width, int stride_h, int stride_w,
                        int dilation_h, int dilation_w, int groups);
+#endif
+
+
+#if defined LIBTORCH
+// Libtorch allocates in own output, so its output is different
+// If output is nullopt, it does not return an output, only executes convolution
+// If output is not nullopt, it returns the output in the tensor
+void conv_2d_libtorch(float *__restrict__ input, torch::Tensor &output,
+                      float *__restrict__ filters, int batch, int input_height,
+                      int input_width, int input_channels, int filter_height,
+                      int filter_width, int output_height, int output_width,
+                      int output_channels, int padding_height,
+                      int padding_width, int stride_h, int stride_w,
+                      int dilation_h, int dilation_w, int groups);
+#endif
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
                            const std::vector<int> &arguments) {
@@ -78,6 +107,10 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
         "Stride > 1, Dilation > 1, and Groups > 1 not supported by Yaconv!");
 #endif
 
+#if defined IM2COL || defined YACONV || defined ZERO_COPY
+  bli_init();
+#endif
+
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
@@ -87,8 +120,12 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   // Allocate memory for buffers
   float *input =
       static_cast<float *>(aligned_alloc(64, input_size * sizeof(float)));
+#if defined LIBTORCH
+  torch::Tensor output;
+#else
   float *output =
       static_cast<float *>(aligned_alloc(64, output_size * sizeof(float)));
+#endif
   float *filters =
       static_cast<float *>(aligned_alloc(64, filter_size * sizeof(float)));
 
@@ -118,6 +155,11 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
                            filter_width, output_height, output_width,
                            output_channels, padding_top, padding_right,
                            stride_h, stride_w, dilation_h, dilation_w, groups);
+#elif defined LIBTORCH
+    conv_2d_libtorch(input, output, filters, batch, input_height, input_width,
+                     input_channels, filter_height, filter_width, output_height,
+                     output_width, output_channels, padding_top, padding_right,
+                     stride_h, stride_w, dilation_h, dilation_w, groups);
 #else
     state.SkipWithError("Convolution method not defined!");
 #endif
@@ -125,9 +167,13 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
 
   // Clean up
   free(input);
+#if !defined LIBTORCH
   free(output);
+#endif
   free(filters);
+#if defined IM2COL || defined YACONV || defined ZERO_COPY
   bli_finalize();
+#endif
 };
 
 int main(int argc, char **argv) {
@@ -145,6 +191,8 @@ int main(int argc, char **argv) {
   std::string name{"Conv2D_Yaconv"};
 #elif defined ZERO_COPY
   std::string name{"Conv2D_ZeroCopy"};
+#elif defined LIBTORCH
+  std::string name{"Conv2D_LibTorch"};
 #else
   std::string name{"Unknown"};
 #endif

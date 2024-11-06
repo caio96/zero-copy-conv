@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iterator>
 #include <sstream>
+#include <torch/torch.h>
 #include <vector>
 
 extern "C" void
@@ -41,8 +42,20 @@ conv_2d_zero_copy_main(float *__restrict__ input, float *__restrict__ output,
                        int padding_width, int stride_h, int stride_w,
                        int dilation_h, int dilation_w, int groups);
 
+
+// Libtorch allocates in own output, so its output is different
+// If output is nullopt, it does not return an output, only executes convolution
+// If output is not nullopt, it returns the output in the tensor
+void conv_2d_libtorch(float *__restrict__ input, torch::Tensor &output,
+                      float *__restrict__ filters, int batch, int input_height,
+                      int input_width, int input_channels, int filter_height,
+                      int filter_width, int output_height, int output_width,
+                      int output_channels, int padding_height,
+                      int padding_width, int stride_h, int stride_w,
+                      int dilation_h, int dilation_w, int groups);
+
 // Returns the maximum difference between two arrays
-float get_max_diff(float *output1, float *output2, size_t size) {
+float get_max_diff(const float *output1, const float *output2, size_t size) {
   float diff = 0.0;
   for (size_t i = 0; i < size; ++i)
     diff = std::max(diff, std::fabs(output1[i] - output2[i]));
@@ -134,12 +147,14 @@ void verify_correctness(const std::vector<int> &arguments) {
   float *filters_HWIO = new float[filter_size];
 
   // Allocate memory for outputs
-  float *output_naive_NCHW = new float[output_size];
-  float *output_naive_NHWC = new float[output_size];
   float *output_im2col = new float[output_size];
   float *output_yaconv = new float[output_size];
   float *output_zero_copy = new float[output_size];
   float *output_zero_copy_transposed = new float[output_size];
+  // Torch allocates its own output
+  torch::Tensor output_torch;
+  const float *output_torch_NCHW;
+  float *output_torch_NHWC = new float[output_size];
 
   // Initialize input and filters
   initialize_data(input_NHWC, input_size);
@@ -152,11 +167,13 @@ void verify_correctness(const std::vector<int> &arguments) {
                input_channels / groups, filter_height, filter_width);
 
   // Run all convolution methods
-  conv_2d_naive(input_NCHW, output_naive_NCHW, filters_OIHW, batch,
-                input_height, input_width, input_channels, filter_height,
-                filter_width, output_height, output_width, output_channels,
-                padding_top, padding_right, stride_h, stride_w, dilation_h,
-                dilation_w, groups);
+  conv_2d_libtorch(input_NCHW, output_torch, filters_OIHW, batch, input_height,
+                   input_width, input_channels, filter_height, filter_width,
+                   output_height, output_width, output_channels, padding_top,
+                   padding_right, stride_h, stride_w, dilation_h, dilation_w,
+                   groups);
+  // Torch output is used as the reference
+  output_torch_NCHW = output_torch.const_data_ptr<float>();
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
                  output_height, output_width, output_channels, padding_top,
@@ -177,7 +194,7 @@ void verify_correctness(const std::vector<int> &arguments) {
       stride_w, dilation_h, dilation_w, groups);
 
   // Convert naive output to channel last
-  NCHW_to_NHWC(output_naive_NCHW, output_naive_NHWC, batch, output_channels,
+  NCHW_to_NHWC(output_torch_NCHW, output_torch_NHWC, batch, output_channels,
                output_height, output_width);
 
   // Transpose HW of zero copy as it flips HW to WH
@@ -188,7 +205,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   print_header();
   float diff;
 
-  diff = get_max_diff(output_naive_NCHW, output_im2col, output_size);
+  diff = get_max_diff(output_torch_NCHW, output_im2col, output_size);
   print_diff("Im2col", conv_parameters, diff);
 
   if (dilation_h != 1 || dilation_w != 1) {
@@ -198,13 +215,23 @@ void verify_correctness(const std::vector<int> &arguments) {
   } else if (groups > 1) {
     print_error("Yaconv", conv_parameters, "Grouped convolution not supported");
   } else {
-    diff = get_max_diff(output_naive_NHWC, output_yaconv, output_size);
+    diff = get_max_diff(output_torch_NHWC, output_yaconv, output_size);
     print_diff("Yaconv", conv_parameters, diff);
   }
 
   diff =
-      get_max_diff(output_naive_NHWC, output_zero_copy_transposed, output_size);
+      get_max_diff(output_torch_NHWC, output_zero_copy_transposed, output_size);
   print_diff("ZeroCopy", conv_parameters, diff);
+
+  delete[] input_NCHW;
+  delete[] input_NHWC;
+  delete[] filters_OIHW;
+  delete[] filters_HWIO;
+  delete[] output_im2col;
+  delete[] output_yaconv;
+  delete[] output_zero_copy;
+  delete[] output_zero_copy_transposed;
+  delete[] output_torch_NHWC;
 }
 
 int main(int argc, char *argv[]) {
