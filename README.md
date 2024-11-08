@@ -4,17 +4,17 @@ This repository is designed to test multiple implementations of convolution. The
 
 - Naive convolution: For loops and simple multiply accumulate
 - Im2col convolution: Transforms the input image with im2col and executes convolution as a single GEMM call using the Blis library
-- Yaconv convolution: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements defined in [blis-conv](https://github.com/caio96/blis-conv)
+- Yaconv convolution: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements. Defined in [blis-conv](https://github.com/caio96/blis-conv)
 - Zero-Copy convolution: New convolution implementation, yet to be published
 - LibTorch convolution: Pytorch Conv2D implementation using the C++ API
 
-|           | Feature Layout | Weight Layout | Output Layout | Multithreading         |
-| --------- | -------------- | ------------- | ------------- | ---------------------- |
-| Naive     | NHWC           | OIHW          | NHWC          | No :x:                 |
-| Im2col    | NCHW           | OIHW          | NCHW          | Yes :white_check_mark: |
-| Yaconv    | NHWC           | OIHW          | NHWC          | No :x:                 |
-| Zero-Copy | NHWC           | OIHW          | NWHC          | Yes :white_check_mark: |
-| LibTorch  | NCHW           | OIHW          | NCHW          | Yes :white_check_mark: |
+|           | Feature Layout | Weight Layout | Output Layout | Multithreading     |
+| --------- | -------------- | ------------- | ------------- | ------------------ |
+| Naive     | NHWC           | OIHW          | NHWC          | :x:                |
+| Im2col    | NCHW           | OIHW          | NCHW          | :white_check_mark: |
+| Yaconv    | NHWC           | OIHW          | NHWC          | :x:                |
+| Zero-Copy | NHWC           | OIHW          | NWHC          | :white_check_mark: |
+| LibTorch  | NCHW           | OIHW          | NCHW          | :white_check_mark: |
 
 Note:
 
@@ -24,7 +24,7 @@ Note:
 ## Dependencies
 
 - [Google Benchmark](https://github.com/google/benchmark)
-- [Blis](https://github.com/flame/blis), but to use Yaconv the Blis fork in [blis-conv](https://github.com/caio96/blis-conv)
+- [Blis](https://github.com/flame/blis), but to use Yaconv, use the Blis fork in [blis-conv](https://github.com/caio96/blis-conv)
 - [LibTorch](https://pytorch.org/cppdocs/installing.html)
 
 ### How to build Google Benchmark:
@@ -56,7 +56,8 @@ The public [Blis repo](https://github.com/flame/blis) could also be used, but th
 - Go to [link](https://pytorch.org/get-started/locally/)
 - Select Package as "LibTorch", Language as "C++/Java", Compute platform as "CPU"
 - Download the cxx11 ABI version and unzip it
-  Or run:
+
+Or run:
 
 ```sh
 wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.5.1%2Bcpu.zip -O libtorch.zip
@@ -79,7 +80,20 @@ cmake -DCMAKE_C_COMPILER=clang                         \
 ## Running Benchmarks
 
 After building, the `this-repo/build/bin/` directory will contain one executable per convolution method with the name `benchmark_[method_name]`.
-The executables can be run with `--help` to show the parameters it takes. If run with no parameters, a default configuration is run.
+The executables can be run with `--help` to show the parameters they take. If run with no parameters, a default configuration is run.
+
+### Multithreading
+
+To control the number of threads set the environment variable `OMP_NUM_THREADS`.
+`LibTorch` and `Zero-Copy` will automatically parallelize, `Im2col` requires that the environment variable be set to the number of threads.
+
+To set it, run:
+
+```sh
+export OMP_NUM_THREADS=4
+# or
+OMP_NUM_THREADS=4 ./benchmark_[method_name]
+```
 
 ## Verifying correctness
 
