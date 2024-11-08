@@ -8,89 +8,95 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Add Google Benchmark as a dependency
-find_package(benchmark REQUIRED PATHS "/home/csalvado/git/benchmark-install")
+# Set Compiler Flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native") # -g -gdwarf-4"
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native") # -g -gdwarf-4"
 
-# Add Torchlib as a dependency
-find_package(Torch REQUIRED PATHS "/home/csalvado/tensor-layout/libtorch-abi")
+# Set Install Paths
+set(BENCHMARK_INSTALL
+    ""
+    CACHE PATH "Path to Google Benchmark installation")
+set(TORCH_INSTALL
+    ""
+    CACHE PATH "Path to LibTorch installation")
+set(BLIS_INSTALL
+    ""
+    CACHE PATH "Path to Blis installation")
 
-# Add OpenMP as a dependency
+# Check if BLIS exists, the other two may be installed globally
+if(NOT EXISTS "${BLIS_INSTALL}")
+  message(FATAL_ERROR "BLIS_INSTALL is not a valid path: ${BLIS_INSTALL}")
+endif()
+
+# Add dependencies
+find_package(benchmark REQUIRED PATHS ${BENCHMARK_INSTALL})
+find_package(Torch REQUIRED PATHS ${TORCH_INSTALL})
 find_package(OpenMP REQUIRED)
 
-# Find BLIS library and headers
-find_path(BLIS_INCLUDE_DIR blis
-          PATHS "/home/csalvado/tensor-layout/blis-install/include")
+# Find BLIS library and headers, there is no automatic package
+find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
 find_library(
-  BLIS_LIBRARY
+  BLIS_LIBRARY_DIR
   NAMES blis
-  PATHS "/home/csalvado/tensor-layout/blis-install/lib")
-
-if(NOT BLIS_INCLUDE_DIR OR NOT BLIS_LIBRARY)
+  PATHS "${BLIS_INSTALL}/lib")
+if(NOT BLIS_INCLUDE_DIR OR NOT BLIS_LIBRARY_DIR)
   message(
     FATAL_ERROR
-      "BLIS not found. Please ensure it is installed or add its paths in CMakeLists.txt"
+      "BLIS not found. Please specify the Blis installation path using -DBLIS_INSTALL=<path>. This path should contain 'include' and 'lib' directories."
   )
 endif()
 
+# Naive convolution
 add_executable(benchmark_naive src/driver.cpp src/kernel_conv_naive.c
                                src/utils.cpp)
 target_include_directories(benchmark_naive
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(benchmark_naive benchmark::benchmark)
-set_target_properties(
-  benchmark_naive PROPERTIES COMPILE_FLAGS
-                             "-DNAIVE -O3 -march=native" # -g -gdwarf-4"
-)
+set_target_properties(benchmark_naive PROPERTIES COMPILE_FLAGS "-DNAIVE")
 
+# Im2col convolution
 add_executable(benchmark_im2col src/driver.cpp src/kernel_conv_im2col.c
                                 src/utils.cpp)
 target_include_directories(
   benchmark_im2col
   PRIVATE ${PROJECT_SOURCE_DIR}/include
   PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(benchmark_im2col benchmark::benchmark ${BLIS_LIBRARY})
-set_target_properties(
-  benchmark_im2col PROPERTIES COMPILE_FLAGS
-                              "-DIM2COL -O3 -march=native" # -g -gdwarf-4"
-)
+target_link_libraries(benchmark_im2col benchmark::benchmark ${BLIS_LIBRARY_DIR})
+set_target_properties(benchmark_im2col PROPERTIES COMPILE_FLAGS "-DIM2COL")
 
+# Yaconv convolution
 add_executable(benchmark_yaconv src/driver.cpp src/kernel_conv_yaconv.c
                                 src/utils.cpp)
 target_include_directories(
   benchmark_yaconv
   PRIVATE ${PROJECT_SOURCE_DIR}/include
   PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(benchmark_yaconv benchmark::benchmark ${BLIS_LIBRARY})
-set_target_properties(
-  benchmark_yaconv PROPERTIES COMPILE_FLAGS
-                              "-DYACONV -O3 -march=native" # -g -gdwarf-4"
-)
+target_link_libraries(benchmark_yaconv benchmark::benchmark ${BLIS_LIBRARY_DIR})
+set_target_properties(benchmark_yaconv PROPERTIES COMPILE_FLAGS "-DYACONV")
 
+# Zero-copy convolution
 add_executable(benchmark_zero_copy src/driver.cpp src/kernel_conv_zero_copy.c
                                    src/utils.cpp)
 target_include_directories(
   benchmark_zero_copy
   PRIVATE ${PROJECT_SOURCE_DIR}/include
   PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(benchmark_zero_copy benchmark::benchmark ${BLIS_LIBRARY}
-                      OpenMP::OpenMP_C)
-set_target_properties(
-  benchmark_zero_copy
-  PROPERTIES COMPILE_FLAGS "-DZERO_COPY -O3 -march=native" # -g -gdwarf-4"
-)
+target_link_libraries(benchmark_zero_copy benchmark::benchmark
+                      ${BLIS_LIBRARY_DIR} OpenMP::OpenMP_C)
+set_target_properties(benchmark_zero_copy PROPERTIES COMPILE_FLAGS
+                                                     "-DZERO_COPY")
 
+# Libtorch convolution
 add_executable(benchmark_libtorch src/driver.cpp src/kernel_conv_libtorch.cpp
                                   src/utils.cpp)
 target_include_directories(benchmark_libtorch
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(benchmark_libtorch benchmark::benchmark
                       "${TORCH_LIBRARIES}")
-set_target_properties(
-  benchmark_libtorch
-  PROPERTIES COMPILE_FLAGS
-             "-DLIBTORCH -O3 -march=native ${TORCH_CXX_FLAGS}" # -g -gdwarf-4"
-)
+set_target_properties(benchmark_libtorch
+                      PROPERTIES COMPILE_FLAGS "-DLIBTORCH ${TORCH_CXX_FLAGS}")
 
+# Correctness verification
 add_executable(
   correctness
   src/verify_correctness.cpp src/kernel_conv_im2col.c src/kernel_conv_yaconv.c
@@ -99,9 +105,6 @@ target_include_directories(
   correctness
   PRIVATE ${PROJECT_SOURCE_DIR}/include
   PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(correctness benchmark::benchmark ${BLIS_LIBRARY}
+target_link_libraries(correctness benchmark::benchmark ${BLIS_LIBRARY_DIR}
                       "${TORCH_LIBRARIES}" OpenMP::OpenMP_C)
-set_target_properties(
-  correctness PROPERTIES COMPILE_FLAGS
-                         "-O3 -march=native ${TORCH_CXX_FLAGS}" # -g -gdwarf-4"
-)
+set_target_properties(correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS}")
