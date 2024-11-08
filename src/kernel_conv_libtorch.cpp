@@ -10,27 +10,17 @@ void conv_2d_libtorch(float *__restrict__ input, torch::Tensor &output,
 
   torch::TensorOptions tensor_options =
       torch::TensorOptions().dtype(torch::kFloat32);
-  // .memory_format(torch::MemoryFormat::ChannelsLast);
 
   // Use input memory directly without copying
-  auto input_tensor = torch::from_blob(
+  torch::Tensor input_tensor = torch::from_blob(
       input, {batch, input_channels, input_height, input_width},
       tensor_options);
 
   // Use filter memory directly without copying
-  auto weight_tensor = torch::from_blob(
+  torch::Tensor weight_tensor = torch::from_blob(
       filters,
       {output_channels, input_channels / groups, filter_height, filter_width},
       tensor_options);
-
-  // Set convolution parameters (padding, stride, dilation)
-  torch::nn::Conv2dOptions conv_options =
-      torch::nn::Conv2dOptions(input_channels, output_channels,
-                               {filter_height, filter_width})
-          .stride({stride_h, stride_w})
-          .padding({padding_height, padding_width})
-          .dilation({dilation_h, dilation_w})
-          .groups(groups);
 
   // Run convolution
   output = torch::conv2d(
