@@ -1,43 +1,51 @@
-import functools
-import os
-import pickle
-from math import floor
+#!/usr/bin/env python3
 
+import argparse
+import pickle
+from collections import defaultdict
+from pathlib import Path
+
+import pandas as pd
 import timm
 import torch
-from PIL import Image
 from tqdm import tqdm
 
 
 class VerboseExecution(torch.nn.Module):
-    def __init__(self, model, model_name, dims, input_size):
+    def __init__(self, model, model_name, conv_parameters):
         super().__init__()
         self.model = model
-        self.dims = dims
-        self.input_size = input_size
+        self.conv_parameters = conv_parameters
+        data_config = timm.data.resolve_model_data_config(model)
+        channels, height, width = data_config["input_size"]
+        self.input_size = (1, channels, height, width)
 
-        # Register a hook for each layer
-        for name, layer in model.named_modules():
+        # Register a hook for each Conv2D layer
+        for _, layer in model.named_modules(remove_duplicate=False):
             if isinstance(layer, torch.nn.Conv2d):
-                layer.register_forward_hook(self.save_shapes_hook(name, model_name))
+                layer.register_forward_hook(self.save_shapes_hook(model_name))
 
         with torch.no_grad():
-            self.forward(torch.rand(input_size))
+            self.forward(torch.rand(self.input_size))
 
-    def save_shapes_hook(self, module_name, model_name):
-        def fn(module, inputs, outputs):
+    def save_shapes_hook(self, model_name):
+        def fn(module: torch.nn.Conv2d, inputs, outputs):
 
-            inp = (1, *inputs[0].shape[1:])
-            out = (1, *outputs[0].shape)
+            # Use all parameters as a key
+            parameters = (
+                *inputs[0].shape[1:],
+                *outputs[0].shape,
+                *module.kernel_size,
+                *module._reversed_padding_repeated_twice,
+                *module.stride,
+                *module.dilation,
+                module.groups,
+                module.transposed,
+                True if module.bias is not None else False,
+            )
 
-            # hash key
-            key = f"{','.join([str(x) for x in inp])}_"  # input shape
-            key += f"{','.join([str(x) for x in out])}_"  # output shape
-            key += f"{','.join([str(x) for x in module.kernel_size])}-{','.join([str(x) for x in module._reversed_padding_repeated_twice])}-{','.join([str(x) for x in module.stride])}-{','.join([str(x) for x in module.dilation])}-{module.groups}-{module.transposed}_"  # kernel values
-            key += f"{'True' if module.bias is not None else 'False'}"  # bias
-
-            # populate dict
-            self.dims.setdefault(key, []).append(model_name + "." + module_name)
+            # Add layer
+            self.conv_parameters[parameters].append(model_name)
 
         return fn
 
@@ -47,16 +55,43 @@ class VerboseExecution(torch.nn.Module):
 
 if __name__ == "__main__":
 
-    convs = dict()
+    parser = argparse.ArgumentParser(
+        description="Gather convolutional layer parameters from Timm into a pickle file."
+    )
+    parser.add_argument("Output_Pickle_File", type=str, help="Path to the pickle file.")
 
-    for m in tqdm(timm.list_models()):
+    args = parser.parse_args()
+    pickle_file = Path(args.Output_Pickle_File)
 
-        model = timm.create_model(m).eval()
-        data_config = timm.data.resolve_model_data_config(model)
+    # Store results
+    conv_parameters = defaultdict(list)
 
-        model = VerboseExecution(model, m, convs, (1, *data_config["input_size"]))
-
+    # For each model in timm
+    for model_name in tqdm(timm.list_models()):
+        # Create it in evaluation mode
+        model = timm.create_model(model_name).eval()
+        # Save the parameters for Conv2D layers
+        model = VerboseExecution(model, model_name, conv_parameters)
+        # Delete it
         del model
 
-    with open("conv.pkl", "wb") as handle:
-        pickle.dump(convs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # Value is a list of model names that contain the layer (key), set is used to remove duplicates
+    # Make list into a string and count the number of times that the layer is used
+    conv_parameters = {
+        key: (len(value), " ".join(set(value))) for key, value in conv_parameters.items()
+    }
+
+    # Save the results to pickle file
+    with open(pickle_file, "wb") as handle:
+        pickle.dump(conv_parameters, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # Save results to pandas dataframe
+    df = pd.DataFrame.from_dict(conv_parameters, orient="index")
+    df = df.reset_index().rename(
+        columns={
+            "index": "Parameters",
+            0: "Occurences",
+            1: "Models",
+        }
+    )
+    df.to_csv(pickle_file.with_suffix(".csv"))
