@@ -27,7 +27,7 @@ def pytorch_conv2d(images, filters, padding, stride, dilation, groups):
     return outputs_torch.permute(0, 2, 3, 1).numpy()
 
 
-def yaconv_conv2d(images, filters, padding, stride, dilation, groups):
+def zero_copy_conv2d(images, filters, padding, stride, dilation, groups):
     N, H, W, C = images.shape
     FH, FW, _, M = filters.shape
     PH, PW = padding
@@ -153,7 +153,7 @@ def yaconv_conv2d(images, filters, padding, stride, dilation, groups):
 if __name__ == "__main__":
     # Set up argument parser
     parser = argparse.ArgumentParser(
-        description="Perform 2D convolution with a simplified version of Yaconv."
+        description="Perform 2D convolution with a simplified version of Zero-Copy Convolution."
     )
 
     # Image parameters
@@ -225,7 +225,7 @@ if __name__ == "__main__":
         dilation=(args.DH, args.DW),
         groups=args.GR,
     )
-    yaconv_output = yaconv_conv2d(
+    zero_copy_output = zero_copy_conv2d(
         images,
         filters,
         padding=(args.PH, args.PW),
@@ -235,9 +235,9 @@ if __name__ == "__main__":
     )
 
     # Compare results
-    if np.allclose(pytorch_output, yaconv_output):
-        print("✅ Yaconv and Torch match")
+    if np.allclose(pytorch_output, zero_copy_output):
+        print("✅ Zero-Copy Convolution and Torch match")
     else:
-        print("❌ Yaconv and Torch differ")
-        # print(f"Yaconv output:\n {np.squeeze(yaconv_output)}")
+        print("❌ Zero-Copy Convolution and Torch differ")
+        # print(f"Zero-Copy Convolution output:\n {np.squeeze(zero_copy_output)}")
         # print(f"Torch output:\n {np.squeeze(pytorch_output)}")
