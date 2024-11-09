@@ -52,41 +52,41 @@ def zero_copy_conv2d(images, filters, padding, stride, dilation, groups):
         single_image = images[n, :, :, :]
         single_output = outputs[n, :, :, :]
 
-        for fh in range(FH):
-            # Calculate height slice of size OH and handle edge cases
-            height_offset = fh * DH - PH
-            if height_offset < 0:
-                height_start = max(0, height_offset % SH)
+        for ow in range(OW):
+            # Calculate width slice of size FW and handle edge cases
+            # ow_offset = ow - PW
+            iw = ow * SW - PW
+            if iw < 0:
+                width_start = max(0, iw % DW)
             else:
-                height_start = max(0, height_offset)
-            height_end = min(H, height_offset + OH * SH)
-            height_slice = math.ceil((height_end - height_start) / SH)
+                width_start = max(0, iw)
+            width_end = min(W, iw + FW * DW)
+            filter_width_slice = math.ceil((width_end - width_start) / DW)
 
-            # # print height variables
-            # print(f"\nFilter Height: {fh} ----------------")
-            # print(f"Height Offset: {height_offset}")
-            # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
+            # # Print width variables
+            # print(f"\nOutput Width: {ow} ----------------")
+            # print(f"Width Offset: {iw}")
+            # print(f"Width Slice: ({width_end} - {width_start}) / {DW} = {filter_width_slice}")
 
-            if height_slice <= 0:
+            if filter_width_slice <= 0:
                 continue
 
-            for ow in range(OW):
-                # Calculate width slice of size FW and handle edge cases
-                # ow_offset = ow - PW
-                iw = ow * SW - PW
-                if iw < 0:
-                    width_start = max(0, iw % DW)
+            for fh in range(FH):
+                # Calculate height slice of size OH and handle edge cases
+                height_offset = fh * DH - PH
+                if height_offset < 0:
+                    height_start = max(0, height_offset % SH)
                 else:
-                    width_start = max(0, iw)
-                width_end = min(W, iw + FW * DW)
-                filter_width_slice = math.ceil((width_end - width_start) / DW)
+                    height_start = max(0, height_offset)
+                height_end = min(H, height_offset + OH * SH)
+                height_slice = math.ceil((height_end - height_start) / SH)
 
-                # # Print width variables
-                # print(f"\nOutput Width: {ow} ----------------")
-                # print(f"Width Offset: {iw}")
-                # print(f"Width Slice: ({width_end} - {width_start}) / {DW} = {filter_width_slice}")
+                # # print height variables
+                # print(f"\nFilter Height: {fh} ----------------")
+                # print(f"Height Offset: {height_offset}")
+                # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
 
-                if filter_width_slice <= 0:
+                if height_slice <= 0:
                     continue
 
                 for gr in range(GR):
