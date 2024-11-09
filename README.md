@@ -21,6 +21,23 @@ Note:
 - The Im2col version depends on Blis to be multithreaded, which needs be enabled before compiling Blis.
 - Yaconv only supports stride == 1, no grouping, and no dilation.
 
+## Repository Structure
+
+- `data`: Contains convolution layer parameters obtained with the scripts in `utils`
+- `include`
+- `src`
+    - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method.
+    - `kernel_conv_[method_name]` files have the implementation of each convolution method
+    - `utils` has helper functions
+    - `verify_correctness` calls all convolutions methods converting their output if necessary to compare them
+- `scripts`:
+    - `timm_convolution_extraction` is adapted from [ConvBench](https://github.com/LucasFernando-aes/ConvBench/) to extracts convolution layer parameters from multiple models into a pickle file
+    - `pickle_to_filtered_csv` reads the pickle file and generates a csv containing convolution parameters. Parameters may be filtered and are formatted for the next scripts
+    - `benchmark_runner` controls running all convolutions in a generated csv to measure correctness or performance
+    - `summarize_correctness` generates csv files that summarize correctness results based on the logs from `benchmark_runner`
+    - `summarize_performance` generates csv files and graphs that summarize performance results based on the logs from `benchmark_runner`
+    - `zero_copy_conv` is a simplified version of the Zero-Copy Convolution implemented in Python and compared against Pytorch
+
 ## Dependencies
 
 - [Google Benchmark](https://github.com/google/benchmark)
