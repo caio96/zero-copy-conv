@@ -58,10 +58,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Gather convolutional layer parameters from Timm into a pickle file."
     )
-    parser.add_argument("Output_Pickle_File", type=str, help="Path to the pickle file.")
+    parser.add_argument("Output_Dir", type=str, help="Path to the directory where to save csv output.")
 
     args = parser.parse_args()
-    pickle_file = Path(args.Output_Pickle_File)
+    output_dir = Path(args.Output_Dir).absolute()
 
     # Store results
     conv_parameters = defaultdict(list)
@@ -81,10 +81,6 @@ if __name__ == "__main__":
         key: (len(value), " ".join(set(value))) for key, value in conv_parameters.items()
     }
 
-    # Save the results to pickle file
-    with open(pickle_file, "wb") as handle:
-        pickle.dump(conv_parameters, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
     # Save results to pandas dataframe
     df = pd.DataFrame.from_dict(conv_parameters, orient="index")
     df = df.reset_index().rename(
@@ -94,4 +90,4 @@ if __name__ == "__main__":
             1: "Models",
         }
     )
-    df.to_csv(pickle_file.with_suffix(".csv"))
+    df.to_csv(output_dir / "conv_parameters.csv", index=False)

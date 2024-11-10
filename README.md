@@ -23,7 +23,7 @@ Note:
 
 ## Repository Structure
 
-- `data`: Contains convolution layer parameters obtained with the scripts in `utils`
+- `data`: Contains convolution layer parameters obtained with the script `util/timm_convolution_extraction`. Timm version 1.0.11 was used.
 - `include`
 - `src`
     - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method.
