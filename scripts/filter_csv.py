@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import pickle
 import sys
 from pathlib import Path
 
@@ -88,7 +87,7 @@ if __name__ == "__main__":
     df = split_parameters(df)
 
     # Filter df based on arguments
-    df = filter_df(df, conv_type, non_symmetrical_padding)
+    df = filter_df(df, conv_type)
 
     # Save df to csv
     df.loc[:, "conv_parameters":"models"].to_csv(output_csv, index=False)

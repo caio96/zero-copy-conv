@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import pickle
 from collections import defaultdict
 from pathlib import Path
 
@@ -33,7 +32,7 @@ class VerboseExecution(torch.nn.Module):
 
             # Use all parameters as a key
             parameters = (
-                1, # Default batch size
+                1,  # Default batch size
                 *inputs[0].shape[1:],
                 *outputs[0].shape,
                 *module.kernel_size,
@@ -44,6 +43,7 @@ class VerboseExecution(torch.nn.Module):
                 int(module.transposed),
                 1 if module.bias is not None else 0,
             )
+            parameters = " ".join(map(str, parameters))
 
             # Add layer
             self.conv_parameters[parameters].append(model_name)
@@ -92,11 +92,6 @@ if __name__ == "__main__":
             0: "occurences",
             1: "models",
         }
-    )
-
-    # Remove extra elements from converting the tuple to a string
-    df["conv_parameters"] = (
-        df["conv_parameters"].str.replace("(", "").str.replace(")", "").str.replace(",", "")
     )
 
     # Save to csv
