@@ -41,8 +41,8 @@ class VerboseExecution(torch.nn.Module):
                 *module.stride,
                 *module.dilation,
                 module.groups,
-                module.transposed,
-                True if module.bias is not None else False,
+                int(module.transposed),
+                1 if module.bias is not None else 0,
             )
 
             # Add layer
