@@ -33,6 +33,7 @@ class VerboseExecution(torch.nn.Module):
 
             # Use all parameters as a key
             parameters = (
+                1, # Default batch size
                 *inputs[0].shape[1:],
                 *outputs[0].shape,
                 *module.kernel_size,
@@ -58,7 +59,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Gather convolutional layer parameters from Timm into a pickle file."
     )
-    parser.add_argument("Output_Dir", type=str, help="Path to the directory where to save csv output.")
+    parser.add_argument(
+        "Output_Dir", type=str, help="Path to the directory where to save csv output."
+    )
 
     args = parser.parse_args()
     output_dir = Path(args.Output_Dir).absolute()
@@ -89,5 +92,8 @@ if __name__ == "__main__":
             0: "occurences",
             1: "models",
         }
+    )
+    df["conv_parameters"] = (
+        df["conv_parameters"].str.replace("(", "").str.replace(")", "").str.replace(",", "")
     )
     df.to_csv(output_dir / "conv_parameters.csv", index=False)
