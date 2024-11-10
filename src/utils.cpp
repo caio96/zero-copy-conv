@@ -162,29 +162,29 @@ void compute_output_dims(int input_height, int input_width, int filter_height,
 
 int parse_command_line_arguments(int argc, char **argv,
                                  std::vector<int> &args) {
-  if (argc != 19 && argc != 17 && argc != 1) {
+
+  if (argc != 21 && argc != 19 && argc != 1) {
     std::cerr
         << "Usage: " << argv[0] << std::endl
-        << "    <Image batch> <Image channel> <Image height> <Image width> "
+        << "    <Image batch> <Image channels> <Image height> <Image width> "
         << std::endl
-        << "    <Output depth> <Output height> <Output width> <Filter height> "
+        << "    <Output channels> <Output height> <Output width> <Filter height> "
         << std::endl
         << "    <Filter width> <Padding top> <Padding bottom> <Padding left> "
         << std::endl
-        << "    <Padding right> <Stride height> <Stride width> <Dilation "
-           "height> "
+        << "    <Padding right> <Stride height> <Stride width> <Dilation height> "
         << std::endl
-        << "    <Dilation width> <Grouped>" << std::endl
+        << "    <Dilation width> <Groups> <Is Transposed> <Has Bias>" << std::endl
         << " - Output height and width can be omitted" << std::endl
         << " - Or omit all arguments to use a default configuration"
         << std::endl;
     return 1;
   }
 
-  args.resize(18);
+  args.resize(20);
   if (argc == 1) {
     // Default arguments
-    args = {1, 64, 64, 64, 128, 64, 64, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    args = {1, 64, 64, 64, 128, 64, 64, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0};
   } else if (argc == 17) {
     // Command line arguments with automatic output size calculation
     args[0] = std::atoi(argv[1]);
@@ -203,6 +203,8 @@ int parse_command_line_arguments(int argc, char **argv,
     args[15] = std::atoi(argv[14]);
     args[16] = std::atoi(argv[15]);
     args[17] = std::atoi(argv[16]);
+    args[18] = std::atoi(argv[17]);
+    args[19] = std::atoi(argv[18]);
     compute_output_dims(args[2], args[3], args[7], args[8], args[9], args[10],
                         args[11], args[12], args[13], args[14], args[15],
                         args[16], args[5], args[6]);

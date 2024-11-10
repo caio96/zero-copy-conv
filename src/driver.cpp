@@ -90,6 +90,8 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   int dilation_h = arguments[15];
   int dilation_w = arguments[16];
   int groups = arguments[17];
+  int is_transposed = arguments[18];
+  int has_bias = arguments[19];
 
   // Ensure that the number of iterations run is at least 10
   state.KeepRunningBatch(10);
