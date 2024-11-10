@@ -85,9 +85,9 @@ if __name__ == "__main__":
     df = pd.DataFrame.from_dict(conv_parameters, orient="index")
     df = df.reset_index().rename(
         columns={
-            "index": "Parameters",
-            0: "Occurences",
-            1: "Models",
+            "index": "conv_parameters",
+            0: "occurences",
+            1: "models",
         }
     )
     df.to_csv(output_dir / "conv_parameters.csv", index=False)
