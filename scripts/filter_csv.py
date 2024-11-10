@@ -63,7 +63,7 @@ def filter_df(df, conv_type, allow_non_symmetrical_padding):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Filter the output of timm_convolution_extraction and prepare it for the benchmark runner."
+        description="Filter the csv with convolution layers."
     )
 
     parser.add_argument("Input_CSV", type=str, help="Path to the input CSV file.")

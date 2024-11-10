@@ -57,7 +57,7 @@ class VerboseExecution(torch.nn.Module):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Gather convolutional layer parameters from Timm into a pickle file."
+        description="Gather convolutional layer parameters from Timm into a csv file."
     )
     parser.add_argument(
         "Output_Dir", type=str, help="Path to the directory where to save csv output."
@@ -93,7 +93,11 @@ if __name__ == "__main__":
             1: "models",
         }
     )
+
+    # Remove extra elements from converting the tuple to a string
     df["conv_parameters"] = (
         df["conv_parameters"].str.replace("(", "").str.replace(")", "").str.replace(",", "")
     )
+
+    # Save to csv
     df.to_csv(output_dir / "conv_layers.csv", index=False)
