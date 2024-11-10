@@ -96,4 +96,4 @@ if __name__ == "__main__":
     df["conv_parameters"] = (
         df["conv_parameters"].str.replace("(", "").str.replace(")", "").str.replace(",", "")
     )
-    df.to_csv(output_dir / "conv_parameters.csv", index=False)
+    df.to_csv(output_dir / "conv_layers.csv", index=False)
