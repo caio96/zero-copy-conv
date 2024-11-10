@@ -38,7 +38,7 @@ def split_parameters(df):
     return df
 
 
-def filter_df(df, conv_type, allow_non_symmetrical_padding):
+def filter_df(df, conv_type):
 
     if conv_type == "strided":
         df = df.loc[(df["stride height"] != 1 & df["stride width"] != 1)]
@@ -50,12 +50,6 @@ def filter_df(df, conv_type, allow_non_symmetrical_padding):
         df = df.loc[(df["dilation height"] != 1) & (df["dilation width"] != 1)]
     elif conv_type == "transposed":
         df = df.loc[df["is transposed"] == 1]
-
-    if not allow_non_symmetrical_padding:
-        df = df.loc[
-            (df["padding top"] == df["padding bottom"])
-            & (df["padding left"] == df["padding right"])
-        ]
 
     return df.reset_index()
 
@@ -71,15 +65,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "Conv_Type",
         type=str,
-        default="all",
+        default="standard",
         help="Type of convolution to select. Standard means convolutions that have stride 1, are not pointwise, not grouped, not dilated, and not transposed.",
-        choices=["all", "standard", "strided", "pointwise", "grouped", "dilated", "transposed"],
-    )
-
-    parser.add_argument(
-        "--allow-non-symmetrical-padding",
-        action="store_true",
-        help="Enable non symmetrical padding layers, which are ignored by default.",
+        choices=["standard", "strided", "pointwise", "grouped", "dilated", "transposed"],
     )
 
     args = parser.parse_args()
@@ -87,7 +75,6 @@ if __name__ == "__main__":
     input_csv = Path(args.Input_CSV)
     output_csv = Path(args.Output_CSV)
     conv_type = args.Conv_Type
-    non_symmetrical_padding = args.allow_non_symmetrical_padding
 
     # Check if input file exists
     if (not input_csv.exists()) or (not input_csv.is_file()):
