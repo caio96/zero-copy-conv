@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
   s = s.substr(0, s.length() - 1);
 
   benchmark::RegisterBenchmark(s, BENCHMARK_CONV2D, arguments)
-      ->Unit(benchmark::kMillisecond);
+      ->Unit(benchmark::kMillisecond)->MeasureProcessCPUTime()->UseRealTime();
 
   // With argc set to 1, the benchmark library will not parse the command line
   int argc_benchmark = 1;
