@@ -19,7 +19,7 @@ conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               int filter_width, int output_height, int output_width,
               int output_channels, int padding_height, int padding_width,
               int stride_h, int stride_w, int dilation_h, int dilation_w,
-              int groups);
+              int groups, float *__restrict__ bias);
 #endif
 
 #if defined IM2COL
@@ -30,7 +30,7 @@ conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
                int stride_h, int stride_w, int dilation_h, int dilation_w,
-               int groups);
+               int groups, float *__restrict__ bias);
 #endif
 
 #if defined YACONV
@@ -41,20 +41,18 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
                int stride_h, int stride_w, int dilation_h, int dilation_w,
-               int groups);
+               int groups, float *__restrict__ bias);
 #endif
 
 #if defined ZERO_COPY
-extern "C" void
-conv_2d_zero_copy_main(float *__restrict__ input, float *__restrict__ output,
-                       float *__restrict__ filters, int batch, int input_height,
-                       int input_width, int input_channels, int filter_height,
-                       int filter_width, int output_height, int output_width,
-                       int output_channels, int padding_height,
-                       int padding_width, int stride_h, int stride_w,
-                       int dilation_h, int dilation_w, int groups);
+extern "C" void conv_2d_zero_copy_main(
+    float *__restrict__ input, float *__restrict__ output,
+    float *__restrict__ filters, int batch, int input_height, int input_width,
+    int input_channels, int filter_height, int filter_width, int output_height,
+    int output_width, int output_channels, int padding_height,
+    int padding_width, int stride_h, int stride_w, int dilation_h,
+    int dilation_w, int groups, float *__restrict__ bias);
 #endif
-
 
 #if defined LIBTORCH
 // Libtorch allocates in own output, so its output is different
@@ -66,7 +64,8 @@ void conv_2d_libtorch(float *__restrict__ input, torch::Tensor &output,
                       int filter_width, int output_height, int output_width,
                       int output_channels, int padding_height,
                       int padding_width, int stride_h, int stride_w,
-                      int dilation_h, int dilation_w, int groups);
+                      int dilation_h, int dilation_w, int groups,
+                      float *__restrict__ bias);
 #endif
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
@@ -101,6 +100,8 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     state.SkipWithError("Padding height and width do not match!");
   if (input_channels % groups != 0 || output_channels % groups != 0)
     state.SkipWithError("Input and output channels not divisible by groups!");
+  if (is_transposed)
+    state.SkipWithError("Transposed convolution is not supported!");
 
 #if defined YACONV
   if (stride_h > 1 || stride_w > 1 || dilation_h > 1 || dilation_w > 1 ||
@@ -131,43 +132,55 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   float *filters =
       static_cast<float *>(aligned_alloc(64, filter_size * sizeof(float)));
 
+  float *bias = nullptr;
+  if (has_bias) {
+    bias = static_cast<float *>(
+        aligned_alloc(64, output_channels * sizeof(float)));
+  }
+
   // Initialize input and filters
   initialize_data(input, input_size);
   initialize_data(filters, filter_size);
+  if (has_bias) {
+    initialize_data(bias, output_channels);
+  }
 
   for (auto _ : state) {
 #ifdef NAIVE
     conv_2d_naive(input, output, filters, batch, input_height, input_width,
                   input_channels, filter_height, filter_width, output_height,
                   output_width, output_channels, padding_top, padding_right,
-                  stride_h, stride_w, dilation_h, dilation_w, groups);
+                  stride_h, stride_w, dilation_h, dilation_w, groups, bias);
 #elif defined IM2COL
     conv_2d_im2col(input, output, filters, batch, input_height, input_width,
                    input_channels, filter_height, filter_width, output_height,
                    output_width, output_channels, padding_top, padding_right,
-                   stride_h, stride_w, dilation_h, dilation_w, groups);
+                   stride_h, stride_w, dilation_h, dilation_w, groups, bias);
 #elif defined YACONV
     conv_2d_yaconv(input, output, filters, batch, input_height, input_width,
                    input_channels, filter_height, filter_width, output_height,
                    output_width, output_channels, padding_top, padding_right,
-                   stride_h, stride_w, dilation_h, dilation_w, groups);
+                   stride_h, stride_w, dilation_h, dilation_w, groups, bias);
 #elif defined ZERO_COPY
-    conv_2d_zero_copy_main(input, output, filters, batch, input_height,
-                           input_width, input_channels, filter_height,
-                           filter_width, output_height, output_width,
-                           output_channels, padding_top, padding_right,
-                           stride_h, stride_w, dilation_h, dilation_w, groups);
+    conv_2d_zero_copy_main(
+        input, output, filters, batch, input_height, input_width,
+        input_channels, filter_height, filter_width, output_height,
+        output_width, output_channels, padding_top, padding_right, stride_h,
+        stride_w, dilation_h, dilation_w, groups, bias);
 #elif defined LIBTORCH
     conv_2d_libtorch(input, output, filters, batch, input_height, input_width,
                      input_channels, filter_height, filter_width, output_height,
                      output_width, output_channels, padding_top, padding_right,
-                     stride_h, stride_w, dilation_h, dilation_w, groups);
+                     stride_h, stride_w, dilation_h, dilation_w, groups, bias);
 #else
     state.SkipWithError("Convolution method not defined!");
 #endif
   }
 
   // Clean up
+  if (has_bias) {
+    free(bias);
+  }
   free(input);
 #if !defined LIBTORCH
   free(output);
@@ -208,7 +221,9 @@ int main(int argc, char **argv) {
   s = s.substr(0, s.length() - 1);
 
   benchmark::RegisterBenchmark(s, BENCHMARK_CONV2D, arguments)
-      ->Unit(benchmark::kMillisecond)->MeasureProcessCPUTime()->UseRealTime();
+      ->Unit(benchmark::kMillisecond)
+      ->MeasureProcessCPUTime()
+      ->UseRealTime();
 
   // With argc set to 1, the benchmark library will not parse the command line
   int argc_benchmark = 1;

@@ -15,9 +15,7 @@ int modulo(int a, int b) {
 void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
                        float *__restrict__ filters, int N, int H, int W, int C,
                        int FH, int FW, int OH, int OW, int M, int PH, int PW,
-                       int SH, int SW) {
-  // Initialize output to zeros
-  bli_ssetv(BLIS_NO_CONJUGATE, N * OH * OW * M, bli_s0, output, 1);
+                       int SH, int SW, float *__restrict__ bias) {
 
 #pragma omp parallel for collapse(2)
   // For every batch element
@@ -37,6 +35,16 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
 
       if (width_slice <= 0)
         continue;
+
+      // Initialize output to zeros
+      for (int i = 0; i < OH; ++i) {
+        for (int j = 0; j < M; ++j) {
+          if (bias != NULL)
+            single_output[ow * OH * M + i * M + j] = bias[j];
+          else
+            single_output[ow * OH * M + i * M + j] = 0.0f;
+        }
+      }
 
       // For every element in the filter height
       for (int fh = 0; fh < FH; ++fh) {
@@ -97,13 +105,11 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
                            float *__restrict__ output,
                            float *__restrict__ filters, int N, int H, int W,
                            int C, int FH, int FW, int OH, int OW, int M, int PH,
-                           int PW, int SH, int SW, int DH, int DW, int GR) {
+                           int PW, int SH, int SW, int DH, int DW, int GR,
+                           float *__restrict__ bias) {
   // Compute channel groupings
   const int C_GR = C / GR;
   const int M_GR = M / GR;
-
-  // Initialize output to zeros
-  bli_ssetv(BLIS_NO_CONJUGATE, N * OH * OW * M, bli_s0, output, 1);
 
 #pragma omp parallel for collapse(2)
   // For every batch element
@@ -129,6 +135,16 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
 
       if (width_slice <= 0)
         continue;
+
+      // Initialize output to zeros
+      for (int i = 0; i < OH; ++i) {
+        for (int j = 0; j < M; ++j) {
+          if (bias != NULL)
+            single_output[ow * OH * M + i * M + j] = bias[j];
+          else
+            single_output[ow * OH * M + i * M + j] = 0.0f;
+        }
+      }
 
       // For every element in the filter height
       for (int fh = 0; fh < FH; ++fh) {
@@ -202,12 +218,12 @@ void conv_2d_zero_copy_main(float *__restrict__ input,
                             float *__restrict__ filters, int N, int H, int W,
                             int C, int FH, int FW, int OH, int OW, int M,
                             int PH, int PW, int SH, int SW, int DH, int DW,
-                            int GR) {
+                            int GR, float *__restrict__ bias) {
   if (DH == 1 && DW == 1 && GR == 1) {
     conv_2d_zero_copy(input, output, filters, N, H, W, C, FH, FW, OH, OW, M, PH,
-                      PW, SH, SW);
+                      PW, SH, SW, bias);
   } else {
     conv_2d_zero_copy_ext(input, output, filters, N, H, W, C, FH, FW, OH, OW, M,
-                          PH, PW, SH, SW, DH, DW, GR);
+                          PH, PW, SH, SW, DH, DW, GR, bias);
   }
 }

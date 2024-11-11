@@ -13,7 +13,7 @@ conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
               int filter_width, int output_height, int output_width,
               int output_channels, int padding_height, int padding_width,
               int stride_h, int stride_w, int dilation_h, int dilation_w,
-              int groups);
+              int groups, float *__restrict__ bias);
 
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
@@ -22,7 +22,7 @@ conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
                int stride_h, int stride_w, int dilation_h, int dilation_w,
-               int groups);
+               int groups, float *__restrict__ bias);
 
 extern "C" void
 conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
@@ -31,17 +31,15 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int filter_width, int output_height, int output_width,
                int output_channels, int padding_height, int padding_width,
                int stride_h, int stride_w, int dilation_h, int dilation_w,
-               int groups);
+               int groups, float *__restrict__ bias);
 
-extern "C" void
-conv_2d_zero_copy_main(float *__restrict__ input, float *__restrict__ output,
-                       float *__restrict__ filters, int batch, int input_height,
-                       int input_width, int input_channels, int filter_height,
-                       int filter_width, int output_height, int output_width,
-                       int output_channels, int padding_height,
-                       int padding_width, int stride_h, int stride_w,
-                       int dilation_h, int dilation_w, int groups);
-
+extern "C" void conv_2d_zero_copy_main(
+    float *__restrict__ input, float *__restrict__ output,
+    float *__restrict__ filters, int batch, int input_height, int input_width,
+    int input_channels, int filter_height, int filter_width, int output_height,
+    int output_width, int output_channels, int padding_height,
+    int padding_width, int stride_h, int stride_w, int dilation_h,
+    int dilation_w, int groups, float *__restrict__ bias);
 
 // Libtorch allocates in own output, so its output is different
 // If output is nullopt, it does not return an output, only executes convolution
@@ -52,7 +50,8 @@ void conv_2d_libtorch(float *__restrict__ input, torch::Tensor &output,
                       int filter_width, int output_height, int output_width,
                       int output_channels, int padding_height,
                       int padding_width, int stride_h, int stride_w,
-                      int dilation_h, int dilation_w, int groups);
+                      int dilation_h, int dilation_w, int groups,
+                      float *__restrict__ bias);
 
 // Returns the maximum difference between two arrays
 float get_max_diff(const float *output1, const float *output2, size_t size) {
@@ -110,6 +109,8 @@ void verify_correctness(const std::vector<int> &arguments) {
   int dilation_h = arguments[15];
   int dilation_w = arguments[16];
   int groups = arguments[17];
+  int is_transposed = arguments[18];
+  int has_bias = arguments[19];
 
   // Transform arguments into a string
   std::stringstream parameters_stream;
@@ -118,7 +119,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   std::string conv_parameters = parameters_stream.str();
   conv_parameters = conv_parameters.substr(0, conv_parameters.length() - 1);
 
-  std::vector<std::string> method_names = {"Im2col", "Yaconv", "Zero Copy"};
+  std::vector<std::string> method_names = {"Im2col", "Yaconv", "ZeroCopy"};
 
   // Sanity checks
   if (padding_top != padding_bottom || padding_left != padding_right) {
@@ -129,6 +130,11 @@ void verify_correctness(const std::vector<int> &arguments) {
   if (input_channels % groups != 0 || output_channels % groups != 0) {
     print_error_for_all(method_names, conv_parameters,
                         "Input and output channels not divisible by groups!");
+    return;
+  }
+  if (is_transposed) {
+    print_error_for_all(method_names, conv_parameters,
+                        "Transposed convolution is not supported!");
     return;
   }
 
@@ -156,6 +162,12 @@ void verify_correctness(const std::vector<int> &arguments) {
   const float *output_torch_NCHW;
   float *output_torch_NHWC = new float[output_size];
 
+  float *bias = nullptr;
+  if (has_bias) {
+    bias = new float[output_channels];
+    initialize_data(bias, output_channels);
+  }
+
   // Initialize input and filters
   initialize_data(input_NHWC, input_size);
   initialize_data(filters_HWIO, filter_size);
@@ -171,27 +183,27 @@ void verify_correctness(const std::vector<int> &arguments) {
                    input_width, input_channels, filter_height, filter_width,
                    output_height, output_width, output_channels, padding_top,
                    padding_right, stride_h, stride_w, dilation_h, dilation_w,
-                   groups);
+                   groups, bias);
   // Torch output is used as the reference
   output_torch_NCHW = output_torch.const_data_ptr<float>();
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
                  output_height, output_width, output_channels, padding_top,
                  padding_right, stride_h, stride_w, dilation_h, dilation_w,
-                 groups);
+                 groups, bias);
   if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1 &&
       groups == 1) {
     conv_2d_yaconv(input_NHWC, output_yaconv, filters_HWIO, batch, input_height,
                    input_width, input_channels, filter_height, filter_width,
                    output_height, output_width, output_channels, padding_top,
                    padding_right, stride_h, stride_w, dilation_h, dilation_w,
-                   groups);
+                   groups, bias);
   }
   conv_2d_zero_copy_main(
       input_NHWC, output_zero_copy, filters_HWIO, batch, input_height,
       input_width, input_channels, filter_height, filter_width, output_height,
       output_width, output_channels, padding_top, padding_right, stride_h,
-      stride_w, dilation_h, dilation_w, groups);
+      stride_w, dilation_h, dilation_w, groups, bias);
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_torch_NCHW, output_torch_NHWC, batch, output_channels,
@@ -222,6 +234,10 @@ void verify_correctness(const std::vector<int> &arguments) {
   diff =
       get_max_diff(output_torch_NHWC, output_zero_copy_transposed, output_size);
   print_diff("ZeroCopy", conv_parameters, diff);
+
+  if (has_bias) {
+    delete[] bias;
+  }
 
   delete[] input_NCHW;
   delete[] input_NHWC;

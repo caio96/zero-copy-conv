@@ -50,8 +50,8 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                     int input_width, int input_channels, int filter_height,
                     int filter_width, int output_height, int output_width,
                     int output_channels, int padding_height, int padding_width,
-                    int stride_h, int stride_w, int dilation_h,
-                    int dilation_w, int groups) {
+                    int stride_h, int stride_w, int dilation_h, int dilation_w,
+                    int groups, float *__restrict__ bias) {
 
   bool pointwise = (filter_height == 1 && filter_width == 1 && stride_h == 1 &&
                     stride_w == 1 && padding_width == 0 && padding_height == 0);
@@ -98,8 +98,17 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
 
       // Perform convolution using GEMM
       // C = alpha * A * B + beta * C
-      bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M, N, K, &alpha, a, K,
-                1, b, N, 1, &beta, c, N, 1);
+      bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M, N, K, &alpha, a, K, 1,
+                b, N, 1, &beta, c, N, 1);
+
+      if (bias != NULL) {
+        for (int m = 0; m < M; ++m) {
+          for (int n = 0; n < N; ++n) {
+            c[m * N + n] += bias[g * M + m];
+          }
+        }
+      }
+
     }
   }
 
