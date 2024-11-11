@@ -61,6 +61,13 @@ def filter_df(df, conv_type):
             & (df["is transposed"] == 0)
         ]
 
+    # Check if kernel size is bigger than padded input
+    # There are some examples like this that cause error in Pytorch
+    df = df.loc[
+        (df["filter height"] <= df["image height"] + df["padding top"] + df["padding bottom"])
+        & (df["filter width"] <= df["image width"] + df["padding left"] + df["padding right"])
+    ]
+
     return df.reset_index()
 
 
@@ -75,7 +82,7 @@ if __name__ == "__main__":
         type=str,
         default="standard",
         help="Type of convolution to select. Standard means convolutions that have stride 1, are not pointwise, not grouped, not dilated, and not transposed.",
-        choices=["standard", "strided", "pointwise", "grouped", "dilated", "transposed"],
+        choices=["standard", "strided", "pointwise", "grouped", "dilated", "transposed", "all"],
     )
 
     args = parser.parse_args()
