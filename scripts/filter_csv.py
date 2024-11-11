@@ -40,7 +40,7 @@ def split_parameters(df):
 def filter_df(df, conv_type):
 
     if conv_type == "strided":
-        df = df.loc[(df["stride height"] != 1 & df["stride width"] != 1)]
+        df = df.loc[(df["stride height"] != 1) & (df["stride width"] != 1)]
     elif conv_type == "pointwise":
         df = df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]
     elif conv_type == "grouped":
