@@ -176,7 +176,7 @@ for repeat in $(seq "$REPEATS"); do
 
     # Check correctness
     if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
-      "$CORRECTNESS_EXECUTABLE" "$conv_parameters" | tail -n +2 | tee -a "$OUTPUT_LOG"
+      "$CORRECTNESS_EXECUTABLE" ${conv_parameters} | tail -n +2 | tee -a "$OUTPUT_LOG"
       continue
     fi
 
