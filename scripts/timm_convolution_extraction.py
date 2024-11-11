@@ -89,10 +89,11 @@ if __name__ == "__main__":
     df = df.reset_index().rename(
         columns={
             "index": "conv_parameters",
-            0: "occurences",
+            0: "occurrences",
             1: "models",
         }
     )
+    df = df.sort_values("occurrences", ascending=False)
 
     # Save to csv
     df.to_csv(output_dir / "conv_layers.csv", index=False)
