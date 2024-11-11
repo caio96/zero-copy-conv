@@ -49,15 +49,24 @@ def filter_df(df, conv_type):
         df = df.loc[(df["dilation height"] != 1) & (df["dilation width"] != 1)]
     elif conv_type == "transposed":
         df = df.loc[df["is transposed"] == 1]
+    elif conv_type == "standard":
+        df = df.loc[
+            (df["stride height"] == 1)
+            & (df["stride width"] == 1)
+            & (df["filter height"] != 1)
+            & (df["filter width"] != 1)
+            & (df["groups"] == 1)
+            & (df["dilation height"] == 1)
+            & (df["dilation width"] == 1)
+            & (df["is transposed"] == 0)
+        ]
 
     return df.reset_index()
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="Filter the csv with convolution layers."
-    )
+    parser = argparse.ArgumentParser(description="Filter the csv with convolution layers.")
 
     parser.add_argument("Input_CSV", type=str, help="Path to the input CSV file.")
     parser.add_argument("Output_CSV", type=str, help="Path to the output CSV file.")
