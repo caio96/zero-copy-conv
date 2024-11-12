@@ -14,8 +14,6 @@ def split_parameters(df):
         "image height",
         "image width",
         "output channel",
-        "output height",
-        "output width",
         "filter height",
         "filter width",
         "padding top",

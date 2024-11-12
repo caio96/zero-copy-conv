@@ -27,6 +27,12 @@ void print_tensor_NCHW(float *input, int batch, int channels, int height,
 void print_tensor_NHWC(float *input, int batch, int channels, int height,
                        int width);
 
+void compute_output_dims(int input_height, int input_width, int filter_height,
+                         int filter_width, int padding_top, int padding_bottom,
+                         int padding_left, int padding_right, int stride_h,
+                         int stride_w, int dilation_h, int dilation_w,
+                         int &output_height, int &output_width);
+
 // Parse command line
 int parse_command_line_arguments(int argc, char **argv,
                                  std::vector<int> &arguments);

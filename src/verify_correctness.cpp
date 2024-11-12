@@ -96,21 +96,26 @@ void verify_correctness(const std::vector<int> &arguments) {
   int input_height = arguments[2];
   int input_width = arguments[3];
   int output_channels = arguments[4];
-  int output_height = arguments[5];
-  int output_width = arguments[6];
-  int filter_height = arguments[7];
-  int filter_width = arguments[8];
-  int padding_top = arguments[9];
-  int padding_bottom = arguments[10];
-  int padding_left = arguments[11];
-  int padding_right = arguments[12];
-  int stride_h = arguments[13];
-  int stride_w = arguments[14];
-  int dilation_h = arguments[15];
-  int dilation_w = arguments[16];
-  int groups = arguments[17];
-  int is_transposed = arguments[18];
-  int has_bias = arguments[19];
+  int filter_height = arguments[5];
+  int filter_width = arguments[6];
+  int padding_top = arguments[7];
+  int padding_bottom = arguments[8];
+  int padding_left = arguments[9];
+  int padding_right = arguments[10];
+  int stride_h = arguments[11];
+  int stride_w = arguments[12];
+  int dilation_h = arguments[13];
+  int dilation_w = arguments[14];
+  int groups = arguments[15];
+  int is_transposed = arguments[16];
+  int has_bias = arguments[17];
+
+  // Compute output dimensions
+  int output_height, output_width;
+  compute_output_dims(input_height, input_width, filter_height, filter_width,
+                      padding_top, padding_bottom, padding_left, padding_right,
+                      stride_h, stride_w, dilation_h, dilation_w, output_height,
+                      output_width);
 
   // Transform arguments into a string
   std::stringstream parameters_stream;

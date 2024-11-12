@@ -34,7 +34,7 @@ class VerboseExecution(torch.nn.Module):
             parameters = (
                 1,  # Default batch size
                 *inputs[0].shape[1:],
-                *outputs[0].shape,
+                outputs[0].shape[0],  # Output channels
                 *module.kernel_size,
                 *module._reversed_padding_repeated_twice,
                 *module.stride,
