@@ -204,24 +204,24 @@ int main(int argc, char **argv) {
     return ret;
 
 #ifdef NAIVE
-  std::string name{"Conv2D_Naive"};
+  std::string name{"Naive"};
 #elif defined IM2COL
-  std::string name{"Conv2D_Im2col"};
+  std::string name{"Im2col"};
 #elif defined YACONV
-  std::string name{"Conv2D_Yaconv"};
+  std::string name{"Yaconv"};
 #elif defined ZERO_COPY
-  std::string name{"Conv2D_ZeroCopy"};
+  std::string name{"ZeroCopy"};
 #elif defined LIBTORCH
-  std::string name{"Conv2D_LibTorch"};
+  std::string name{"LibTorch"};
 #else
   std::string name{"Unknown"};
 #endif
 
   // Transform arguments into a string
   std::stringstream ss;
-  ss << name << "/";
+  ss << name << " ";
   std::copy(arguments.begin(), arguments.end(),
-            std::ostream_iterator<int>(ss, "/"));
+            std::ostream_iterator<int>(ss, " "));
   std::string s = ss.str();
   s = s.substr(0, s.length() - 1);
 
