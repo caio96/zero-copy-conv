@@ -120,7 +120,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   // Transform arguments into a string
   std::stringstream parameters_stream;
   std::copy(arguments.begin(), arguments.end(),
-            std::ostream_iterator<int>(parameters_stream, "/"));
+            std::ostream_iterator<int>(parameters_stream, " "));
   std::string conv_parameters = parameters_stream.str();
   conv_parameters = conv_parameters.substr(0, conv_parameters.length() - 1);
 
@@ -191,6 +191,11 @@ void verify_correctness(const std::vector<int> &arguments) {
                    groups, bias);
   // Torch output is used as the reference
   output_torch_NCHW = output_torch.const_data_ptr<float>();
+  if (output_torch.size(2) != output_height && output_torch.size(3) != output_width) {
+    print_error_for_all(method_names, conv_parameters,
+                        "Output dimensions do not match with Libtorch!");
+    return;
+  }
   conv_2d_im2col(input_NCHW, output_im2col, filters_OIHW, batch, input_height,
                  input_width, input_channels, filter_height, filter_width,
                  output_height, output_width, output_channels, padding_top,
