@@ -17,6 +17,33 @@ function Help()
    echo
 }
 
+function show_progress {
+    current="$1"
+    total="$2"
+
+    bar_size=$(( $(tput cols) - 23 - ${#total} - ${#current} ))
+    bar_char_done="#"
+    bar_char_todo="-"
+    bar_percentage_scale=2
+
+    # calculate the progress in percentage
+    percent=$(bc <<< "scale=$bar_percentage_scale; 100 * $current / $total" )
+    # The number of done and todo characters
+    done=$(bc <<< "scale=0; $bar_size * $percent / 100" )
+    todo=$(bc <<< "scale=0; $bar_size - $done" )
+
+    # build the done and todo sub-bars
+    done_sub_bar=$(printf "%${done}s" | tr " " "${bar_char_done}")
+    todo_sub_bar=$(printf "%${todo}s" | tr " " "${bar_char_todo}")
+
+    # output the bar
+    printf "\rProgress: ${current}/${total} [${done_sub_bar}${todo_sub_bar}] %3.2f%%" "$percent"
+
+    if [ "$total" -eq "$current" ]; then
+        echo -e "\nDONE"
+    fi
+}
+
 BATCH_SIZE="1"
 REPEATS="1"
 APPEND_OUTPUT="false"
@@ -158,10 +185,11 @@ export OMP_NUM_THREADS
 
 echo -e "Running with $REPEATS repetitions and $OMP_NUM_THREADS threads, using cores $CORE_RANGE\n"
 
+total_iterations=$((REPEATS * ($(wc -l < "$CSV_FILE") - 1)))
+current_iteration=0
+
 # For each repetition
 for repeat in $(seq "$REPEATS"); do
-  echo "Starting repetition $repeat of $REPEATS --------------------"
-
   # For each configuration in the csv file
   while IFS=',' read -r conv_parameters occurrences models; do
     # Skip header
@@ -169,14 +197,19 @@ for repeat in $(seq "$REPEATS"); do
       continue
     fi
 
+    # Show progress
+    current_iteration=$((current_iteration + 1))
+    show_progress "$current_iteration" "$total_iterations"
+
     # Add custom batch size to parameters
     conv_parameters="$BATCH_SIZE $(echo "$conv_parameters" | cut -d ' ' -f2-)"
 
-    echo "Running $conv_parameters"
-
     # Check correctness
     if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
-      "$CORRECTNESS_EXECUTABLE" ${conv_parameters} | tail -n +2 | tee -a "$OUTPUT_LOG"
+      "$CORRECTNESS_EXECUTABLE" ${conv_parameters} | tail -n +2 >> "$OUTPUT_LOG"
+      if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+        echo "Error running with parameters: $conv_parameters"
+      fi
       continue
     fi
 
