@@ -122,6 +122,16 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
       float *a, *b, *c;
       float *packed_image = aligned_alloc(64, OH * FW * C_GR * sizeof(float));
 
+      // Initialize output to zeros
+      for (int i = 0; i < OH; ++i) {
+        for (int j = 0; j < M; ++j) {
+          if (bias != NULL)
+            single_output[ow * OH * M + i * M + j] = bias[j];
+          else
+            single_output[ow * OH * M + i * M + j] = 0.0f;
+        }
+      }
+
       // Calculate width slice of size FW and handle edge cases
       int iw = ow * SW - PW;
       int width_start;
@@ -135,16 +145,6 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
 
       if (width_slice <= 0)
         continue;
-
-      // Initialize output to zeros
-      for (int i = 0; i < OH; ++i) {
-        for (int j = 0; j < M; ++j) {
-          if (bias != NULL)
-            single_output[ow * OH * M + i * M + j] = bias[j];
-          else
-            single_output[ow * OH * M + i * M + j] = 0.0f;
-        }
-      }
 
       // For every element in the filter height
       for (int fh = 0; fh < FH; ++fh) {
