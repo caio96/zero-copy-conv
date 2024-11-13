@@ -27,15 +27,6 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
       float *single_output = &output[n * OH * OW * M];
       float *a, *b, *c;
 
-      // Calculate width slice of size FW and handle edge cases
-      int iw = ow * SW - PW;
-      int width_start = bli_max(0, iw);
-      int width_end = bli_min(W, iw + FW);
-      int width_slice = width_end - width_start;
-
-      if (width_slice <= 0)
-        continue;
-
       // Initialize output to zeros
       for (int i = 0; i < OH; ++i) {
         for (int j = 0; j < M; ++j) {
@@ -45,6 +36,15 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
             single_output[ow * OH * M + i * M + j] = 0.0f;
         }
       }
+
+      // Calculate width slice of size FW and handle edge cases
+      int iw = ow * SW - PW;
+      int width_start = bli_max(0, iw);
+      int width_end = bli_min(W, iw + FW);
+      int width_slice = width_end - width_start;
+
+      if (width_slice <= 0)
+        continue;
 
       // For every element in the filter height
       for (int fh = 0; fh < FH; ++fh) {
