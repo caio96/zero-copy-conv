@@ -44,14 +44,14 @@ extern "C" void conv_2d_zero_copy_main(
 // Libtorch allocates in own output, so its output is different
 // If output is nullopt, it does not return an output, only executes convolution
 // If output is not nullopt, it returns the output in the tensor
-void conv_2d_libtorch(float *__restrict__ input, torch::Tensor &output,
-                      float *__restrict__ filters, int batch, int input_height,
+void conv_2d_libtorch(torch::Tensor &input, torch::Tensor &output,
+                      torch::Tensor &filters, int batch, int input_height,
                       int input_width, int input_channels, int filter_height,
                       int filter_width, int output_height, int output_width,
                       int output_channels, int padding_height,
                       int padding_width, int stride_h, int stride_w,
                       int dilation_h, int dilation_w, int groups,
-                      float *__restrict__ bias);
+                      std::optional<torch::Tensor> &bias);
 
 // Returns the maximum difference between two arrays
 float get_max_diff(const float *output1, const float *output2, size_t size) {
@@ -162,8 +162,6 @@ void verify_correctness(const std::vector<int> &arguments) {
   float *output_yaconv = new float[output_size];
   float *output_zero_copy = new float[output_size];
   float *output_zero_copy_transposed = new float[output_size];
-  // Torch allocates its own output
-  torch::Tensor output_torch;
   const float *output_torch_NCHW;
   float *output_torch_NHWC = new float[output_size];
 
@@ -177,6 +175,27 @@ void verify_correctness(const std::vector<int> &arguments) {
   initialize_data(input_NHWC, input_size);
   initialize_data(filters_HWIO, filter_size);
 
+  torch::TensorOptions tensor_options =
+      torch::TensorOptions().dtype(torch::kFloat32);
+
+  // Use input memory directly without copying
+  torch::Tensor input_tensor = torch::from_blob(
+      input_NCHW, {batch, input_channels, input_height, input_width},
+      tensor_options);
+
+  // Use filter memory directly without copying
+  torch::Tensor filters_tensor = torch::from_blob(
+      filters_OIHW,
+      {output_channels, input_channels / groups, filter_height, filter_width},
+      tensor_options);
+
+  std::optional<torch::Tensor> bias_tensor = {};
+  if (bias != nullptr) {
+    bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
+  }
+
+  torch::Tensor output_tensor;
+
   // Convert input and filters
   NHWC_to_NCHW(input_NHWC, input_NCHW, batch, input_channels, input_height,
                input_width);
@@ -184,14 +203,14 @@ void verify_correctness(const std::vector<int> &arguments) {
                input_channels / groups, filter_height, filter_width);
 
   // Run all convolution methods
-  conv_2d_libtorch(input_NCHW, output_torch, filters_OIHW, batch, input_height,
+  conv_2d_libtorch(input_tensor, output_tensor, filters_tensor, batch, input_height,
                    input_width, input_channels, filter_height, filter_width,
                    output_height, output_width, output_channels, padding_top,
                    padding_right, stride_h, stride_w, dilation_h, dilation_w,
-                   groups, bias);
+                   groups, bias_tensor);
   // Torch output is used as the reference
-  output_torch_NCHW = output_torch.const_data_ptr<float>();
-  if (output_torch.size(2) != output_height && output_torch.size(3) != output_width) {
+  output_torch_NCHW = output_tensor.const_data_ptr<float>();
+  if (output_tensor.size(2) != output_height && output_tensor.size(3) != output_width) {
     print_error_for_all(method_names, conv_parameters,
                         "Output dimensions do not match with Libtorch!");
     return;
