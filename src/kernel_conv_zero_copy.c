@@ -2,6 +2,9 @@
 #include <math.h>
 #include <omp.h>
 
+#define min( a, b )  ( (a) < (b) ? (a) : (b) )
+#define max( a, b )  ( (a) > (b) ? (a) : (b) )
+
 int modulo(int a, int b) {
   const int result = a % b;
   return result >= 0 ? result : result + b;
@@ -39,8 +42,8 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
 
       // Calculate width slice of size FW and handle edge cases
       int iw = ow * SW - PW;
-      int width_start = bli_max(0, iw);
-      int width_end = bli_min(W, iw + FW);
+      int width_start = max(0, iw);
+      int width_end = min(W, iw + FW);
       int width_slice = width_end - width_start;
 
       if (width_slice <= 0)
@@ -53,11 +56,11 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         int height_offset = fh - PH;
         int height_start;
         if (height_offset < 0) {
-          height_start = bli_max(0, modulo(height_offset, SH));
+          height_start = max(0, modulo(height_offset, SH));
         } else {
-          height_start = bli_max(0, height_offset);
+          height_start = max(0, height_offset);
         }
-        int height_end = bli_min(H, height_offset + OH * SH);
+        int height_end = min(H, height_offset + OH * SH);
         int height_slice = ceilf((height_end - height_start) / (float)SH);
 
         if (height_slice <= 0)
@@ -136,11 +139,11 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
       int iw = ow * SW - PW;
       int width_start;
       if (iw < 0) {
-        width_start = bli_max(0, modulo(iw, DW));
+        width_start = max(0, modulo(iw, DW));
       } else {
-        width_start = bli_max(0, iw);
+        width_start = max(0, iw);
       }
-      int width_end = bli_min(W, iw + FW * DW);
+      int width_end = min(W, iw + FW * DW);
       int width_slice = ceilf((width_end - width_start) / (float)DW);
 
       if (width_slice <= 0)
@@ -153,11 +156,11 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
         int height_offset = fh * DH - PH;
         int height_start;
         if (height_offset < 0) {
-          height_start = bli_max(0, modulo(height_offset, SH));
+          height_start = max(0, modulo(height_offset, SH));
         } else {
-          height_start = bli_max(0, height_offset);
+          height_start = max(0, height_offset);
         }
-        int height_end = bli_min(H, height_offset + OH * SH);
+        int height_end = min(H, height_offset + OH * SH);
         int height_slice = ceilf((height_end - height_start) / (float)SH);
 
         if (height_slice <= 0)
