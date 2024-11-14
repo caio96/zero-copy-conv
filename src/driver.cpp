@@ -1,7 +1,3 @@
-#if defined IM2COL || defined YACONV || defined ZERO_COPY
-#include "blis/blis.h"
-#endif
-
 #if defined LIBTORCH
 #include <torch/torch.h>
 #endif
@@ -115,10 +111,6 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
         "Stride > 1, Dilation > 1, and Groups > 1 not supported by Yaconv!");
 #endif
 
-#if defined IM2COL || defined YACONV || defined ZERO_COPY
-  bli_init();
-#endif
-
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
@@ -214,9 +206,6 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   free(output);
 #endif
   free(filters);
-#if defined IM2COL || defined YACONV || defined ZERO_COPY
-  bli_finalize();
-#endif
 };
 
 int main(int argc, char **argv) {

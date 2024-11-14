@@ -1,4 +1,3 @@
-#include "blis/blis.h"
 #include "utils.hpp"
 #include <iostream>
 #include <iterator>
@@ -285,12 +284,8 @@ int main(int argc, char *argv[]) {
   if (ret != 0)
     return ret;
 
-  // Initialize BLIS
-  bli_init();
-
   // Verify correctness
   verify_correctness(arguments);
 
-  bli_finalize();
   return 0;
 }

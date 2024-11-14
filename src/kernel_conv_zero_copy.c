@@ -90,8 +90,8 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         float alpha = 1.0f;
         float beta = 1.0f;
 
-        bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M_dim, N_dim, K_dim,
-                  &alpha, a, W * C * SH, 1, b, N_dim, 1, &beta, c, N_dim, 1);
+        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
+                    K_dim, alpha, a, W * C * SH, b, N_dim, beta, c, N_dim);
       }
     }
   }
@@ -207,8 +207,8 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
           float alpha = 1.0f;
           float beta = 1.0f;
 
-          bli_sgemm(BLIS_NO_TRANSPOSE, BLIS_NO_TRANSPOSE, M_dim, N_dim, K_dim,
-                    &alpha, a, K_dim, 1, b, M, 1, &beta, c, M, 1);
+          cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
+                      K_dim, alpha, a, K_dim, b, M, beta, c, M);
         }
       }
       free(packed_image);
