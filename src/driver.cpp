@@ -188,10 +188,11 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
         output_width, output_channels, padding_top, padding_right, stride_h,
         stride_w, dilation_h, dilation_w, groups, bias);
 #elif defined LIBTORCH
-    conv_2d_libtorch(input_tensor, output_tensor, filters_tensor, batch, input_height, input_width,
-                     input_channels, filter_height, filter_width, output_height,
-                     output_width, output_channels, padding_top, padding_right,
-                     stride_h, stride_w, dilation_h, dilation_w, groups, bias_tensor);
+    conv_2d_libtorch(input_tensor, output_tensor, filters_tensor, batch,
+                     input_height, input_width, input_channels, filter_height,
+                     filter_width, output_height, output_width, output_channels,
+                     padding_top, padding_right, stride_h, stride_w, dilation_h,
+                     dilation_w, groups, bias_tensor);
 #else
     state.SkipWithError("Convolution method not defined!");
 #endif

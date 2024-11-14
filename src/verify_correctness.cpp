@@ -202,14 +202,15 @@ void verify_correctness(const std::vector<int> &arguments) {
                input_channels / groups, filter_height, filter_width);
 
   // Run all convolution methods
-  conv_2d_libtorch(input_tensor, output_tensor, filters_tensor, batch, input_height,
-                   input_width, input_channels, filter_height, filter_width,
-                   output_height, output_width, output_channels, padding_top,
-                   padding_right, stride_h, stride_w, dilation_h, dilation_w,
-                   groups, bias_tensor);
+  conv_2d_libtorch(input_tensor, output_tensor, filters_tensor, batch,
+                   input_height, input_width, input_channels, filter_height,
+                   filter_width, output_height, output_width, output_channels,
+                   padding_top, padding_right, stride_h, stride_w, dilation_h,
+                   dilation_w, groups, bias_tensor);
   // Torch output is used as the reference
   output_torch_NCHW = output_tensor.const_data_ptr<float>();
-  if (output_tensor.size(2) != output_height && output_tensor.size(3) != output_width) {
+  if (output_tensor.size(2) != output_height &&
+      output_tensor.size(3) != output_width) {
     print_error_for_all(method_names, conv_parameters,
                         "Output dimensions do not match with Libtorch!");
     return;

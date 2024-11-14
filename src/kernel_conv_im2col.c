@@ -98,8 +98,8 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
 
       // Perform convolution using GEMM
       // C = alpha * A * B + beta * C
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N,
-                  K, alpha, a, K, b, N, beta, c, N);
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, a,
+                  K, b, N, beta, c, N);
 
       if (bias != NULL) {
         for (int m = 0; m < M; ++m) {
@@ -108,7 +108,6 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
           }
         }
       }
-
     }
   }
 

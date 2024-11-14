@@ -2,8 +2,8 @@
 #include <math.h>
 #include <omp.h>
 
-#define min( a, b )  ( (a) < (b) ? (a) : (b) )
-#define max( a, b )  ( (a) > (b) ? (a) : (b) )
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 int modulo(int a, int b) {
   const int result = a % b;
