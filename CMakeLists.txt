@@ -86,15 +86,28 @@ target_link_libraries(benchmark_zero_copy benchmark::benchmark
 set_target_properties(benchmark_zero_copy PROPERTIES COMPILE_FLAGS
                                                      "-DZERO_COPY")
 
-# Libtorch convolution
-add_executable(benchmark_libtorch src/driver.cpp src/kernel_conv_libtorch.cpp
-                                  src/utils.cpp)
-target_include_directories(benchmark_libtorch
+# Libtorch convolution using mkldnn layout
+add_executable(benchmark_libtorch_mkldnn
+               src/driver.cpp src/kernel_conv_libtorch.cpp src/utils.cpp)
+target_include_directories(benchmark_libtorch_mkldnn
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(benchmark_libtorch benchmark::benchmark
+target_link_libraries(benchmark_libtorch_mkldnn benchmark::benchmark
                       "${TORCH_LIBRARIES}")
-set_target_properties(benchmark_libtorch
-                      PROPERTIES COMPILE_FLAGS "-DLIBTORCH ${TORCH_CXX_FLAGS}")
+set_target_properties(
+  benchmark_libtorch_mkldnn
+  PROPERTIES COMPILE_FLAGS "-DLIBTORCH -DLIBTORCH_MKLDNN ${TORCH_CXX_FLAGS}")
+
+# Libtorch convolution using channel last layout
+add_executable(benchmark_libtorch_channel_last
+               src/driver.cpp src/kernel_conv_libtorch.cpp src/utils.cpp)
+target_include_directories(benchmark_libtorch_channel_last
+                           PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(benchmark_libtorch_channel_last benchmark::benchmark
+                      "${TORCH_LIBRARIES}")
+set_target_properties(
+  benchmark_libtorch_channel_last
+  PROPERTIES COMPILE_FLAGS
+             "-DLIBTORCH -DLIBTORCH_CHANNEL_LAST ${TORCH_CXX_FLAGS}")
 
 # Correctness verification
 add_executable(

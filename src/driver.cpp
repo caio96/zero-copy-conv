@@ -146,23 +146,46 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   torch::TensorOptions tensor_options =
       torch::TensorOptions().dtype(torch::kFloat32);
 
-  // Use input memory directly without copying
-  torch::Tensor input_tensor = torch::from_blob(
-      input, {batch, input_channels, input_height, input_width},
-      tensor_options);
-
-  // Use filter memory directly without copying
-  torch::Tensor filters_tensor = torch::from_blob(
-      filters,
-      {output_channels, input_channels / groups, filter_height, filter_width},
-      tensor_options);
+  torch::Tensor output_tensor;
 
   std::optional<torch::Tensor> bias_tensor = {};
   if (bias != nullptr) {
     bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
   }
+#endif
 
-  torch::Tensor output_tensor;
+#if defined LIBTORCH && defined LIBTORCH_MKLDNN
+  torch::Tensor input_tensor =
+      torch::from_blob(input,
+                       {batch, input_channels, input_height, input_width},
+                       tensor_options)
+          .to_mkldnn();
+  torch::Tensor filters_tensor =
+      torch::from_blob(filters,
+                       {output_channels, input_channels / groups, filter_height,
+                        filter_width},
+                       tensor_options)
+          .to_mkldnn();
+#elif defined LIBTORCH && defined LIBTORCH_CHANNEL_LAST
+  torch::Tensor input_tensor =
+      torch::from_blob(input,
+                       {batch, input_channels, input_height, input_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
+  torch::Tensor filters_tensor =
+      torch::from_blob(filters,
+                       {output_channels, input_channels / groups, filter_height,
+                        filter_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
+#elif defined LIBTORCH
+  torch::Tensor input_tensor = torch::from_blob(
+      input, {batch, input_channels, input_height, input_width},
+      tensor_options);
+  torch::Tensor filters_tensor = torch::from_blob(
+      filters,
+      {output_channels, input_channels / groups, filter_height, filter_width},
+      tensor_options);
 #endif
 
   for (auto _ : state) {
