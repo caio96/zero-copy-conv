@@ -6,15 +6,6 @@
 #include <vector>
 
 extern "C" void
-conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
-              float *__restrict__ filters, int batch, int input_height,
-              int input_width, int input_channels, int filter_height,
-              int filter_width, int output_height, int output_width,
-              int output_channels, int padding_height, int padding_width,
-              int stride_h, int stride_w, int dilation_h, int dilation_w,
-              int groups, float *__restrict__ bias);
-
-extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                float *__restrict__ filters, int batch, int input_height,
                int input_width, int input_channels, int filter_height,
@@ -39,18 +30,6 @@ extern "C" void conv_2d_zero_copy_main(
     int output_width, int output_channels, int padding_height,
     int padding_width, int stride_h, int stride_w, int dilation_h,
     int dilation_w, int groups, float *__restrict__ bias);
-
-// Libtorch allocates in own output, so its output is different
-// If output is nullopt, it does not return an output, only executes convolution
-// If output is not nullopt, it returns the output in the tensor
-void conv_2d_libtorch(torch::Tensor &input, torch::Tensor &output,
-                      torch::Tensor &filters, int batch, int input_height,
-                      int input_width, int input_channels, int filter_height,
-                      int filter_width, int output_height, int output_width,
-                      int output_channels, int padding_height,
-                      int padding_width, int stride_h, int stride_w,
-                      int dilation_h, int dilation_w, int groups,
-                      std::optional<torch::Tensor> &bias);
 
 // Returns the maximum difference between two arrays
 float get_max_diff(const float *output1, const float *output2, size_t size) {
@@ -142,6 +121,9 @@ void verify_correctness(const std::vector<int> &arguments) {
     return;
   }
 
+  int padding_height = padding_top;
+  int padding_width = padding_left;
+
   // Buffer sizes
   size_t input_size = batch * input_channels * input_height * input_width;
   size_t output_size = batch * output_channels * output_height * output_width;
@@ -193,8 +175,6 @@ void verify_correctness(const std::vector<int> &arguments) {
     bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
   }
 
-  torch::Tensor output_tensor;
-
   // Convert input and filters
   NHWC_to_NCHW(input_NHWC, input_NCHW, batch, input_channels, input_height,
                input_width);
@@ -202,11 +182,9 @@ void verify_correctness(const std::vector<int> &arguments) {
                input_channels / groups, filter_height, filter_width);
 
   // Run all convolution methods
-  conv_2d_libtorch(input_tensor, output_tensor, filters_tensor, batch,
-                   input_height, input_width, input_channels, filter_height,
-                   filter_width, output_height, output_width, output_channels,
-                   padding_top, padding_right, stride_h, stride_w, dilation_h,
-                   dilation_w, groups, bias_tensor);
+  torch::Tensor output_tensor = torch::conv2d(
+      input_tensor, filters_tensor, bias_tensor, {stride_h, stride_w},
+      {padding_height, padding_width}, {dilation_h, dilation_w}, groups);
   // Torch output is used as the reference
   output_torch_NCHW = output_tensor.const_data_ptr<float>();
   if (output_tensor.size(2) != output_height &&

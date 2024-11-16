@@ -32,6 +32,7 @@ endif()
 find_package(benchmark REQUIRED PATHS ${BENCHMARK_INSTALL})
 find_package(Torch REQUIRED PATHS ${TORCH_INSTALL})
 find_package(OpenMP REQUIRED)
+find_package(DNNL REQUIRED)
 
 # Find BLIS library and headers, there is no automatic package
 find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
@@ -86,34 +87,26 @@ target_link_libraries(benchmark_zero_copy benchmark::benchmark
 set_target_properties(benchmark_zero_copy PROPERTIES COMPILE_FLAGS
                                                      "-DZERO_COPY")
 
-# Libtorch convolution using mkldnn layout
-add_executable(benchmark_libtorch_mkldnn
-               src/driver.cpp src/kernel_conv_libtorch.cpp src/utils.cpp)
-target_include_directories(benchmark_libtorch_mkldnn
+# OneDNN convolution
+add_executable(benchmark_onednn src/driver_onednn.cpp src/utils.cpp)
+target_include_directories(benchmark_onednn
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(benchmark_libtorch_mkldnn benchmark::benchmark
-                      "${TORCH_LIBRARIES}")
-set_target_properties(
-  benchmark_libtorch_mkldnn
-  PROPERTIES COMPILE_FLAGS "-DLIBTORCH -DLIBTORCH_MKLDNN ${TORCH_CXX_FLAGS}")
+target_link_libraries(benchmark_onednn benchmark::benchmark DNNL::dnnl)
 
 # Libtorch convolution using channel last layout
-add_executable(benchmark_libtorch_channel_last
-               src/driver.cpp src/kernel_conv_libtorch.cpp src/utils.cpp)
-target_include_directories(benchmark_libtorch_channel_last
+add_executable(benchmark_libtorch src/driver_libtorch.cpp src/utils.cpp)
+target_include_directories(benchmark_libtorch
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(benchmark_libtorch_channel_last benchmark::benchmark
+target_link_libraries(benchmark_libtorch benchmark::benchmark
                       "${TORCH_LIBRARIES}")
-set_target_properties(
-  benchmark_libtorch_channel_last
-  PROPERTIES COMPILE_FLAGS
-             "-DLIBTORCH -DLIBTORCH_CHANNEL_LAST ${TORCH_CXX_FLAGS}")
+set_target_properties(benchmark_libtorch PROPERTIES COMPILE_FLAGS
+                                                    "${TORCH_CXX_FLAGS}")
 
 # Correctness verification
 add_executable(
   correctness
   src/verify_correctness.cpp src/kernel_conv_im2col.c src/kernel_conv_yaconv.c
-  src/kernel_conv_zero_copy.c src/kernel_conv_libtorch.cpp src/utils.cpp)
+  src/kernel_conv_zero_copy.c src/utils.cpp)
 target_include_directories(
   correctness
   PRIVATE ${PROJECT_SOURCE_DIR}/include

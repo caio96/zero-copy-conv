@@ -1,7 +1,3 @@
-#if defined LIBTORCH
-#include <torch/torch.h>
-#endif
-
 #include "utils.hpp"
 #include <benchmark/benchmark.h>
 #include <iterator>
@@ -48,20 +44,6 @@ extern "C" void conv_2d_zero_copy_main(
     int output_width, int output_channels, int padding_height,
     int padding_width, int stride_h, int stride_w, int dilation_h,
     int dilation_w, int groups, float *__restrict__ bias);
-#endif
-
-#if defined LIBTORCH
-// Libtorch allocates in own output, so its output is different
-// If output is nullopt, it does not return an output, only executes convolution
-// If output is not nullopt, it returns the output in the tensor
-void conv_2d_libtorch(torch::Tensor &input, torch::Tensor &output,
-                      torch::Tensor &filters, int batch, int input_height,
-                      int input_width, int input_channels, int filter_height,
-                      int filter_width, int output_height, int output_width,
-                      int output_channels, int padding_height,
-                      int padding_width, int stride_h, int stride_w,
-                      int dilation_h, int dilation_w, int groups,
-                      std::optional<torch::Tensor> &bias);
 #endif
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
@@ -120,10 +102,8 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   // Allocate memory for buffers
   float *input =
       static_cast<float *>(aligned_alloc(64, input_size * sizeof(float)));
-#if !defined LIBTORCH
   float *output =
       static_cast<float *>(aligned_alloc(64, output_size * sizeof(float)));
-#endif
   float *filters =
       static_cast<float *>(aligned_alloc(64, filter_size * sizeof(float)));
 
@@ -139,54 +119,6 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   if (has_bias) {
     initialize_data(bias, output_channels);
   }
-
-#if defined LIBTORCH
-  c10::InferenceMode guard;
-
-  torch::TensorOptions tensor_options =
-      torch::TensorOptions().dtype(torch::kFloat32);
-
-  torch::Tensor output_tensor;
-
-  std::optional<torch::Tensor> bias_tensor = {};
-  if (bias != nullptr) {
-    bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
-  }
-#endif
-
-#if defined LIBTORCH && defined LIBTORCH_MKLDNN
-  torch::Tensor input_tensor =
-      torch::from_blob(input,
-                       {batch, input_channels, input_height, input_width},
-                       tensor_options)
-          .to_mkldnn();
-  torch::Tensor filters_tensor =
-      torch::from_blob(filters,
-                       {output_channels, input_channels / groups, filter_height,
-                        filter_width},
-                       tensor_options)
-          .to_mkldnn();
-#elif defined LIBTORCH && defined LIBTORCH_CHANNEL_LAST
-  torch::Tensor input_tensor =
-      torch::from_blob(input,
-                       {batch, input_channels, input_height, input_width},
-                       tensor_options)
-          .contiguous(torch::MemoryFormat::ChannelsLast);
-  torch::Tensor filters_tensor =
-      torch::from_blob(filters,
-                       {output_channels, input_channels / groups, filter_height,
-                        filter_width},
-                       tensor_options)
-          .contiguous(torch::MemoryFormat::ChannelsLast);
-#elif defined LIBTORCH
-  torch::Tensor input_tensor = torch::from_blob(
-      input, {batch, input_channels, input_height, input_width},
-      tensor_options);
-  torch::Tensor filters_tensor = torch::from_blob(
-      filters,
-      {output_channels, input_channels / groups, filter_height, filter_width},
-      tensor_options);
-#endif
 
   for (auto _ : state) {
 #ifdef NAIVE
@@ -210,12 +142,6 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
         input_channels, filter_height, filter_width, output_height,
         output_width, output_channels, padding_top, padding_right, stride_h,
         stride_w, dilation_h, dilation_w, groups, bias);
-#elif defined LIBTORCH
-    conv_2d_libtorch(input_tensor, output_tensor, filters_tensor, batch,
-                     input_height, input_width, input_channels, filter_height,
-                     filter_width, output_height, output_width, output_channels,
-                     padding_top, padding_right, stride_h, stride_w, dilation_h,
-                     dilation_w, groups, bias_tensor);
 #else
     state.SkipWithError("Convolution method not defined!");
 #endif
@@ -226,9 +152,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     free(bias);
   }
   free(input);
-#if !defined LIBTORCH
   free(output);
-#endif
   free(filters);
 };
 
@@ -247,8 +171,6 @@ int main(int argc, char **argv) {
   std::string name{"Yaconv"};
 #elif defined ZERO_COPY
   std::string name{"ZeroCopy"};
-#elif defined LIBTORCH
-  std::string name{"LibTorch"};
 #else
   std::string name{"Unknown"};
 #endif
@@ -264,6 +186,7 @@ int main(int argc, char **argv) {
   benchmark::RegisterBenchmark(s, BENCHMARK_CONV2D, arguments)
       ->Unit(benchmark::kMillisecond)
       ->MeasureProcessCPUTime()
+      ->MinWarmUpTime(0.5)
       ->UseRealTime();
 
   // With argc set to 1, the benchmark library will not parse the command line
