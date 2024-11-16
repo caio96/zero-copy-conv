@@ -14,7 +14,8 @@ This repository is designed to test multiple implementations of convolution. The
 | Im2col    | NCHW           | OIHW          | NCHW          | :white_check_mark: |
 | Yaconv    | NHWC           | OIHW          | NHWC          | :x:                |
 | Zero-Copy | NHWC           | OIHW          | NWHC          | :white_check_mark: |
-| LibTorch  | NCHW           | OIHW          | NCHW          | :white_check_mark: |
+| LibTorch  | NHWC           | OHWI          | NHWC          | :white_check_mark: |
+| OneDNN    | ??             | ??            | ??            | :white_check_mark: |
 
 Note:
 
@@ -28,6 +29,7 @@ Note:
 - `src`
   - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method.
   - `kernel_conv_[method_name]` files have the implementation of each convolution method
+  - `driver_[method_name]` is a specialized driver if the method differs too much from the main driver
   - `utils` has helper functions
   - `verify_correctness` calls all convolutions methods converting their output if necessary to compare them
 - `scripts`:
@@ -43,6 +45,7 @@ Note:
 - [Google Benchmark](https://github.com/google/benchmark)
 - [Blis](https://github.com/flame/blis), but to use Yaconv, use the Blis fork in [blis-conv](https://github.com/caio96/blis-conv)
 - [LibTorch](https://pytorch.org/cppdocs/installing.html)
+- [OneDNN](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onednn.html)
 
 ### How to build Google Benchmark:
 
@@ -79,6 +82,12 @@ Or run:
 ```sh
 wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.5.1%2Bcpu.zip -O libtorch.zip
 unzip libtorch.zip -d .
+```
+
+### How to install OneDNN:
+
+```sh
+pip install onednn-devel
 ```
 
 ## Building this repo
