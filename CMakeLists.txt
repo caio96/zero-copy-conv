@@ -60,7 +60,7 @@ else()
   find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
   find_library(
     BLIS_LIBRARY
-    NAMES blis-mt
+    NAMES blis
     PATHS "${BLIS_INSTALL}/lib")
 
   if(NOT BLIS_INCLUDE_DIR OR NOT BLIS_LIBRARY)

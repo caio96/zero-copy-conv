@@ -42,8 +42,8 @@ Note:
 ## Dependencies
 
 - [Google Benchmark](https://github.com/google/benchmark)
-- [AMD Blis](https://github.com/amd/blis)
-- [Yaconv Blis](https://github.com/caio96/blis-conv), which is a fork of vanilla Blis that contains Yaconv
+- [Blis](https://github.com/flame/blis)
+- [Yaconv Blis](https://github.com/caio96/blis-conv), which is a fork of Blis that contains Yaconv
 - [LibTorch](https://pytorch.org/cppdocs/installing.html)
 - [OneDNN](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onednn.html)
 - [OneMKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
@@ -60,9 +60,9 @@ cmake --build "build" --config Release
 cmake --install build --config Release --prefix /path/to/benchmark-install
 ```
 
-### How to build AMD Blis:
+### How to build Blis:
 ```sh
-git clone https://github.com/amd/blis.git
+git clone https://github.com/flame/blis.git
 cd blis
 git checkout 5.0
 ./configure --prefix=/path/to/blis-install --enable-threading=openmp --enable-cblas auto
@@ -113,7 +113,7 @@ cmake -DCMAKE_C_COMPILER=clang                         \
       ..
 ```
 
-If the USE_MKL variable is set to off, AMD Blis is used as a BLAS library.
+If the USE_MKL variable is set to off, Blis is used as a BLAS library.
 Turn it on if using an Intel CPU.
 
 ## Running Benchmarks
