@@ -3,7 +3,7 @@
 This repository is designed to test multiple implementations of convolution. They are:
 
 - Naive convolution: For loops and simple multiply accumulate
-- Im2col convolution: Transforms the input image with im2col and executes convolution as a single GEMM call using the Blis library
+- Im2col convolution: Transforms the input image with im2col and executes convolution as a single GEMM call
 - Yaconv convolution: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements. Defined in [blis-conv](https://github.com/caio96/blis-conv)
 - Zero-Copy convolution: New convolution implementation, yet to be published
 - LibTorch convolution: Pytorch Conv2D implementation using the C++ API
@@ -19,7 +19,6 @@ This repository is designed to test multiple implementations of convolution. The
 
 Note:
 
-- The Im2col version depends on Blis to be multithreaded, which needs be enabled before compiling Blis.
 - Yaconv only supports stride == 1, no grouping, and no dilation.
 
 ## Repository Structure
@@ -43,9 +42,11 @@ Note:
 ## Dependencies
 
 - [Google Benchmark](https://github.com/google/benchmark)
-- [Blis](https://github.com/flame/blis), but to use Yaconv, use the Blis fork in [blis-conv](https://github.com/caio96/blis-conv)
+- [AMD Blis](https://github.com/amd/blis)
+- [Yaconv Blis](https://github.com/caio96/blis-conv), which is a fork of vanilla Blis that contains Yaconv
 - [LibTorch](https://pytorch.org/cppdocs/installing.html)
 - [OneDNN](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onednn.html)
+- [OneMKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
 
 ### How to build Google Benchmark:
 
@@ -59,7 +60,16 @@ cmake --build "build" --config Release
 cmake --install build --config Release --prefix /path/to/benchmark-install
 ```
 
-### How to build Blis:
+### How to build AMD Blis:
+```sh
+git clone https://github.com/amd/blis.git
+cd blis
+git checkout 5.0
+./configure --prefix=/path/to/blis-install --enable-threading=openmp --enable-cblas auto
+make install -j4
+```
+
+### How to build Blis Yaconv:
 
 ```sh
 git clone git@github.com:caio96/blis-conv.git
@@ -68,8 +78,6 @@ git checkout yaconv-update
 ./configure --prefix=/path/to/blis-install --enable-threading=openmp --enable-cblas -a yaconv auto
 make install -j4
 ```
-
-The public [Blis repo](https://github.com/flame/blis) could also be used, but then the `benchmark_yaconv` executable would need to be removed from the CMakeLists.txt file.
 
 ### How to get LibTorch:
 
@@ -84,10 +92,10 @@ wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-de
 unzip libtorch.zip -d .
 ```
 
-### How to install OneDNN:
+### How to install OneDNN and OneMKL:
 
 ```sh
-pip install onednn-devel
+pip install onednn-devel mkl-devel
 ```
 
 ## Building this repo
@@ -100,8 +108,13 @@ cmake -DCMAKE_C_COMPILER=clang                         \
       -DBENCHMARK_INSTALL="/path/to/benchmark-install" \
       -DTORCH_INSTALL="/path/to/libtorch"              \
       -DBLIS_INSTALL="/path/to/blis-install"           \
+      -DBLIS_YACONV_INSTALL="/path/to/blis-install"    \
+      -DUSE_MKL="[ON/OFF]"                             \
       ..
 ```
+
+If the USE_MKL variable is set to off, AMD Blis is used as a BLAS library.
+Turn it on if using an Intel CPU.
 
 ## Running Benchmarks
 

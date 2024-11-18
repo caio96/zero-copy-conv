@@ -1,4 +1,8 @@
+#if defined USE_MKL
+#include <mkl.h>
+#else
 #include "blis/blis.h"
+#endif
 #include <math.h>
 #include <omp.h>
 

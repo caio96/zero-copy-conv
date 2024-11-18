@@ -1,4 +1,8 @@
+#if defined USE_MKL
+#include <mkl.h>
+#else
 #include "blis/blis.h"
+#endif
 
 // Taken from Caffe implementation
 // https://github.com/BVLC/caffe/blob/master/src/caffe/util/im2col.cpp
@@ -53,7 +57,7 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                     int stride_h, int stride_w, int dilation_h, int dilation_w,
                     int groups, float *__restrict__ bias) {
 
-  bool pointwise = (filter_height == 1 && filter_width == 1 && stride_h == 1 &&
+  int pointwise = (filter_height == 1 && filter_width == 1 && stride_h == 1 &&
                     stride_w == 1 && padding_width == 0 && padding_height == 0);
 
   // Allocate im2col buffer size only if not pointwise

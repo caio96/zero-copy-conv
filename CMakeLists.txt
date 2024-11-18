@@ -22,10 +22,20 @@ set(TORCH_INSTALL
 set(BLIS_INSTALL
     ""
     CACHE PATH "Path to Blis installation")
+set(BLIS_YACONV_INSTALL
+    ""
+    CACHE PATH "Path to Blis installation that contains the yaconv addon")
 
-# Check if BLIS exists, the other two may be installed globally
+# Check if BLIS exists
 if(NOT EXISTS "${BLIS_INSTALL}")
   message(FATAL_ERROR "BLIS_INSTALL is not a valid path: ${BLIS_INSTALL}")
+endif()
+
+# Check if BLIS Yaconv exists
+if(NOT EXISTS "${BLIS_YACONV_INSTALL}")
+  message(
+    FATAL_ERROR
+      "BLIS_YACONV_INSTALL is not a valid path: ${BLIS_YACONV_INSTALL}")
 endif()
 
 # Add dependencies
@@ -34,20 +44,50 @@ find_package(Torch REQUIRED PATHS ${TORCH_INSTALL})
 find_package(OpenMP REQUIRED)
 find_package(DNNL REQUIRED)
 
+option(USE_MKL "Use Intel MKL as BLAS. Default is to use Blis" OFF)
+
+set(blas_includes "")
+set(blas_libraries "")
+set(blas_define "")
+
+if(USE_MKL)
+  # Find MKL package
+  find_package(MKL REQUIRED)
+  set(blas_libraries "MKL::MKL")
+  set(blas_define "-DUSE_MKL")
+else()
+  # Find BLIS library and headers
+  find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
+  find_library(
+    BLIS_LIBRARY
+    NAMES blis-mt
+    PATHS "${BLIS_INSTALL}/lib")
+
+  if(NOT BLIS_INCLUDE_DIR OR NOT BLIS_LIBRARY)
+    message(
+      FATAL_ERROR
+        "BLIS not found. Please specify the BLIS installation path using -DBLIS_INSTALL=<path>. This path should contain 'include' and 'lib' directories."
+    )
+  endif()
+
+  set(blas_includes "${BLIS_INCLUDE_DIR}")
+  set(blas_libraries "${BLIS_LIBRARY}")
+endif()
+
 # Find BLIS library and headers, there is no automatic package
-find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
+find_path(BLIS_YACONV_INCLUDE_DIR blis PATHS "${BLIS_YACONV_INSTALL}/include")
 find_library(
-  BLIS_LIBRARY_DIR
+  BLIS_YACONV_LIBRARY_DIR
   NAMES blis
-  PATHS "${BLIS_INSTALL}/lib")
-if(NOT BLIS_INCLUDE_DIR OR NOT BLIS_LIBRARY_DIR)
+  PATHS "${BLIS_YACONV_INSTALL}/lib")
+if(NOT BLIS_YACONV_INCLUDE_DIR OR NOT BLIS_YACONV_LIBRARY_DIR)
   message(
     FATAL_ERROR
-      "BLIS not found. Please specify the Blis installation path using -DBLIS_INSTALL=<path>. This path should contain 'include' and 'lib' directories."
+      "BLIS not found. Please specify the Blis installation path using -DBLIS_YACONV_INSTALL=<path>. This path should contain 'include' and 'lib' directories."
   )
 endif()
 
-# Naive convolution
+# Naive convolution ------------------------------------------------------------
 add_executable(benchmark_naive src/driver.cpp src/kernel_conv_naive.c
                                src/utils.cpp)
 target_include_directories(benchmark_naive
@@ -55,45 +95,43 @@ target_include_directories(benchmark_naive
 target_link_libraries(benchmark_naive benchmark::benchmark)
 set_target_properties(benchmark_naive PROPERTIES COMPILE_FLAGS "-DNAIVE")
 
-# Im2col convolution
+# Im2col convolution -----------------------------------------------------------
 add_executable(benchmark_im2col src/driver.cpp src/kernel_conv_im2col.c
                                 src/utils.cpp)
 target_include_directories(
-  benchmark_im2col
-  PRIVATE ${PROJECT_SOURCE_DIR}/include
-  PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(benchmark_im2col benchmark::benchmark ${BLIS_LIBRARY_DIR})
-set_target_properties(benchmark_im2col PROPERTIES COMPILE_FLAGS "-DIM2COL")
+  benchmark_im2col PRIVATE ${PROJECT_SOURCE_DIR}/include ${blas_includes})
+target_link_libraries(benchmark_im2col benchmark::benchmark ${blas_libraries})
+set_target_properties(benchmark_im2col PROPERTIES COMPILE_FLAGS
+                                                  "-DIM2COL ${blas_define}")
 
-# Yaconv convolution
+# Yaconv convolution -----------------------------------------------------------
 add_executable(benchmark_yaconv src/driver.cpp src/kernel_conv_yaconv.c
                                 src/utils.cpp)
 target_include_directories(
   benchmark_yaconv
   PRIVATE ${PROJECT_SOURCE_DIR}/include
-  PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(benchmark_yaconv benchmark::benchmark ${BLIS_LIBRARY_DIR})
+  PRIVATE ${BLIS_YACONV_INCLUDE_DIR})
+target_link_libraries(benchmark_yaconv benchmark::benchmark
+                      ${BLIS_YACONV_LIBRARY_DIR})
 set_target_properties(benchmark_yaconv PROPERTIES COMPILE_FLAGS "-DYACONV")
 
-# Zero-copy convolution
+# Zero-copy convolution --------------------------------------------------------
 add_executable(benchmark_zero_copy src/driver.cpp src/kernel_conv_zero_copy.c
                                    src/utils.cpp)
 target_include_directories(
-  benchmark_zero_copy
-  PRIVATE ${PROJECT_SOURCE_DIR}/include
-  PRIVATE ${BLIS_INCLUDE_DIR})
+  benchmark_zero_copy PRIVATE ${PROJECT_SOURCE_DIR}/include ${blas_includes})
 target_link_libraries(benchmark_zero_copy benchmark::benchmark
-                      ${BLIS_LIBRARY_DIR} OpenMP::OpenMP_C)
-set_target_properties(benchmark_zero_copy PROPERTIES COMPILE_FLAGS
-                                                     "-DZERO_COPY")
+                      ${blas_libraries} OpenMP::OpenMP_C)
+set_target_properties(benchmark_zero_copy
+                      PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${blas_define}")
 
-# OneDNN convolution
+# OneDNN convolution -----------------------------------------------------------
 add_executable(benchmark_onednn src/driver_onednn.cpp src/utils.cpp)
 target_include_directories(benchmark_onednn
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(benchmark_onednn benchmark::benchmark DNNL::dnnl)
 
-# Libtorch convolution using channel last layout
+# Libtorch convolution ---------------------------------------------------------
 add_executable(benchmark_libtorch src/driver_libtorch.cpp src/utils.cpp)
 target_include_directories(benchmark_libtorch
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
@@ -102,15 +140,18 @@ target_link_libraries(benchmark_libtorch benchmark::benchmark
 set_target_properties(benchmark_libtorch PROPERTIES COMPILE_FLAGS
                                                     "${TORCH_CXX_FLAGS}")
 
-# Correctness verification
+# Correctness verification -----------------------------------------------------
 add_executable(
   correctness
   src/verify_correctness.cpp src/kernel_conv_im2col.c src/kernel_conv_yaconv.c
   src/kernel_conv_zero_copy.c src/utils.cpp)
 target_include_directories(
   correctness
-  PRIVATE ${PROJECT_SOURCE_DIR}/include
-  PRIVATE ${BLIS_INCLUDE_DIR})
-target_link_libraries(correctness benchmark::benchmark ${BLIS_LIBRARY_DIR}
-                      "${TORCH_LIBRARIES}" OpenMP::OpenMP_C)
-set_target_properties(correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS}")
+  PRIVATE ${PROJECT_SOURCE_DIR}/include ${blas_includes}
+  PRIVATE ${BLIS_YACONV_INCLUDE_DIR})
+
+target_link_libraries(
+  correctness benchmark::benchmark ${BLIS_YACONV_LIBRARY_DIR} ${blas_libraries}
+  "${TORCH_LIBRARIES}" OpenMP::OpenMP_C)
+set_target_properties(
+  correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS} ${blas_define}")
