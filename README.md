@@ -95,7 +95,7 @@ unzip libtorch.zip -d .
 ### How to install OneDNN and OneMKL:
 
 ```sh
-conda install conda-forge::onednn-devel conda-formge::mkl-devel
+conda install conda-forge::onednn conda-forge::mkl-devel
 ```
 
 ## Building this repo
