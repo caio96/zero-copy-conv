@@ -127,7 +127,7 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
       float *single_input = &input[n * H * W * C];
       float *single_output = &output[n * OH * OW * M];
       float *a, *b, *c;
-      float *packed_image = aligned_alloc(64, OH * FW * C_GR * sizeof(float));
+      float *packed_image = (float *)malloc(OH * FW * C_GR * sizeof(float));
 
       // Initialize output to zeros
       for (int i = 0; i < OH; ++i) {
