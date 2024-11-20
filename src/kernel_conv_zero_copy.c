@@ -62,7 +62,7 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         if (height_offset < 0) {
           height_start = max(0, modulo(height_offset, SH));
         } else {
-          height_start = max(0, height_offset);
+          height_start = height_offset;
         }
         int height_end = min(H, height_offset + OH * SH);
         int height_slice = ceilf((height_end - height_start) / (float)SH);
@@ -127,7 +127,8 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
       float *single_input = &input[n * H * W * C];
       float *single_output = &output[n * OH * OW * M];
       float *a, *b, *c;
-      float *packed_image = (float *)malloc(OH * FW * C_GR * sizeof(float));
+      float *packed_image =
+          (float *)aligned_alloc(64, OH * FW * C_GR * sizeof(float));
 
       // Initialize output to zeros
       for (int i = 0; i < OH; ++i) {

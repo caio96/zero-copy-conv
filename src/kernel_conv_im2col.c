@@ -65,7 +65,7 @@ void conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
                        output_height * output_width;
   float *im2col_buffer;
   if (!pointwise) {
-    im2col_buffer = (float *)malloc(im2col_size * sizeof(float));
+    im2col_buffer = (float *)aligned_alloc(64, im2col_size * sizeof(float));
   }
 
   // Convolve each batch
