@@ -84,7 +84,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
 
   // Source (src), weights, bias, and destination (dst) tensors dimensions.
   memory::dims src_dims = {batch, input_channels, input_height, input_width};
-  memory::dims weights_dims = {output_channels, input_channels / groups,
+  memory::dims weights_dims = {groups, output_channels/groups, input_channels / groups,
                                filter_height, filter_width};
   memory::dims dst_dims = {batch, output_channels, output_height, output_width};
 
@@ -92,12 +92,13 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   memory::dims strides_dims = {stride_h, stride_w};
   memory::dims padding_dims_l = {padding_height, padding_width};
   memory::dims padding_dims_r = {padding_height, padding_width};
+  memory::dims dilation_dims = {dilation_h-1, dilation_w-1};
 
   // Create memory objects for tensor data (src, weights, dst). The order for
   // image dims is always NCHW, the actual layout is defined with the format
   // tag.
   memory::desc user_src_md = memory::desc(src_dims, dt::f32, tag::nhwc);
-  memory::desc user_weights_md = memory::desc(weights_dims, dt::f32, tag::hwio);
+  memory::desc user_weights_md = memory::desc(weights_dims, dt::f32, tag::hwigo);
   memory::desc user_dst_md = memory::desc(dst_dims, dt::f32, tag::nhwc);
   memory user_src_mem = memory(user_src_md, engine, input);
   memory user_weights_mem = memory(user_weights_md, engine, filters);
@@ -120,7 +121,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
       convolution_forward::primitive_desc(
           engine, prop_kind::forward_inference, algorithm::convolution_auto,
           user_src_md, user_weights_md, user_bias_md, user_dst_md, strides_dims,
-          padding_dims_l, padding_dims_r, conv_attr);
+          dilation_dims, padding_dims_l, padding_dims_r, conv_attr);
 
   // Create the primitive.
   convolution_forward conv_prim = convolution_forward(conv_pd);
