@@ -125,11 +125,17 @@ target_link_libraries(benchmark_zero_copy benchmark::benchmark
 set_target_properties(benchmark_zero_copy
                       PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${blas_define}")
 
-# OneDNN convolution -----------------------------------------------------------
-add_executable(benchmark_onednn src/driver_onednn.cpp src/utils.cpp)
-target_include_directories(benchmark_onednn
+# OneDNN convolution using nhwc-------------------------------------------------
+add_executable(benchmark_onednn_nhwc src/driver_onednn_nhwc.cpp src/utils.cpp)
+target_include_directories(benchmark_onednn_nhwc
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(benchmark_onednn benchmark::benchmark DNNL::dnnl)
+target_link_libraries(benchmark_onednn_nhwc benchmark::benchmark DNNL::dnnl)
+
+# OneDNN convolution using any layout ------------------------------------------
+add_executable(benchmark_onednn_any src/driver_onednn_any.cpp src/utils.cpp)
+target_include_directories(benchmark_onednn_any
+                           PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(benchmark_onednn_any benchmark::benchmark DNNL::dnnl)
 
 # Libtorch convolution ---------------------------------------------------------
 add_executable(benchmark_libtorch src/driver_libtorch.cpp src/utils.cpp)

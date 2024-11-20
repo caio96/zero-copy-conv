@@ -7,26 +7,6 @@ using namespace dnnl;
 using tag = memory::format_tag;
 using dt = memory::data_type;
 
-// Read from handle, write to memory
-inline void write_to_dnnl_memory(void *handle, dnnl::memory &mem) {
-  dnnl::engine eng = mem.get_engine();
-  size_t size = mem.get_desc().get_size();
-
-  if (!handle)
-    throw std::runtime_error("handle is nullptr.");
-
-  if (eng.get_kind() == dnnl::engine::kind::cpu) {
-    uint8_t *dst = static_cast<uint8_t *>(mem.get_data_handle());
-    if (!dst)
-      throw std::runtime_error("get_data_handle returned nullptr.");
-    for (size_t i = 0; i < size; ++i)
-      dst[i] = ((uint8_t *)handle)[i];
-    return;
-  }
-
-  assert(!"not expected");
-}
-
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
                            const std::vector<int> &arguments) {
   // Convolution parameters
@@ -113,15 +93,25 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   memory::dims padding_dims_l = {padding_height, padding_width};
   memory::dims padding_dims_r = {padding_height, padding_width};
 
-  // Create memory objects for tensor data (src, weights, dst). In this
-  // example, NCHW layout is assumed for src and dst, and OIHW for weights.
-  memory::desc user_src_md = memory::desc(src_dims, dt::f32, tag::nchw);
-  memory::desc user_weights_md = memory::desc(weights_dims, dt::f32, tag::oihw);
-  memory::desc user_dst_md = memory::desc(dst_dims, dt::f32, tag::nchw);
+  // Create memory objects for tensor data (src, weights, dst). The order for
+  // image dims is always NCHW, the actual layout is defined with the format
+  // tag.
+  memory::desc user_src_md = memory::desc(src_dims, dt::f32, tag::nhwc);
+  memory::desc user_weights_md = memory::desc(weights_dims, dt::f32, tag::hwio);
+  memory::desc user_dst_md = memory::desc(dst_dims, dt::f32, tag::nhwc);
+  memory user_src_mem = memory(user_src_md, engine, input);
+  memory user_weights_mem = memory(user_weights_md, engine, filters);
+  memory user_dst_mem = memory(user_dst_md, engine, output);
 
-  memory user_src_mem = memory(user_src_md, engine);
-  memory user_weights_mem = memory(user_weights_md, engine);
-  memory user_dst_mem = memory(user_dst_md, engine);
+  // Create memory descriptor and memory object for input bias.
+  memory::dims bias_dims;
+  memory::desc user_bias_md;
+  memory user_bias_mem;
+  if (has_bias) {
+    bias_dims = {output_channels};
+    user_bias_md = memory::desc(bias_dims, dt::f32, tag::a);
+    user_bias_mem = memory(user_bias_md, engine, bias);
+  }
 
   // Create memory descriptors with format_tag::any for the primitive. This
   // enables the convolution primitive to choose memory layouts for an
@@ -131,28 +121,12 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   memory::desc conv_weights_md = memory::desc(weights_dims, dt::f32, tag::any);
   memory::desc conv_dst_md = memory::desc(dst_dims, dt::f32, tag::any);
 
-  // Create memory descriptor and memory object for input bias.
-  memory::dims bias_dims;
-  memory::desc user_bias_md;
-  memory user_bias_mem;
-  if (has_bias) {
-    bias_dims = {output_channels};
-    user_bias_md = memory::desc(bias_dims, dt::f32, tag::a);
-    user_bias_mem = memory(user_bias_md, engine);
-  }
-
-  // Write data to memory object's handle.
-  write_to_dnnl_memory(input, user_src_mem);
-  write_to_dnnl_memory(filters, user_weights_mem);
-  if (has_bias)
-    write_to_dnnl_memory(bias, user_bias_mem);
-
   primitive_attr conv_attr;
 
   // Create primitive descriptor.
   convolution_forward::primitive_desc conv_pd =
       convolution_forward::primitive_desc(
-          engine, prop_kind::forward_training, algorithm::convolution_direct,
+          engine, prop_kind::forward_inference, algorithm::convolution_auto,
           conv_src_md, conv_weights_md, user_bias_md, conv_dst_md, strides_dims,
           padding_dims_l, padding_dims_r, conv_attr);
 
