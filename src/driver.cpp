@@ -213,7 +213,6 @@ int main(int argc, char **argv) {
   benchmark::RegisterBenchmark(s, BENCHMARK_CONV2D, arguments)
       ->Unit(benchmark::kMillisecond)
       ->MeasureProcessCPUTime()
-      ->MinWarmUpTime(0.5)
       ->UseRealTime();
 
   // With argc set to 1, the benchmark library will not parse the command line
