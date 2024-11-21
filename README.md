@@ -8,18 +8,20 @@ This repository is designed to test multiple implementations of convolution. The
 - Zero-Copy convolution: New convolution implementation, yet to be published
 - LibTorch convolution: Pytorch Conv2D implementation using the C++ API
 
-|           | Feature Layout | Weight Layout | Output Layout | Multithreading     |
-| --------- | -------------- | ------------- | ------------- | ------------------ |
-| Naive     | NHWC           | OIHW          | NHWC          | :x:                |
-| Im2col    | NCHW           | OIHW          | NCHW          | :white_check_mark: |
-| Yaconv    | NHWC           | OIHW          | NHWC          | :x:                |
-| Zero-Copy | NHWC           | OIHW          | NWHC          | :white_check_mark: |
-| LibTorch  | NHWC           | OHWI          | NHWC          | :white_check_mark: |
-| OneDNN    | ??             | ??            | ??            | :white_check_mark: |
+|             | Feature Layout | Weight Layout | Output Layout | Multithreading     |
+| ----------- | -------------- | ------------- | ------------- | ------------------ |
+| Naive       | NCHW           | OIHW          | NCHW          | :x:                |
+| Im2col      | NCHW           | OIHW          | NCHW          | :white_check_mark: |
+| Yaconv      | NHWC           | HWIO          | NHWC          | :x:                |
+| Zero-Copy   | NHWC           | HWIO          | NWHC          | :white_check_mark: |
+| LibTorch    | NHWC           | OHWI          | NHWC          | :white_check_mark: |
+| OneDNN_any  | ??             | ??            | ??            | :white_check_mark: |
+| OneDNN_nhwc | NHWC           | HWIO          | NHWC          | :white_check_mark: |
 
 Note:
 
 - Yaconv only supports stride == 1, no grouping, and no dilation.
+- In OneDNN_any, the library decides the best layout to use. Transforming the layout is not included in the timing.
 
 ## Repository Structure
 
