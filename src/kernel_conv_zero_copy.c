@@ -179,7 +179,7 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
         if (height_offset < 0) {
           height_start = max(0, modulo(height_offset, SH));
         } else {
-          height_start = max(0, height_offset);
+          height_start = height_offset;
         }
         int height_end = min(H, height_offset + OH * SH);
         int height_slice = ceilf((height_end - height_start) / (float)SH);
