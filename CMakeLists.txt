@@ -156,8 +156,9 @@ set_target_properties(benchmark_libtorch PROPERTIES COMPILE_FLAGS
 
 # Correctness verification -----------------------------------------------------
 if(NOT USE_MKL)
-  set(blas_includes "${BLIS_YACONV_INCLUDE_DIR}")
-  set(blas_libraries "${BLIS_YACONV_LIBRARY_DIR}")
+  # If not using MKL, BLIS yaconv already contains everything needed
+  set(blas_includes "")
+  set(blas_libraries "")
 endif()
 
 add_executable(
@@ -165,9 +166,9 @@ add_executable(
   src/verify_correctness.cpp src/kernel_conv_im2col.c src/kernel_conv_yaconv.c
   src/kernel_conv_zero_copy.c src/utils.cpp)
 target_include_directories(correctness PRIVATE ${PROJECT_SOURCE_DIR}/include
-                                               ${blas_includes})
+                                               ${blas_includes} ${BLIS_YACONV_INCLUDE_DIR})
 
 target_link_libraries(correctness benchmark::benchmark ${blas_libraries}
-                      "${TORCH_LIBRARIES}" OpenMP::OpenMP_C)
+                      "${TORCH_LIBRARIES}" ${BLIS_YACONV_LIBRARY_DIR} OpenMP::OpenMP_C)
 set_target_properties(
   correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS} ${blas_define}")
