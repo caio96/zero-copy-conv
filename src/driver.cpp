@@ -36,6 +36,9 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int groups, float *__restrict__ bias);
 #endif
 
+#if defined ZERO_COPY && defined USE_MKL_JIT
+#include <mkl.h>
+#endif
 #if defined ZERO_COPY
 extern "C" void conv_2d_zero_copy_main(
     float *__restrict__ input, float *__restrict__ output,
@@ -43,7 +46,7 @@ extern "C" void conv_2d_zero_copy_main(
     int input_channels, int filter_height, int filter_width, int output_height,
     int output_width, int output_channels, int padding_height,
     int padding_width, int stride_h, int stride_w, int dilation_h,
-    int dilation_w, int groups, float *__restrict__ bias);
+    int dilation_w, int groups, float *__restrict__ bias, void *jitter);
 #endif
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
@@ -120,6 +123,30 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     initialize_data(bias, output_channels);
   }
 
+#if defined ZERO_COPY
+  void *jitter;
+#endif
+#if defined ZERO_COPY && defined USE_MKL_JIT
+  mkl_jit_status_t status;
+  if (dilation_h == 1 && dilation_w == 1 && groups == 1) {
+    status = mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS,
+                                  MKL_NOTRANS, output_height, output_channels,
+                                  filter_width * input_channels, 1.0f,
+                                  input_width * input_channels * stride_h,
+                                  output_channels, 1.0f, output_channels);
+  } else {
+    status = mkl_jit_create_sgemm(
+        &jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS, output_height,
+        output_channels / groups, filter_width * input_channels / groups, 1.0f,
+        filter_width * input_channels / groups, output_channels, 1.0f,
+        output_channels);
+  }
+
+  if (MKL_JIT_ERROR == status) {
+    state.SkipWithError("Error creating JIT kernel!");
+  }
+#endif
+
   for (auto _ : state) {
 #ifdef NAIVE
     conv_2d_naive(input, output, filters, batch, input_height, input_width,
@@ -141,7 +168,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
         input, output, filters, batch, input_height, input_width,
         input_channels, filter_height, filter_width, output_height,
         output_width, output_channels, padding_top, padding_right, stride_h,
-        stride_w, dilation_h, dilation_w, groups, bias);
+        stride_w, dilation_h, dilation_w, groups, bias, jitter);
 #else
     state.SkipWithError("Convolution method not defined!");
 #endif

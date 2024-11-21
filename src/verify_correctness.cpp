@@ -23,13 +23,16 @@ conv_2d_yaconv(float *__restrict__ input, float *__restrict__ output,
                int stride_h, int stride_w, int dilation_h, int dilation_w,
                int groups, float *__restrict__ bias);
 
+#if defined USE_MKL_JIT
+#include <mkl.h>
+#endif
 extern "C" void conv_2d_zero_copy_main(
     float *__restrict__ input, float *__restrict__ output,
     float *__restrict__ filters, int batch, int input_height, int input_width,
     int input_channels, int filter_height, int filter_width, int output_height,
     int output_width, int output_channels, int padding_height,
     int padding_width, int stride_h, int stride_w, int dilation_h,
-    int dilation_w, int groups, float *__restrict__ bias);
+    int dilation_w, int groups, float *__restrict__ bias, void *jitter);
 
 // Returns the maximum difference between two arrays
 float get_max_diff(const float *output1, const float *output2, size_t size) {
@@ -206,11 +209,37 @@ void verify_correctness(const std::vector<int> &arguments) {
                    padding_right, stride_h, stride_w, dilation_h, dilation_w,
                    groups, bias);
   }
-  conv_2d_zero_copy_main(
-      input_NHWC, output_zero_copy, filters_HWIO, batch, input_height,
-      input_width, input_channels, filter_height, filter_width, output_height,
-      output_width, output_channels, padding_top, padding_right, stride_h,
-      stride_w, dilation_h, dilation_w, groups, bias);
+
+  void *jitter;
+  int jit_error = 0;
+#if defined USE_MKL_JIT
+  mkl_jit_status_t status;
+  if (dilation_h == 1 && dilation_w == 1 && groups == 1) {
+    status = mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS,
+                                  MKL_NOTRANS, output_height, output_channels,
+                                  filter_width * input_channels, 1.0f,
+                                  input_width * input_channels * stride_h,
+                                  output_channels, 1.0f, output_channels);
+  } else {
+    status = mkl_jit_create_sgemm(
+        &jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS, output_height,
+        output_channels / groups, filter_width * input_channels / groups, 1.0f,
+        filter_width * input_channels / groups, output_channels, 1.0f,
+        output_channels);
+  }
+
+  if (MKL_JIT_ERROR == status) {
+    print_error("ZeroCopy", conv_parameters, "Error creating JIT kernel!");
+    jit_error = 1;
+  }
+#endif
+  if (!jit_error) {
+    conv_2d_zero_copy_main(
+        input_NHWC, output_zero_copy, filters_HWIO, batch, input_height,
+        input_width, input_channels, filter_height, filter_width, output_height,
+        output_width, output_channels, padding_top, padding_right, stride_h,
+        stride_w, dilation_h, dilation_w, groups, bias, jitter);
+  }
 
   // Convert naive output to channel last
   NCHW_to_NHWC(output_torch_NCHW, output_torch_NHWC, batch, output_channels,
@@ -238,9 +267,11 @@ void verify_correctness(const std::vector<int> &arguments) {
     print_diff("Yaconv", conv_parameters, diff);
   }
 
-  diff =
-      get_max_diff(output_torch_NHWC, output_zero_copy_transposed, output_size);
-  print_diff("ZeroCopy", conv_parameters, diff);
+  if (!jit_error) {
+    diff = get_max_diff(output_torch_NHWC, output_zero_copy_transposed,
+                        output_size);
+    print_diff("ZeroCopy", conv_parameters, diff);
+  }
 
   if (has_bias) {
     delete[] bias;

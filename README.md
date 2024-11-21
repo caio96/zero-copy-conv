@@ -61,6 +61,7 @@ cmake --install build --config Release --prefix /path/to/benchmark-install
 ```
 
 ### How to build Blis:
+
 ```sh
 git clone https://github.com/flame/blis.git
 cd blis
@@ -110,11 +111,12 @@ cmake -DCMAKE_C_COMPILER=clang                         \
       -DBLIS_INSTALL="/path/to/blis-install"           \
       -DBLIS_YACONV_INSTALL="/path/to/blis-install"    \
       -DUSE_MKL="[ON/OFF]"                             \
+      -DUSE_MKL_JIT="[ON/OFF]"                         \
       ..
 ```
 
-If the USE_MKL variable is set to off, Blis is used as a BLAS library.
-Turn it on if using an Intel CPU.
+- If USE_MKL is set OFF, Blis is used as a BLAS library.
+- If USE_MKL_JIT is set ON, the Zero Copy Convolution will use MKL's jit for its base GEMM configuration.
 
 ## Running Benchmarks
 

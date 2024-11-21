@@ -22,7 +22,11 @@ int modulo(int a, int b) {
 void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
                        float *__restrict__ filters, int N, int H, int W, int C,
                        int FH, int FW, int OH, int OW, int M, int PH, int PW,
-                       int SH, int SW, float *__restrict__ bias) {
+                       int SH, int SW, float *__restrict__ bias, void *jitter) {
+
+#if defined USE_MKL_JIT
+  sgemm_jit_kernel_t jit_gemm = mkl_jit_get_sgemm_ptr(jitter);
+#endif
 
 #pragma omp parallel for collapse(2)
   // For every batch element
@@ -94,8 +98,16 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         float alpha = 1.0f;
         float beta = 1.0f;
 
-        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
-                    K_dim, alpha, a, W * C * SH, b, N_dim, beta, c, N_dim);
+#if defined USE_MKL_JIT
+        if (height_slice == OH && width_slice == FW) {
+          jit_gemm(jitter, a, b, c);
+        } else {
+#endif
+          cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
+                      K_dim, alpha, a, W * C * SH, b, N_dim, beta, c, N_dim);
+#if defined USE_MKL_JIT
+        }
+#endif
       }
     }
   }
@@ -113,10 +125,14 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
                            float *__restrict__ filters, int N, int H, int W,
                            int C, int FH, int FW, int OH, int OW, int M, int PH,
                            int PW, int SH, int SW, int DH, int DW, int GR,
-                           float *__restrict__ bias) {
+                           float *__restrict__ bias, void *jitter) {
   // Compute channel groupings
   const int C_GR = C / GR;
   const int M_GR = M / GR;
+
+  #if defined USE_MKL_JIT
+    sgemm_jit_kernel_t jit_gemm = mkl_jit_get_sgemm_ptr(jitter);
+  #endif
 
 #pragma omp parallel for collapse(2)
   // For every batch element
@@ -212,8 +228,16 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
           float alpha = 1.0f;
           float beta = 1.0f;
 
-          cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
-                      K_dim, alpha, a, K_dim, b, M, beta, c, M);
+#if defined USE_MKL_JIT
+          if (height_slice == OH && width_slice == FW) {
+            jit_gemm(jitter, a, b, c);
+          } else {
+#endif
+            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
+                        K_dim, alpha, a, K_dim, b, M, beta, c, M);
+#if defined USE_MKL_JIT
+          }
+#endif
         }
       }
       free(packed_image);
@@ -226,12 +250,12 @@ void conv_2d_zero_copy_main(float *__restrict__ input,
                             float *__restrict__ filters, int N, int H, int W,
                             int C, int FH, int FW, int OH, int OW, int M,
                             int PH, int PW, int SH, int SW, int DH, int DW,
-                            int GR, float *__restrict__ bias) {
+                            int GR, float *__restrict__ bias, void *jitter) {
   if (DH == 1 && DW == 1 && GR == 1) {
     conv_2d_zero_copy(input, output, filters, N, H, W, C, FH, FW, OH, OW, M, PH,
-                      PW, SH, SW, bias);
+                      PW, SH, SW, bias, jitter);
   } else {
     conv_2d_zero_copy_ext(input, output, filters, N, H, W, C, FH, FW, OH, OW, M,
-                          PH, PW, SH, SW, DH, DW, GR, bias);
+                          PH, PW, SH, SW, DH, DW, GR, bias, jitter);
   }
 }

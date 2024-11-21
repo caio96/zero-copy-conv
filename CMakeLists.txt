@@ -45,6 +45,11 @@ find_package(OpenMP REQUIRED)
 find_package(DNNL REQUIRED)
 
 option(USE_MKL "Use Intel MKL as BLAS. Default is to use Blis" OFF)
+option(USE_MKL_JIT "Use MKL to jit the main gemm colled by Zero Copy Conv." OFF)
+
+if(NOT USE_MKL AND USE_MKL_JIT)
+  message(FATAL_ERROR "USE_MKL must be set to ON when USE_MKL_JIT is ON.")
+endif()
 
 set(blas_includes "")
 set(blas_libraries "")
@@ -55,6 +60,9 @@ if(USE_MKL)
   find_package(MKL REQUIRED)
   set(blas_libraries "MKL::MKL")
   set(blas_define "-DUSE_MKL")
+  if(USE_MKL_JIT)
+    set(blas_define "${blas_define} -DUSE_MKL_JIT")
+  endif()
 else()
   # Find BLIS library and headers
   find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
@@ -147,17 +155,19 @@ set_target_properties(benchmark_libtorch PROPERTIES COMPILE_FLAGS
                                                     "${TORCH_CXX_FLAGS}")
 
 # Correctness verification -----------------------------------------------------
+if(NOT USE_MKL)
+  set(blas_includes "${BLIS_YACONV_INCLUDE_DIR}")
+  set(blas_libraries "${BLIS_YACONV_LIBRARY_DIR}")
+endif()
+
 add_executable(
   correctness
   src/verify_correctness.cpp src/kernel_conv_im2col.c src/kernel_conv_yaconv.c
   src/kernel_conv_zero_copy.c src/utils.cpp)
-target_include_directories(
-  correctness
-  PRIVATE ${PROJECT_SOURCE_DIR}/include ${blas_includes}
-  PRIVATE ${BLIS_YACONV_INCLUDE_DIR})
+target_include_directories(correctness PRIVATE ${PROJECT_SOURCE_DIR}/include
+                                               ${blas_includes})
 
-target_link_libraries(
-  correctness benchmark::benchmark ${BLIS_YACONV_LIBRARY_DIR} ${blas_libraries}
-  "${TORCH_LIBRARIES}" OpenMP::OpenMP_C)
+target_link_libraries(correctness benchmark::benchmark ${blas_libraries}
+                      "${TORCH_LIBRARIES}" OpenMP::OpenMP_C)
 set_target_properties(
   correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS} ${blas_define}")
