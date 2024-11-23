@@ -162,11 +162,13 @@ if [[ "$CHECK_CORRECTNESS" == "true" ]] && [[ ! -f "$CORRECTNESS_EXECUTABLE" ]];
   exit 1
 fi
 
-echo "Found ${#executables[@]} executables in $BUILD_DIR"
-for executable in "${executables[@]}"; do
-  echo "  - $(basename "$executable")"
-done
-echo ""
+if [[ "$CHECK_CORRECTNESS" == "false" ]]; then
+  echo "Found ${#executables[@]} executables in $BUILD_DIR"
+  for executable in "${executables[@]}"; do
+    echo "  - $(basename "$executable")"
+  done
+  echo ""
+fi
 
 # Export google benchmark output format
 export BENCHMARK_FORMAT="csv"
