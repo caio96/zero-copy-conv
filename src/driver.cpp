@@ -200,6 +200,8 @@ int main(int argc, char **argv) {
   std::string name{"Im2col"};
 #elif defined YACONV
   std::string name{"Yaconv"};
+#elif defined ZERO_COPY && defined USE_MKL_JIT
+  std::string name{"ZeroCopy_jit"};
 #elif defined ZERO_COPY
   std::string name{"ZeroCopy"};
 #else
