@@ -69,6 +69,39 @@ def filter_df(df, conv_type):
     return df.reset_index()
 
 
+# Remove convolutions that only differ in "has bias" and padding values
+# keeping the one with the most occurrences (first in the dataframe)
+def reduce_redundacies(df):
+    group_columns = [
+        "batch size",
+        "image channel",
+        "image height",
+        "image width",
+        "output channel",
+        "filter height",
+        "filter width",
+        "stride height",
+        "stride width",
+        "dilation height",
+        "dilation width",
+        "groups",
+        "is transposed",
+    ]
+
+    # Group by the specified columns and keep the first occurrence
+    df_reduced = (
+        df.groupby(group_columns)
+        .agg(
+            conv_parameters=("conv_parameters", "first"),
+            occurrences=("occurrences", "sum"),
+        )
+        .sort_values(by=["occurrences"], ascending=False)
+        .reset_index(drop=True)
+    )
+
+    return df_reduced
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Filter the csv with convolution layers.")
@@ -103,5 +136,8 @@ if __name__ == "__main__":
     # Filter df based on arguments
     df = filter_df(df, conv_type)
 
+    # Remove redundancies
+    df = reduce_redundacies(df)
+
     # Save df to csv
-    df.loc[:, "conv_parameters":"models"].to_csv(output_csv, index=False)
+    df.loc[:, "conv_parameters":"occurrences"].to_csv(output_csv, index=False)
