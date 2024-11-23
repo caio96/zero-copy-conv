@@ -138,15 +138,14 @@ if __name__ == "__main__":
     df = pd.read_csv(csv_results, header=0, index_col=False)
 
     # Split the 'name' column into 'conv_type' and 'conv_parameters'
-    df[["conv_type", "conv_parameters"]] = df["name"].str.split("/", n=1, expand=True)
+    df[["conv_type", "conv_parameters"]] = df["name"].str.split(" ", n=1, expand=True)
     df = df.drop(columns=["name"])
-    df["conv_parameters"] = df["conv_parameters"].str.replace("/", " ")
 
     # Separate df by 'conv_type'
     groups = df.groupby(by=["conv_type"])
     df_dict = {}
     for name, group in groups:
-        name = name[0].replace("Conv2D_", "")
+        name = name[0]
         # Aggregate results of repeated runs (that have the same 'conv_parameters' value)
         df_dict[name] = (
             group.groupby(by="conv_parameters", as_index=False)
@@ -183,7 +182,8 @@ if __name__ == "__main__":
     joined_results.to_csv(output_dir / f"results.csv", index=False)
 
     # These tuples represent the comparisons that will be made into graphs
-    comparisons = [("Im2col", "Yaconv"), ("Im2col", "ZeroCopy"), ("Yaconv", "ZeroCopy")]
+    # comparisons = [("Im2col", "Yaconv"), ("Im2col", "ZeroCopy"), ("Yaconv", "ZeroCopy")]
+    comparisons = [("OneDNN_any", "ZeroCopy_jit")]
 
     for old_method, new_method in comparisons:
         compare_methods(joined_results, old_method, new_method)
