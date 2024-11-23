@@ -1,6 +1,8 @@
 build/
 .cache/
 
+*.onnx
+
 # Prerequisites
 *.d
 
