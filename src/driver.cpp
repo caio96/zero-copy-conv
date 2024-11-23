@@ -142,8 +142,8 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
         output_channels);
   }
 
-  if (MKL_JIT_ERROR == status) {
-    state.SkipWithError("Error creating JIT kernel!");
+  if (status != MKL_JIT_SUCCESS) {
+      jitter = NULL;
   }
 #endif
 
@@ -173,6 +173,10 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     state.SkipWithError("Convolution method not defined!");
 #endif
   }
+
+#if defined ZERO_COPY && defined USE_MKL_JIT
+  mkl_jit_destroy(jitter);
+#endif
 
   // Clean up
   if (has_bias) {

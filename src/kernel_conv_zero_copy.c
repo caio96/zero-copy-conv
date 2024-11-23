@@ -99,7 +99,7 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         float beta = 1.0f;
 
 #if defined USE_MKL_JIT
-        if (height_slice == OH && width_slice == FW) {
+        if (jitter && height_slice == OH && width_slice == FW) {
           jit_gemm(jitter, a, b, c);
         } else {
 #endif
