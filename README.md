@@ -69,10 +69,10 @@ cmake --install build --config Release --prefix "/path/to/benchmark-install"
 git clone https://github.com/flame/blis.git
 cd blis
 git checkout 5.0
-./configure CC=clang CXX=clang++             \
-            --prefix="/path/to/blis-install" \
+./configure --prefix="/path/to/blis-install" \
             --enable-threading=openmp        \
             --enable-cblas                   \
+            CC=clang CXX=clang++             \
             auto
 make install -j4
 ```
@@ -83,10 +83,10 @@ make install -j4
 git clone git@github.com:caio96/blis-conv.git
 cd blis-conv
 git checkout yaconv-update
-./configure CC=clang CXX=clang++                  \
-            --prefix="/path/to/blis-conv-install" \
+./configure --prefix="/path/to/blis-conv-install" \
             --enable-threading=openmp             \
             --enable-cblas                        \
+            CC=clang CXX=clang++                  \
             -a yaconv                             \
             auto
 make install -j4
