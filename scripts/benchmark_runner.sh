@@ -216,10 +216,11 @@ for repeat in $(seq "$REPEATS"); do
 
     # For each executable (shuffled order)
     for executable in $(shuf -e "${executables[@]}"); do
-      # Get random core list within range of size OMP_NUM_THREADS
-      CORES=$(shuf -i "$CORE_RANGE" -n "$OMP_NUM_THREADS" | tr '\n' ',' | sed 's/,$//')
+      # # Get random core list within range of size OMP_NUM_THREADS
+      # CORES=$(shuf -i "$CORE_RANGE" -n "$OMP_NUM_THREADS" | tr '\n' ',' | sed 's/,$//')
+
       # Run executable in a random core
-      numactl --physcpubind "$CORES" "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 | tee -a "$OUTPUT_LOG"
+      numactl --physcpubind "$CORE_RANGE" "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
     done
 
   done < "$CSV_FILE"
