@@ -151,7 +151,6 @@ if __name__ == "__main__":
 
     input_csv = Path(args.Input_CSV)
     output_csv = Path(args.Output_CSV)
-    conv_type = args.Conv_Type
     reduce_redundancies = args.reduce_redundancies
     exclude_conv_types = args.exclude_conv_types
     include_only_conv_type = args.include_only_conv_type
