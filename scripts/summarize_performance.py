@@ -8,6 +8,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from filter_csv import split_parameters, exclude_from_df, include_only_in_df
+
 
 # Saves a csv with results and produces an speedup graph
 def compare_methods(joined_results, old_method_name, new_method_name):
@@ -119,11 +121,27 @@ if __name__ == "__main__":
 
     parser.add_argument("CSV_Results", type=str, help="Path to the output CSV file.")
     parser.add_argument("Output_Dir", type=str, help="Path to directory to store outputs.")
+    parser.add_argument(
+        "--include-only-conv-type",
+        type=str,
+        help="Only include the specified convolution type",
+        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+        default=None,
+    )
+    parser.add_argument(
+        "--exclude-conv-types",
+        nargs="+",
+        type=str,
+        help="List of convolution types to exclude",
+        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+    )
 
     args = parser.parse_args()
 
     csv_results = Path(args.CSV_Results)
     output_dir = Path(args.Output_Dir)
+    exclude_conv_types = args.exclude_conv_types
+    include_only_conv_type = args.include_only_conv_type
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -140,6 +158,7 @@ if __name__ == "__main__":
     # Split the 'name' column into 'conv_type' and 'conv_parameters'
     df[["conv_type", "conv_parameters"]] = df["name"].str.split(" ", n=1, expand=True)
     df = df.drop(columns=["name"])
+    df["conv_parameters"] = df["conv_parameters"].str.split("/", n=1).str[0]
 
     # Separate df by 'conv_type'
     groups = df.groupby(by=["conv_type"])
@@ -177,6 +196,12 @@ if __name__ == "__main__":
             right_on="conv_parameters_" + method_name,
             suffixes=(None, None),
         ).drop(columns=["conv_parameters_" + method_name])
+
+    num_columns = len(joined_results.columns)
+    joined_results = split_parameters(joined_results)
+    joined_results = include_only_in_df(joined_results, include_only_conv_type)
+    joined_results = exclude_from_df(joined_results, exclude_conv_types)
+    joined_results = joined_results.iloc[:, :num_columns]
 
     # Save joined results
     joined_results.to_csv(output_dir / f"results.csv", index=False)
