@@ -170,7 +170,6 @@ int parse_command_line_arguments(int argc, char **argv,
                  "right> <Stride height>\n\t<Stride width> <Dilation height> "
                  "<Dilation width>\n\t<Groups> <Is Transposed> <Has Bias>"
               << std::endl
-              << " - Output height and width can be omitted" << std::endl
               << " - Or omit all arguments to use a default configuration"
               << std::endl;
     return 1;

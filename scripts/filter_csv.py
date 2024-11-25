@@ -34,39 +34,91 @@ def split_parameters(df):
 
     return df
 
-
-def filter_df(df, conv_type):
-
-    if conv_type == "strided":
-        df = df.loc[(df["stride height"] != 1) & (df["stride width"] != 1)]
-    elif conv_type == "pointwise":
-        df = df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]
-    elif conv_type == "grouped":
-        df = df.loc[df["groups"] != 1]
-    elif conv_type == "dilated":
-        df = df.loc[(df["dilation height"] != 1) & (df["dilation width"] != 1)]
-    elif conv_type == "transposed":
-        df = df.loc[df["is transposed"] == 1]
-    elif conv_type == "standard":
-        df = df.loc[
-            (df["stride height"] == 1)
-            & (df["stride width"] == 1)
-            & (df["filter height"] != 1)
-            & (df["filter width"] != 1)
-            & (df["groups"] == 1)
-            & (df["dilation height"] == 1)
-            & (df["dilation width"] == 1)
-            & (df["is transposed"] == 0)
-        ]
-
-    # Check if kernel size is bigger than padded input
-    # There are some examples like this that cause error in Pytorch
+# Check if kernel size is bigger than padded input
+# There are some examples like this that cause error with Libtorch
+def remove_problem_parameters(df):
     df = df.loc[
         (df["filter height"] <= df["image height"] + df["padding top"] + df["padding bottom"])
         & (df["filter width"] <= df["image width"] + df["padding left"] + df["padding right"])
     ]
 
-    return df.reset_index()
+    return df.reset_index(drop=True)
+
+def include_only_in_df(df, conv_type):
+    if not conv_type:
+        return df
+
+    if "strided" == conv_type:
+        df = df.loc[(df["stride height"] != 1) | (df["stride width"] != 1)]
+    elif "pointwise" == conv_type:
+        df = df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]
+    elif "grouped" == conv_type:
+        df = df.loc[df["groups"] != 1]
+    elif "dilated" == conv_type:
+        df = df.loc[(df["dilation height"] != 1) | (df["dilation width"] != 1)]
+    elif "transposed" == conv_type:
+        df = df.loc[df["is transposed"] == 0]
+    elif "depthwise" == conv_type:
+        df = df.loc[ (df["image channel"] != df["groups"]) ]
+
+    return df.reset_index(drop=True)
+
+# Exclude from the data frame all convolution types listed in conv_types
+def exclude_from_df(df, conv_types : list):
+    if not conv_types:
+        return df
+
+    if "strided" in conv_types:
+        df = df.loc[(df["stride height"] == 1) & (df["stride width"] == 1)]
+
+    if "pointwise" in conv_types:
+        df = df.loc[(df["filter height"] != 1) | (df["filter width"] != 1)]
+
+    if "grouped" in conv_types:
+        df = df.loc[df["groups"] == 1]
+
+    if "dilated" in conv_types:
+        df = df.loc[(df["dilation height"] == 1) & (df["dilation width"] == 1)]
+
+    if "transposed" in conv_types:
+        df = df.loc[df["is transposed"] == 0]
+
+    if "depthwise" in conv_types:
+        df = df.loc[ (df["image channel"] != df["groups"]) ]
+
+    return df.reset_index(drop=True)
+
+
+# Remove convolutions that only differ in "has bias" and padding values
+# keeping the one with the most occurrences (first in the dataframe)
+def reduce_redundacies(df):
+    group_columns = [
+        "batch size",
+        "image channel",
+        "image height",
+        "image width",
+        "output channel",
+        "filter height",
+        "filter width",
+        "stride height",
+        "stride width",
+        "dilation height",
+        "dilation width",
+        "groups",
+        "is transposed",
+    ]
+
+    # Group by the specified columns and keep the first occurrence
+    df_reduced = (
+        df.groupby(group_columns)
+        .agg(
+            conv_parameters=("conv_parameters", "first"),
+            occurrences=("occurrences", "sum"),
+        )
+        .sort_values(by=["occurrences"], ascending=False)
+    )
+
+    return df_reduced.reset_index(drop=True)
 
 
 if __name__ == "__main__":
@@ -76,18 +128,32 @@ if __name__ == "__main__":
     parser.add_argument("Input_CSV", type=str, help="Path to the input CSV file.")
     parser.add_argument("Output_CSV", type=str, help="Path to the output CSV file.")
     parser.add_argument(
-        "Conv_Type",
+        "--exclude-conv-types",
+        nargs='+',
         type=str,
-        default="standard",
-        help="Type of convolution to select. Standard means convolutions that have stride 1, are not pointwise, not grouped, not dilated, and not transposed.",
-        choices=["standard", "strided", "pointwise", "grouped", "dilated", "transposed", "all"],
+        help="List of convolution types to exclude",
+        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+    )
+    parser.add_argument(
+        "--include-only-conv-type",
+        type=str,
+        help="Only include the specified convolution type",
+        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+        default=None,
+    )
+    parser.add_argument(
+        "--reduce-redundancies",
+        action="store_true",
+        help="Keep only one convolution if there are multiple that only differ in padding and bias",
     )
 
     args = parser.parse_args()
 
     input_csv = Path(args.Input_CSV)
     output_csv = Path(args.Output_CSV)
-    conv_type = args.Conv_Type
+    reduce_redundancies = args.reduce_redundancies
+    exclude_conv_types = args.exclude_conv_types
+    include_only_conv_type = args.include_only_conv_type
 
     # Check if input file exists
     if (not input_csv.exists()) or (not input_csv.is_file()):
@@ -96,12 +162,31 @@ if __name__ == "__main__":
 
     # Load input
     df = pd.read_csv(input_csv, header=0)
+    num_columns = len(df.columns)
+
+    # Remove name of models column
+    if 'models' in df.columns:
+        df = df.drop(columns=["models"])
+        num_columns -= 1
 
     # Split conv_parameters column
     df = split_parameters(df)
 
-    # Filter df based on arguments
-    df = filter_df(df, conv_type)
+    # Remove convolutions that cause problems with LibTorch
+    df = remove_problem_parameters(df)
 
-    # Save df to csv
-    df.loc[:, "conv_parameters":"models"].to_csv(output_csv, index=False)
+    # Remove redundancies
+    if reduce_redundancies:
+        df = reduce_redundacies(df)
+
+    if include_only_conv_type:
+        df = include_only_in_df(df, include_only_conv_type)
+
+    if exclude_conv_types:
+        df = exclude_from_df(df, exclude_conv_types)
+
+    # Remove extra columns from split
+    df = df.iloc[:, :num_columns]
+
+    # Save df to csv removing extra split columns
+    df.to_csv(output_csv, index=False)

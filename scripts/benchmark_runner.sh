@@ -147,8 +147,9 @@ fi
 # Create list with all executables found in build folder that start with "benchmark_"
 executables=()
 for executable in $(find "$BUILD_DIR" -type f -name "benchmark_*" | sort); do
-  # if executable contains the word naive, skip it
-  if [[ "$executable" == *"naive"* ]]; then
+  # If executable contains the word naive or libtorch, skip it
+  # Libtorch is ignored because oneDNN is a better comparison
+  if [[ "$executable" == *"naive"* || "$executable" == *"libtorch"* ]] ; then
     continue
   fi
   executables+=("$executable")
@@ -161,11 +162,13 @@ if [[ "$CHECK_CORRECTNESS" == "true" ]] && [[ ! -f "$CORRECTNESS_EXECUTABLE" ]];
   exit 1
 fi
 
-echo "Found ${#executables[@]} executables in $BUILD_DIR"
-for executable in "${executables[@]}"; do
-  echo "  - $(basename "$executable")"
-done
-echo ""
+if [[ "$CHECK_CORRECTNESS" == "false" ]]; then
+  echo "Found ${#executables[@]} executables in $BUILD_DIR"
+  for executable in "${executables[@]}"; do
+    echo "  - $(basename "$executable")"
+  done
+  echo ""
+fi
 
 # Export google benchmark output format
 export BENCHMARK_FORMAT="csv"
@@ -215,10 +218,11 @@ for repeat in $(seq "$REPEATS"); do
 
     # For each executable (shuffled order)
     for executable in $(shuf -e "${executables[@]}"); do
-      # Get random core list within range of size OMP_NUM_THREADS
-      CORES=$(shuf -i "$CORE_RANGE" -n "$OMP_NUM_THREADS" | tr '\n' ',' | sed 's/,$//')
+      # # Get random core list within range of size OMP_NUM_THREADS
+      # CORES=$(shuf -i "$CORE_RANGE" -n "$OMP_NUM_THREADS" | tr '\n' ',' | sed 's/,$//')
+
       # Run executable in a random core
-      numactl --physcpubind "$CORES" "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 | tee -a "$OUTPUT_LOG"
+      numactl --physcpubind "$CORE_RANGE" "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
     done
 
   done < "$CSV_FILE"

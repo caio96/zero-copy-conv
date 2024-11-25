@@ -7,6 +7,8 @@ This repository is designed to test multiple implementations of convolution. The
 - Yaconv convolution: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements. Defined in [blis-conv](https://github.com/caio96/blis-conv)
 - Zero-Copy convolution: New convolution implementation, yet to be published
 - LibTorch convolution: Pytorch Conv2D implementation using the C++ API
+- OneDNN_nhwc convolution: Intel's OneDNN implementation setting layouts to NHWC
+- OneDNN_any concolution: Intel's OneDNN implementation allowing the framework to decide the best layouts. Transforming the layout is not included in the timing.
 
 |             | Feature Layout | Weight Layout | Output Layout | Multithreading     |
 | ----------- | -------------- | ------------- | ------------- | ------------------ |
@@ -21,25 +23,24 @@ This repository is designed to test multiple implementations of convolution. The
 Note:
 
 - Yaconv only supports stride == 1, no grouping, and no dilation.
-- In OneDNN_any, the library decides the best layout to use. Transforming the layout is not included in the timing.
 
 ## Repository Structure
 
 - `data`: Contains convolution layer parameters obtained with the script `util/timm_convolution_extraction`. Timm version 1.0.11 was used.
 - `include`
 - `src`
-  - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method.
+  - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method is called
   - `kernel_conv_[method_name]` files have the implementation of each convolution method
   - `driver_[method_name]` is a specialized driver if the method differs too much from the main driver
   - `utils` has helper functions
-  - `verify_correctness` calls all convolutions methods converting their output if necessary to compare them
+  - `verify_correctness` calls all convolutions methods converting their output if necessary to verify results. LibTorch's output is used as a reference.
 - `scripts`:
   - `timm_convolution_extraction` is adapted from [ConvBench](https://github.com/LucasFernando-aes/ConvBench/) to extracts convolution layer parameters from multiple models into a csv
   - `filter_csv` allows filtering the csv containing convolution layer parameters
   - `benchmark_runner` controls running all convolutions in a generated csv to measure correctness or performance
   - `summarize_correctness` generates csv files that summarize correctness results based on the logs from `benchmark_runner`
   - `summarize_performance` generates csv files and graphs that summarize performance results based on the logs from `benchmark_runner`
-  - `zero_copy_conv` is a simplified version of the Zero-Copy Convolution implemented in Python and compared against Pytorch
+  - `zero_copy_conv` is a simplified version of the Zero-Copy Convolution implemented in Python
 
 ## Dependencies
 
@@ -59,7 +60,7 @@ git checkout v1.9.0
 cmake -E make_directory "build"
 cmake -E chdir "build" cmake -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DCMAKE_BUILD_TYPE=Release ../
 cmake --build "build" --config Release
-cmake --install build --config Release --prefix /path/to/benchmark-install
+cmake --install build --config Release --prefix "/path/to/benchmark-install"
 ```
 
 ### How to build Blis:
@@ -68,7 +69,11 @@ cmake --install build --config Release --prefix /path/to/benchmark-install
 git clone https://github.com/flame/blis.git
 cd blis
 git checkout 5.0
-./configure --prefix=/path/to/blis-install --enable-threading=openmp --enable-cblas auto
+./configure --prefix="/path/to/blis-install" \
+            --enable-threading=openmp        \
+            --enable-cblas                   \
+            CC=clang CXX=clang++             \
+            auto
 make install -j4
 ```
 
@@ -78,7 +83,12 @@ make install -j4
 git clone git@github.com:caio96/blis-conv.git
 cd blis-conv
 git checkout yaconv-update
-./configure --prefix=/path/to/blis-install --enable-threading=openmp --enable-cblas -a yaconv auto
+./configure --prefix="/path/to/blis-conv-install" \
+            --enable-threading=openmp             \
+            --enable-cblas                        \
+            CC=clang CXX=clang++                  \
+            -a yaconv                             \
+            auto
 make install -j4
 ```
 
@@ -97,6 +107,19 @@ unzip libtorch.zip -d .
 
 ### How to install OneDNN and OneMKL:
 
+Install conda first if necessary:
+
+```sh
+mkdir -p ~/miniconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+rm ~/miniconda3/miniconda.sh
+source ~/miniconda3/bin/activate
+conda init --all
+```
+
+Then install OneDNN and OneMKL:
+
 ```sh
 conda install conda-forge::onednn conda-forge::mkl-devel
 ```
@@ -106,14 +129,14 @@ conda install conda-forge::onednn conda-forge::mkl-devel
 ```sh
 mkdir build
 cd build
-cmake -DCMAKE_C_COMPILER=clang                         \
-      -DCMAKE_CXX_COMPILER=clang++                     \
-      -DBENCHMARK_INSTALL="/path/to/benchmark-install" \
-      -DTORCH_INSTALL="/path/to/libtorch"              \
-      -DBLIS_INSTALL="/path/to/blis-install"           \
-      -DBLIS_YACONV_INSTALL="/path/to/blis-install"    \
-      -DUSE_MKL="[ON/OFF]"                             \
-      -DUSE_MKL_JIT="[ON/OFF]"                         \
+cmake -DCMAKE_C_COMPILER=clang                                \
+      -DCMAKE_CXX_COMPILER=clang++                            \
+      -DBENCHMARK_INSTALL="/path/to/google-benchmark-install" \
+      -DTORCH_INSTALL="/path/to/libtorch"                     \
+      -DBLIS_INSTALL="/path/to/blis-install"                  \
+      -DBLIS_YACONV_INSTALL="/path/to/blis-conv-install"      \
+      -DUSE_MKL="[ON/OFF]"                                    \
+      -DUSE_MKL_JIT="[ON/OFF]"                                \
       ..
 ```
 
@@ -138,15 +161,31 @@ export OMP_NUM_THREADS=4
 OMP_NUM_THREADS=4 ./benchmark_[method_name]
 ```
 
+### Examples
+
+```sh
+# Zero-Copy Conv, default parameters, single thread
+OMP_NUM_THREADS=1 ./benchmark_zero_copy
+# Zero-Copy Conv, default parameters, 8 threads
+OMP_NUM_THREADS=8 ./benchmark_zero_copy
+# Check how to use custom parameters
+./benchmark_zero_copy -h
+# Zero-Copy Conv, custom parameters, single thread
+OMP_NUM_THREADS=8 ./benchmark_zero_copy 16 64 64 64 128 3 3 1 1 1 1 1 1 1 1 1 0 0
+```
+
+More custom layer configurations are found in `data/conv_layers.csv`
+
 ## Verifying correctness
 
 Also in the `this-repo/build/bin/` directory, the `correctness` executable allows verifying if outputs match.
 The output does not say if the results are correct or not, it rather shows the maximum absolute difference between two elements in the output.
 The reference outputs are from LibTorch.
+This executable can also be run with `--help` and it takes the same parameters as the `benchmark_` executables.
 
 ## Scripts
 
-Scripts are gather convolutional layer parameters, run benchmarks and summarize results.
+Scripts gather convolutional layer parameters, run benchmarks and summarize results.
 All scripts can take the `-h` flag to show usage information.
 
 Workflow:

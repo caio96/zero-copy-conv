@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
   if (ret != 0)
     return ret;
 
-  std::string name{"OneDNN"};
+  std::string name{"OneDNN_any"};
 
   // Transform arguments into a string
   std::stringstream ss;
