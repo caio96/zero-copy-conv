@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+import argparse
 import os
 import time
-import argparse
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +14,8 @@ def check_model(model_path):
     onnx_model = onnx.load(model_path)
     onnx.checker.check_model(onnx_model)
 
-def run_model(model_path, batch_size=1, num_threads=8, verbose=False):
+
+def run_model(model_path, batch_size=1, num_threads=1, verbose=False):
     if verbose:
         onnxruntime.set_default_logger_severity(0)
 
@@ -44,19 +45,40 @@ def run_model(model_path, batch_size=1, num_threads=8, verbose=False):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="Run a ONNX model with OnnxRuntime."
-    )
+    parser = argparse.ArgumentParser(description="Run a ONNX model with OnnxRuntime.")
     parser.add_argument(
         "model_path",
         type=str,
         help="The to the model to run.",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1,
+        help="Number of batches to run.",
+    )
+    parser.add_argument(
+        "--num-threads",
+        type=int,
+        default=1,
+        help="Number of threads to use.",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Pring OnnxRuntime logs.",
+    )
+
     args = parser.parse_args()
     model_path = Path(args.model_path).absolute()
+    batch_size = args.batch_size
+    num_threads = args.num_threads
+    verbose = args.verbose
 
     if not model_path.exists() or not model_path.is_file():
         raise FileNotFoundError(f"Model file {model_path} not found or not a file.")
 
     check_model(model_path)
-    run_model(model_path)
+    run_model(
+        model_path, batch_size=batch_size, num_threads=num_threads, verbose=verbose
+    )
