@@ -20,9 +20,9 @@ def run_model(model_path, batch_size=1, num_threads=1, verbose=False):
         onnxruntime.set_default_logger_severity(0)
 
     sess_options = onnxruntime.SessionOptions()
-    sess_options.add_session_config_entry("session.NchwcTransformer", "0")
     sess_options.inter_op_num_threads = num_threads
     sess_options.intra_op_num_threads = num_threads
+    # sess_options.enable_profiling=True
     optimizer_filter = ["NchwcTransformer"]
 
     ort_session = onnxruntime.InferenceSession(
