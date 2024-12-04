@@ -27,7 +27,119 @@ def pytorch_conv2d(images, filters, padding, stride, dilation, groups):
     return outputs_torch.permute(0, 2, 3, 1).numpy()
 
 
-def zero_copy_conv2d(images, filters, padding, stride, dilation, groups):
+def zero_copy_conv2d(images, filters, padding, stride):
+    N, H, W, C = images.shape
+    FH, FW, _, M = filters.shape
+    PH, PW = padding
+    SH, SW = stride
+    OH = math.floor((H + 2 * PH - (FH - 1) - 1) / SH + 1)
+    OW = math.floor((W + 2 * PW - (FW - 1) - 1) / SW + 1)
+
+    outputs = np.zeros((N, OH, OW, M))
+
+    # print("\nAll image ", images.shape)
+    # print(np.squeeze(images))
+    # print("\nAll filters ", filters.shape)
+    # print(np.squeeze(filters))
+    # print(f"\nOutput shape: {outputs.shape}")
+
+    for n in range(N):
+        for ow in range(OW):
+
+            single_image = images[n, :, :, :]
+            single_output = outputs[n, :, :, :]
+
+            # Calculate width slice of size FW and handle edge cases
+            # ow_offset = ow - PW
+            iw = ow * SW - PW
+            width_start = max(0, iw)
+            width_end = min(W, iw + FW)
+            filter_width_slice = width_end - width_start
+
+            # # Print width variables
+            # print(f"\nOutput Width: {ow} ----------------")
+            # print(f"Width Offset: {iw}")
+            # print(f"Width Slice: ({width_end} - {width_start}) / {DW} = {filter_width_slice}")
+
+            if filter_width_slice <= 0:
+                continue
+
+            for fh in range(FH):
+                # Calculate height slice of size OH and handle edge cases
+                height_offset = fh - PH
+                if height_offset < 0:
+                    height_start = max(0, height_offset % SH)
+                else:
+                    height_start = max(0, height_offset)
+                height_end = min(H, height_offset + OH * SH)
+                height_slice = math.ceil((height_end - height_start) / SH)
+
+                # # print height variables
+                # print(f"\nFilter Height: {fh} ----------------")
+                # print(f"Height Offset: {height_offset}")
+                # print(f"Height Slice: ({height_end} - {height_start}) / {SH} = {height_slice}")
+
+                if height_slice <= 0:
+                    continue
+
+                # Filter is FH,FW,C,M
+                # Select filter slice of size 1,FW,C,M
+                if iw < 0:
+                    filter_slice = filters[
+                        fh,
+                        -iw : -iw + filter_width_slice,
+                        :,
+                        :,
+                    ]
+                else:
+                    filter_slice = filters[fh, :filter_width_slice, :, :]
+
+                # Image is H,W,C
+                # Select image slice of size OH,FW,C
+                image_slice = single_image[
+                    height_start:height_end:SH,
+                    width_start:width_end,
+                    :,
+                ]
+
+                # Flattened filter: 1,FW,C,M -> FWxC,M
+                flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
+                # Flattened image: OH,FW,C -> OH,FWxC
+                flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
+
+                # print("-------\nImage ", flattened_image.shape)
+                # print(np.squeeze(flattened_image))
+                # print("\nFilter ", flattened_filter.shape)
+                # print(np.squeeze(flattened_filter))
+
+                result = np.matmul(flattened_image, flattened_filter)
+
+                # print("\nResult ", result.shape)
+                # print(np.squeeze(result))
+
+                # Output is OH,OW,M
+                # Select output slice of size OH,1,M and handle edge cases
+                if height_offset < 0:
+                    output_slice = single_output[
+                        -(height_offset // SH) : -(height_offset // SH) + height_slice,
+                        ow,
+                        :,
+                    ]
+                else:
+                    output_slice = single_output[:height_slice, ow, :]
+
+                # Place the result in the output matrix
+                output_slice += result
+
+                # print("\nOutput Slice ", output_slice.shape)
+                # print(np.squeeze(output_slice))
+                # print("\nOutput", outputs.shape)
+                # print(np.squeeze(outputs))
+
+    return outputs
+
+
+def zero_copy_conv2d_ext(images, filters, padding, stride, dilation, groups):
     N, H, W, C = images.shape
     FH, FW, _, M = filters.shape
     PH, PW = padding
@@ -225,14 +337,22 @@ if __name__ == "__main__":
         dilation=(args.DH, args.DW),
         groups=args.GR,
     )
-    zero_copy_output = zero_copy_conv2d(
-        images,
-        filters,
-        padding=(args.PH, args.PW),
-        stride=(args.SH, args.SW),
-        dilation=(args.DH, args.DW),
-        groups=args.GR,
-    )
+    if args.DH == 1 and args.DW == 1 and args.GR ==1:
+        zero_copy_output = zero_copy_conv2d(
+            images,
+            filters,
+            padding=(args.PH, args.PW),
+            stride=(args.SH, args.SW),
+        )
+    else:
+        zero_copy_output = zero_copy_conv2d_ext(
+            images,
+            filters,
+            padding=(args.PH, args.PW),
+            stride=(args.SH, args.SW),
+            dilation=(args.DH, args.DW),
+            groups=args.GR,
+        )
 
     # Compare results
     if np.allclose(pytorch_output, zero_copy_output):
