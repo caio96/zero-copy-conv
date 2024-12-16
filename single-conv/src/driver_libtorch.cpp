@@ -74,9 +74,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   c10::InferenceMode guard;
 
   torch::TensorOptions tensor_options =
-      torch::TensorOptions().dtype(torch::kFloat32);
-
-  torch::Tensor output_tensor;
+      torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
 
   std::optional<torch::Tensor> bias_tensor = {};
   if (bias != nullptr) {
@@ -129,7 +127,6 @@ int main(int argc, char **argv) {
   benchmark::RegisterBenchmark(s, BENCHMARK_CONV2D, arguments)
       ->Unit(benchmark::kMillisecond)
       ->MeasureProcessCPUTime()
-      ->MinWarmUpTime(0.5)
       ->UseRealTime();
 
   // With argc set to 1, the benchmark library will not parse the command line
