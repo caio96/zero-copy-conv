@@ -9,6 +9,7 @@ The repository is divided in two:
 # Single Convolution Testing
 
 Compares the Zero-Copy convolution with the following convolution implementations in over 10000 convolution layers extracted from real models.
+Data type used is float32.
 
 - Naive convolution: For loops and simple multiply accumulate
 - Im2col convolution: Transforms the input image with im2col and executes convolution as a single GEMM call
@@ -31,6 +32,7 @@ Compares the Zero-Copy convolution with the following convolution implementation
 Note:
 
 - Yaconv only supports stride == 1, no grouping, and no dilation.
+- Libtorch has a slightly different semantic from other methods: it also allocates its output in its convolution call, so that is included in the timing, while other methods only run convolution with a preallocated output.
 
 ## Repository Structure
 
@@ -132,9 +134,10 @@ Then install OneDNN and OneMKL:
 conda install conda-forge::onednn conda-forge::mkl-devel
 ```
 
-## Building this repo
+## Building Single Conv Benchmarks
 
 ```sh
+cd single-conv
 mkdir build
 cd build
 cmake -DCMAKE_C_COMPILER=clang                                \
@@ -210,3 +213,40 @@ Workflow:
 ---
 
 # End-to-end Model Testing
+
+## Dependencies
+
+- [Custom PyTorch](https://github.com/caio96/pytorch-zero-copy.git)
+
+### How to build custom PyTorch:
+
+First, install conda first if necessary, instructions in [here](#how-to-install-onednn-and-onemkl).
+Then, create a new conda environment to install the custom torch and activate it.
+
+```sh
+conda create -y -n custom-pytorch python==3.12
+conda activate custom-pytorch
+conda install cmake ninja
+pip install mkl-static mkl-include
+```
+
+Build and install
+
+```sh
+git clone --recursive git@github.com:caio96/pytorch-zero-copy.git
+cd pytorch-zero-copy
+git checkout v2.4.0-zero-copy
+git submodule sync
+git submodule update --init --recursive
+
+pip install -r requirements.txt
+
+# Use only CPU
+export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
+# Use newer ABI
+export _GLIBCXX_USE_CXX11_ABI=1
+
+# Set number of threads and compile, this command will install torch
+MAX_JOBS=8 python setup.py develop
+```
+
