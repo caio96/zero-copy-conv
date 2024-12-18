@@ -147,7 +147,7 @@ void verify_correctness(const std::vector<int> &arguments) {
   float *output_zero_copy = new float[output_size];
   float *output_zero_copy_transposed = new float[output_size];
   const float *output_torch_NCHW;
-  float *output_torch_NHWC = new float[output_size];
+  const float *output_torch_NHWC;
 
   float *bias = nullptr;
   if (has_bias) {
@@ -159,39 +159,45 @@ void verify_correctness(const std::vector<int> &arguments) {
   initialize_data(input_NHWC, input_size);
   initialize_data(filters_HWIO, filter_size);
 
-  torch::TensorOptions tensor_options =
-      torch::TensorOptions().dtype(torch::kFloat32);
-
-  // Use input memory directly without copying
-  torch::Tensor input_tensor = torch::from_blob(
-      input_NCHW, {batch, input_channels, input_height, input_width},
-      tensor_options);
-
-  // Use filter memory directly without copying
-  torch::Tensor filters_tensor = torch::from_blob(
-      filters_OIHW,
-      {output_channels, input_channels / groups, filter_height, filter_width},
-      tensor_options);
-
-  std::optional<torch::Tensor> bias_tensor = {};
-  if (bias != nullptr) {
-    bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
-  }
-
   // Convert input and filters
   NHWC_to_NCHW(input_NHWC, input_NCHW, batch, input_channels, input_height,
                input_width);
   HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels,
                input_channels / groups, filter_height, filter_width);
 
+  torch::TensorOptions tensor_options =
+      torch::TensorOptions().dtype(torch::kFloat32);
+
+  // Use input memory directly without copying
+  torch::Tensor input_tensor = torch::from_blob(
+      input_NCHW, {batch, input_channels, input_height, input_width},
+      tensor_options).contiguous(torch::MemoryFormat::ChannelsLast);
+
+  // Use filter memory directly without copying
+  torch::Tensor filters_tensor = torch::from_blob(
+      filters_OIHW,
+      {output_channels, input_channels / groups, filter_height, filter_width},
+      tensor_options).contiguous(torch::MemoryFormat::ChannelsLast);
+
+  std::optional<torch::Tensor> bias_tensor = {};
+  if (bias != nullptr) {
+    bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
+  }
+
   // Run all convolution methods
-  torch::Tensor output_tensor = torch::conv2d(
+  torch::Tensor output_tensor_nhwc = torch::conv2d(
       input_tensor, filters_tensor, bias_tensor, {stride_h, stride_w},
       {padding_height, padding_width}, {dilation_h, dilation_w}, groups);
+  output_torch_NHWC = output_tensor_nhwc.const_data_ptr<float>();
+
+  torch::Tensor output_tensor_nchw = output_tensor_nhwc.contiguous();
+  output_torch_NCHW = output_tensor_nchw.const_data_ptr<float>();
+
   // Torch output is used as the reference
-  output_torch_NCHW = output_tensor.const_data_ptr<float>();
-  if (output_tensor.size(2) != output_height &&
-      output_tensor.size(3) != output_width) {
+  if (output_tensor_nhwc.size(0) != batch &&
+      output_tensor_nhwc.size(1) != output_channels &&
+      output_tensor_nhwc.size(2) != output_height &&
+      output_tensor_nhwc.size(3) != output_width) {
     print_error_for_all(method_names, conv_parameters,
                         "Output dimensions do not match with Libtorch!");
     return;
@@ -241,10 +247,6 @@ void verify_correctness(const std::vector<int> &arguments) {
         stride_w, dilation_h, dilation_w, groups, bias, jitter);
   }
 
-  // Convert naive output to channel last
-  NCHW_to_NHWC(output_torch_NCHW, output_torch_NHWC, batch, output_channels,
-               output_height, output_width);
-
   // Transpose HW of zero copy as it flips HW to WH
   transpose_HW(output_zero_copy, output_zero_copy_transposed, batch,
                output_channels, output_height, output_width);
@@ -285,7 +287,6 @@ void verify_correctness(const std::vector<int> &arguments) {
   delete[] output_yaconv;
   delete[] output_zero_copy;
   delete[] output_zero_copy_transposed;
-  delete[] output_torch_NHWC;
 }
 
 int main(int argc, char *argv[]) {
