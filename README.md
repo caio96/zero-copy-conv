@@ -217,6 +217,7 @@ Workflow:
 ## Dependencies
 
 - [Custom PyTorch](https://github.com/caio96/pytorch-zero-copy.git)
+- [Pytorch Vision](https://github.com/pytorch/vision/tree/main)
 
 ### How to build custom PyTorch:
 
@@ -250,3 +251,11 @@ export _GLIBCXX_USE_CXX11_ABI=1
 MAX_JOBS=8 python setup.py develop
 ```
 
+### How to build PyTorch vision:
+
+```sh
+git clone https://github.com/pytorch/vision.git
+cd vision
+git checkout v0.20.1
+MAX_JOBS=8 python setup.py develop
+```
