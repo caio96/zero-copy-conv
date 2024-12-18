@@ -4,6 +4,11 @@ import time
 
 import torch
 import torchvision.models as models
+import torch.utils.benchmark as benchmark
+
+def run_inference(model, input):
+    with torch.no_grad():  # Disable gradient calculation
+        return model(input)
 
 def run_model(model_name):
     if model_name == "resnet18":
@@ -45,32 +50,16 @@ def run_model(model_name):
     dummy_input = dummy_input.to(memory_format=torch.channels_last)  # Replace with your input tensor
     # model = torch.compile(model)
 
-    with torch.no_grad():  # Disable gradient calculation
-        start = time.time()
-        output = model(dummy_input)
-        end = time.time()
-        elapsed_time_ms = (end - start) * 1000
-        print(f"Inference of model used {elapsed_time_ms:.4f} ms")
-        start = time.time()
-        output = model(dummy_input)
-        end = time.time()
-        elapsed_time_ms = (end - start) * 1000
-        print(f"Inference of model used {elapsed_time_ms:.4f} ms")
-        start = time.time()
-        output = model(dummy_input)
-        end = time.time()
-        elapsed_time_ms = (end - start) * 1000
-        print(f"Inference of model used {elapsed_time_ms:.4f} ms")
-        start = time.time()
-        output = model(dummy_input)
-        end = time.time()
-        elapsed_time_ms = (end - start) * 1000
-        print(f"Inference of model used {elapsed_time_ms:.4f} ms")
-        start = time.time()
-        output = model(dummy_input)
-        end = time.time()
-        elapsed_time_ms = (end - start) * 1000
-        print(f"Inference of model used {elapsed_time_ms:.4f} ms")
+    num_threads = torch.get_num_threads()
+
+    t0 = benchmark.Timer(
+        stmt='run_inference(model, input)',
+        num_threads=num_threads,
+        setup='from __main__ import run_inference',
+        globals={'model': model, 'input': dummy_input})
+    # print(t0.timeit(10))
+    m0 = t0.blocked_autorange(min_run_time=1)
+    print(m0)
 
 
 if __name__ == "__main__":
