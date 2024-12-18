@@ -248,12 +248,14 @@ export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
 export _GLIBCXX_USE_CXX11_ABI=1
 
 # Set number of threads and compile, this command will install torch
-MAX_JOBS=8 python setup.py develop
+MAX_JOBS=8 python setup.py develop && python tools/build_libtorch.py
 ```
 
 ### How to build PyTorch vision:
 
 ```sh
+conda install libpng libjpeg-turbo -c pytorch
+
 git clone https://github.com/pytorch/vision.git
 cd vision
 git checkout v0.20.1
