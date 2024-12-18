@@ -236,7 +236,7 @@ Build and install
 ```sh
 git clone --recursive git@github.com:caio96/pytorch-zero-copy.git
 cd pytorch-zero-copy
-git checkout v2.4.0-zero-copy
+git checkout v2.5.1-zero-copy
 git submodule sync
 git submodule update --init --recursive
 
