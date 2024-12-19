@@ -6,6 +6,32 @@ The repository is divided in two:
 - [End-to-end model testing](#end-to-end-model-testing)
 ---
 
+# Conda Environment
+
+Install conda first if necessary:
+
+```sh
+mkdir -p ~/.anaconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/.anaconda3/miniconda.sh
+bash ~/.anaconda3/miniconda.sh -b -u -p ~/.anaconda3
+rm ~/.anaconda3/miniconda.sh
+source ~/.anaconda3/bin/activate
+conda init --all
+```
+
+Then create a new environment and install some common dependencies:
+
+```sh
+conda create -y -n eval-zero-copy python==3.12
+conda activate eval-zero-copy
+conda install cmake ninja
+```
+
+Activate this environment when building or running the following experiments.
+
+
+---
+
 # Single Convolution Testing
 
 Compares the Zero-Copy convolution with the following convolution implementations in over 10000 convolution layers extracted from real models.
@@ -117,21 +143,8 @@ unzip libtorch.zip -d .
 
 ### How to install OneDNN and OneMKL:
 
-Install conda first if necessary:
-
 ```sh
-mkdir -p ~/miniconda3
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
-bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-rm ~/miniconda3/miniconda.sh
-source ~/miniconda3/bin/activate
-conda init --all
-```
-
-Then install OneDNN and OneMKL:
-
-```sh
-conda install conda-forge::onednn conda-forge::mkl-devel
+conda install conda-forge::onednn==3.5.3 conda-forge::mkl-devel==2025.0.0
 ```
 
 ## Building Single Conv Benchmarks
@@ -221,21 +234,17 @@ Workflow:
 
 ### How to build custom PyTorch:
 
-First, install conda first if necessary, instructions in [here](#how-to-install-onednn-and-onemkl).
-Then, create a new conda environment to install the custom torch and activate it.
+Install MKL:
 
 ```sh
-conda create -y -n custom-pytorch python==3.12
-conda activate custom-pytorch
-conda install cmake ninja
-pip install mkl-static mkl-include
+conda install conda-forge::mkl-static==2025.0.0 conda-forge::mkl-include==2025.0.0
 ```
 
 Build and install
 
 ```sh
-git clone --recursive git@github.com:caio96/pytorch-zero-copy.git
-cd pytorch-zero-copy
+git clone --recursive git@github.com:caio96/pytorch-zero-copy.git pytorch
+cd pytorch
 git checkout v2.5.1-zero-copy
 git submodule sync
 git submodule update --init --recursive
@@ -246,6 +255,10 @@ pip install -r requirements.txt
 export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
 # Use newer ABI
 export _GLIBCXX_USE_CXX11_ABI=1
+
+# Pytorch has some problems with finding MKL, this is a fix:
+export CMAKE_LIBRARY_PATH="$CONDA_PREFIX/envs/$CONDA_DEFAULT_ENV/lib"
+export CMAKE_INCLUDE_PATH="$CONDA_PREFIX/envs/$CONDA_DEFAULT_ENV/include"
 
 # Set number of threads and compile, this command will install torch
 MAX_JOBS=8 python setup.py develop && python tools/build_libtorch.py
