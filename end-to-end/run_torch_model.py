@@ -11,7 +11,7 @@ def run_inference(model, input):
     with torch.no_grad():  # Disable gradient calculation
         return model(input)
 
-def run_model(model_name, compile=False):
+def run_model(model_name, compile=False, batch=1):
     # Load model with default weights
     weights = models.get_model_weights(model_name).DEFAULT
     model = models.get_model(model_name, weights=weights)
@@ -19,11 +19,14 @@ def run_model(model_name, compile=False):
     # Pre process input with the model's transforms
     dummy_input = torch.randn(3, 224, 224)
     preprocess = weights.transforms()
-    dummy_input = preprocess(dummy_input).unsqueeze(0)
+    dummy_input = preprocess(dummy_input)
+    dummy_shape = list(dummy_input.shape)
+    dummy_shape = [batch] + dummy_shape
+    input = torch.randn(dummy_shape)
 
     model.eval()  # Set the model to evaluation mode
     model = model.to(device="cpu", memory_format=torch.channels_last)  # Replace with your model
-    dummy_input = dummy_input.to(device="cpu", memory_format=torch.channels_last)  # Replace with your input tensor
+    input = input.to(device="cpu", memory_format=torch.channels_last)  # Replace with your input tensor
     if (compile):
         model = torch.compile(model)
 
@@ -33,7 +36,7 @@ def run_model(model_name, compile=False):
         stmt='run_inference(model, input)',
         num_threads=num_threads,
         setup='from __main__ import run_inference',
-        globals={'model': model, 'input': dummy_input})
+        globals={'model': model, 'input': input})
     m0 = t0.blocked_autorange(min_run_time=0.5)
     print(m0)
 
@@ -80,6 +83,13 @@ if __name__ == "__main__":
         help="Make Zero Copy Conv ignore the output transformation required for correct results (NWHC -> NHWC).",
     )
 
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1,
+        help="Size of batch.",
+    )
+
     args = parser.parse_args()
 
     if args.enable_zero_copy_conv:
@@ -102,4 +112,4 @@ if __name__ == "__main__":
     else:
         os.environ["ZERO_COPY_TRANSFORM_OUTPUT"] = "TRUE"
 
-    run_model(args.model_name, args.compile)
+    run_model(args.model_name, args.compile, args.batch_size)
