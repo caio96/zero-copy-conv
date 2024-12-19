@@ -251,14 +251,10 @@ git submodule update --init --recursive
 
 pip install -r requirements.txt
 
-# Use only CPU
+# setup environment
 export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
-# Use newer ABI
 export _GLIBCXX_USE_CXX11_ABI=1
-
-# Pytorch has some problems with finding MKL, this is a fix:
-export CMAKE_LIBRARY_PATH="$CONDA_PREFIX/envs/$CONDA_DEFAULT_ENV/lib"
-export CMAKE_INCLUDE_PATH="$CONDA_PREFIX/envs/$CONDA_DEFAULT_ENV/include"
+export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
 
 # Set number of threads and compile, this command will install torch
 MAX_JOBS=8 python setup.py develop && python tools/build_libtorch.py
