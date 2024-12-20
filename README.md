@@ -87,7 +87,7 @@ Note:
 - [OneDNN](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onednn.html)
 - [OneMKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
 
-### How to build Google Benchmark:
+### How to build Google Benchmark
 
 ```sh
 git clone https://github.com/google/benchmark.git
@@ -99,7 +99,7 @@ cmake --build "build" --config Release
 cmake --install build --config Release --prefix "/path/to/benchmark-install"
 ```
 
-### How to build Blis:
+### How to build Blis
 
 ```sh
 git clone https://github.com/flame/blis.git
@@ -113,7 +113,7 @@ git checkout 1.0
 make install -j4
 ```
 
-### How to build Blis Yaconv:
+### How to build Blis Yaconv
 
 ```sh
 git clone git@github.com:caio96/blis-conv.git
@@ -128,7 +128,7 @@ git checkout yaconv-update
 make install -j4
 ```
 
-### How to get LibTorch:
+### How to get LibTorch
 
 - Go to [link](https://pytorch.org/get-started/locally/)
 - Select Package as "LibTorch", Language as "C++/Java", Compute platform as "CPU"
@@ -141,7 +141,7 @@ wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-de
 unzip libtorch.zip -d .
 ```
 
-### How to install OneDNN and OneMKL:
+### How to install OneDNN and OneMKL
 
 ```sh
 conda install conda-forge::onednn==3.5.3 conda-forge::mkl-devel==2025.0.0
@@ -164,6 +164,7 @@ cmake -DCMAKE_C_COMPILER=clang                                \
       ..
 ```
 
+- Instead of using the path to the downloaded LibTorch, TORCH_INSTALL can also use the path to `pytorch/torch`, where `pytorch` is the custom PyTorch built for the end-to-end testing in this [section](#how-to-build-custom-pytorch)
 - If USE_MKL is set OFF, Blis is used as a BLAS library.
 - If USE_MKL_JIT is set ON, the Zero Copy Convolution will use MKL's jit for its base GEMM configuration, other GEMMs configurations (mostly due to padding) won't use jit.
 
@@ -227,12 +228,15 @@ Workflow:
 
 # End-to-end Model Testing
 
+Adds Zero-Copy Convolution to PyTorch, enabling end-to-end runs that use this convolution implementation.
+Zero-Copy Convolution is integrated to the convolution selector in PyTorch, so it may not always be selected.
+
 ## Dependencies
 
 - [Custom PyTorch](https://github.com/caio96/pytorch-zero-copy.git)
 - [Pytorch Vision](https://github.com/pytorch/vision/tree/main)
 
-### How to build custom PyTorch:
+### How to build custom PyTorch
 
 Install MKL:
 
@@ -251,7 +255,7 @@ git submodule update --init --recursive
 
 pip install -r requirements.txt
 
-# setup environment
+# Setup build environment
 export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
 export _GLIBCXX_USE_CXX11_ABI=1
 export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
@@ -260,7 +264,7 @@ export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMA
 MAX_JOBS=8 python setup.py develop && python tools/build_libtorch.py
 ```
 
-### How to build PyTorch vision:
+### How to build PyTorch vision
 
 ```sh
 conda install libpng libjpeg-turbo -c pytorch
@@ -270,3 +274,13 @@ cd vision
 git checkout v0.20.1
 MAX_JOBS=8 python setup.py develop
 ```
+
+## Running Models
+
+Use the script `run_torch_model.py` to run a PyTorch model.
+- Zero-Copy Convolution is not enabled by default, use the flag `--enable-zero-copy-conv` to enable it.
+- PyTorch models in channel last use a weight layout of OHWI, whereas Zero-Copy Conv expects HWIO. By default Zero-Copy Conv transfoms the weights to produce correct results. Disable this transformation with the flag `--ignore-weight-transform`.
+- Zero-Copy Conv transposes the height and width of the output. By default Zero-Copy Conv transfoms the output to produce correct results. Disable this transformation with the flag `--ignore-output-transform`.
+- For more options, run `run_torch_model.py -h`
+- Multithreading works the same as explained in this [section](#multithreading).
+
