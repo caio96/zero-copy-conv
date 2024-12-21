@@ -7,9 +7,30 @@ import torch
 import torchvision.models as models
 import torch.utils.benchmark as benchmark
 
+
+# Based on torch/nn/utils/memory_format.py
+# This function is not supported, it is just an example of how to convert the weights of convolution layers to HWIO.
+# To support it, Zero Copy Conv would need to be the only convolution implementation to run and it would need to expect HWIO weights (in the contiguous memory format).
+# This function assumes that the model is already in the channels last memory format.
+def convert_conv2d_weight_OHWI_to_HWIO(module):
+    if isinstance(module, torch.nn.Conv2d):
+        weight_data = (module.weight.detach().clone())
+        # from channel last to channel last, not changing data
+        weight_data = weight_data.permute(0, 2, 3, 1)
+        # from OHWI to HWIO, making data contiguous
+        weight_data = weight_data.permute(1, 2, 3, 0).contiguous()
+        # permute dimensions expected order by contiguous format
+        weight_data = weight_data.permute(3, 2, 0, 1)
+        module.weight.data = weight_data.resize_(weight_data.size())
+    for child in module.children():
+        convert_conv2d_weight_OHWI_to_HWIO(child)
+    return module
+
+
 def run_inference(model, input):
     with torch.no_grad():  # Disable gradient calculation
         return model(input)
+
 
 def run_model(model_name, compile=False, batch=1):
     # Load model with default weights
