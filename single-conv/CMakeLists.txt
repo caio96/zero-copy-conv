@@ -148,6 +148,16 @@ target_link_libraries(benchmark_libtorch benchmark::benchmark
 set_target_properties(benchmark_libtorch PROPERTIES COMPILE_FLAGS
                                                     "${TORCH_CXX_FLAGS}")
 
+# Libtorch convolution using ZeroCopy2D ----------------------------------------
+add_executable(benchmark_libtorch_zerocopy src/driver_libtorch.cpp
+                                           src/utils.cpp)
+target_include_directories(benchmark_libtorch_zerocopy
+                           PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(benchmark_libtorch_zerocopy benchmark::benchmark
+                      "${TORCH_LIBRARIES}")
+set_target_properties(benchmark_libtorch_zerocopy
+                      PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${TORCH_CXX_FLAGS}")
+
 # Correctness verification -----------------------------------------------------
 if(NOT USE_MKL)
   # If not using MKL, BLIS yaconv already contains everything needed

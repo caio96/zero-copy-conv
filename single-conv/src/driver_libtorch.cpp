@@ -2,6 +2,7 @@
 #include <benchmark/benchmark.h>
 #include <sstream>
 #include <torch/torch.h>
+#include <cstdlib>
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
                            const std::vector<int> &arguments) {
@@ -114,7 +115,15 @@ int main(int argc, char **argv) {
   if (ret != 0)
     return ret;
 
+#if defined ZERO_COPY
+  std::string use_zero_copy = "TRUE";
+  setenv("ZERO_COPY_2D", use_zero_copy.c_str(), 1);
+  // Set environment variable for to enable ZeroCopy2D in PyTorch
+  // Only works if using custom PyTorch
+  std::string name{"LibTorch_ZeroCopy2D"};
+#else
   std::string name{"LibTorch"};
+#endif
 
   // Transform arguments into a string
   std::stringstream ss;
