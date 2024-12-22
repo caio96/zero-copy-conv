@@ -127,11 +127,18 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   primitive_attr conv_attr;
 
   // Create primitive descriptor.
-  convolution_forward::primitive_desc conv_pd =
-      convolution_forward::primitive_desc(
-          engine, prop_kind::forward_inference, algorithm::convolution_auto,
-          conv_src_md, conv_weights_md, user_bias_md, conv_dst_md, strides_dims,
-          dilation_dims, padding_dims_l, padding_dims_r, conv_attr);
+  convolution_forward::primitive_desc conv_pd;
+  if (has_bias) {
+    conv_pd = convolution_forward::primitive_desc(
+        engine, prop_kind::forward, algorithm::convolution_direct,
+        conv_src_md, conv_weights_md, user_bias_md, conv_dst_md, strides_dims,
+        dilation_dims, padding_dims_l, padding_dims_r, conv_attr);
+  } else {
+    conv_pd = convolution_forward::primitive_desc(
+        engine, prop_kind::forward, algorithm::convolution_direct,
+        conv_src_md, conv_weights_md, conv_dst_md, strides_dims, dilation_dims,
+        padding_dims_l, padding_dims_r, conv_attr);
+  }
 
   // For now, assume that the src, weights, and dst memory layouts generated
   // by the primitive and the ones provided by the user are identical.
@@ -167,8 +174,10 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   std::unordered_map<int, memory> conv_args;
   conv_args.insert({DNNL_ARG_SRC, conv_src_mem});
   conv_args.insert({DNNL_ARG_WEIGHTS, conv_weights_mem});
-  conv_args.insert({DNNL_ARG_BIAS, user_bias_mem});
   conv_args.insert({DNNL_ARG_DST, conv_dst_mem});
+  if (has_bias) {
+    conv_args.insert({DNNL_ARG_BIAS, user_bias_mem});
+  }
 
   for (auto _ : state) {
     // Primitive execution: convolution with ReLU.
