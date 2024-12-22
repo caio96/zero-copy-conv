@@ -35,7 +35,12 @@ def run_inference(model, input):
 def run_model(model_name, compile=False, batch=1):
     # Load model with default weights
     weights = models.get_model_weights(model_name).DEFAULT
-    model = models.get_model(model_name, weights=weights)
+    # TODO: check if any quantized model uses ZeroCopy2D
+    quantize = "quantized" in model_name
+    if quantize:
+        model = models.get_model(model_name, weights=weights, quantize=quantize)
+    else:
+        model = models.get_model(model_name, weights=weights)
 
     # Pre process input with the model's transforms
     dummy_input = torch.randn(3, 224, 224)
@@ -62,22 +67,29 @@ def run_model(model_name, compile=False, batch=1):
     print(m0)
 
 
+def get_all_models():
+    all_models = models.list_models()
+    video_models = models.list_models(module=models.video)
+    all_models_minus_video = [model for model in all_models if model not in video_models]
+    return all_models_minus_video
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Run a PyTorch model."
     )
-    all_models = models.list_models(module=models)
     parser.add_argument(
-        "model_name",
+        "--model-name",
         type=str,
-        choices=all_models,
-        help="The name of the model to convert.",
+        choices=get_all_models(),
+        default="squeezenet1_1",
+        help="The name of the model to convert. Default: squeezenet.",
     )
 
     parser.add_argument(
-        "--compile",
+        "--list-models",
         action="store_true",
-        help="Use torch.compile to compile the model.",
+        help="List all available models.",
     )
 
     parser.add_argument(
@@ -111,7 +123,18 @@ if __name__ == "__main__":
         help="Size of batch.",
     )
 
+    parser.add_argument(
+        "--compile",
+        action="store_true",
+        help="Use torch.compile to compile the model.",
+    )
+
     args = parser.parse_args()
+
+    if args.list_models:
+        for model in get_all_models():
+            print("- ", model)
+        exit(0)
 
     if args.enable_zero_copy_conv:
         os.environ["ZERO_COPY_2D"] = "TRUE"
