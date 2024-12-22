@@ -42,7 +42,6 @@ Data type used is float32.
 - Yaconv convolution: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements. Defined in [blis-conv](https://github.com/caio96/blis-conv)
 - Zero-Copy convolution: New convolution implementation, yet to be published
 - LibTorch convolution: Pytorch Conv2D implementation using the C++ API
-- OneDNN_nhwc convolution: Intel's OneDNN implementation setting layouts to NHWC
 - OneDNN_any concolution: Intel's OneDNN implementation allowing the framework to decide the best layouts. Transforming the layout is not included in the timing.
 
 |             | Feature Layout | Weight Layout | Output Layout | Multithreading     |
@@ -53,7 +52,6 @@ Data type used is float32.
 | Zero-Copy   | NHWC           | HWIO          | NWHC          | :white_check_mark: |
 | LibTorch    | NHWC           | OHWI          | NHWC          | :white_check_mark: |
 | OneDNN_any  | ??             | ??            | ??            | :white_check_mark: |
-| OneDNN_nhwc | NHWC           | HWIO          | NHWC          | :white_check_mark: |
 
 Note:
 
