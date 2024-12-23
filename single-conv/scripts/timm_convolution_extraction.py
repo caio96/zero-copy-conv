@@ -81,7 +81,8 @@ if __name__ == "__main__":
     # Value is a list of model names that contain the layer (key), set is used to remove duplicates
     # Make list into a string and count the number of times that the layer is used
     conv_parameters = {
-        key: (len(value), " ".join(set(value))) for key, value in conv_parameters.items()
+        key: (len(value), " ".join(set(value)))
+        for key, value in conv_parameters.items()
     }
 
     # Save results to pandas dataframe

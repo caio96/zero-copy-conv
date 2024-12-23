@@ -143,7 +143,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   }
 
   if (status != MKL_JIT_SUCCESS) {
-      jitter = NULL;
+    jitter = NULL;
   }
 #endif
 

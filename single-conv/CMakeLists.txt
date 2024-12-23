@@ -169,10 +169,12 @@ add_executable(
   correctness
   src/verify_correctness.cpp src/kernel_conv_im2col.c src/kernel_conv_yaconv.c
   src/kernel_conv_zero_copy.c src/utils.cpp)
-target_include_directories(correctness PRIVATE ${PROJECT_SOURCE_DIR}/include
-                                               ${blas_includes} ${BLIS_YACONV_INCLUDE_DIR})
+target_include_directories(
+  correctness PRIVATE ${PROJECT_SOURCE_DIR}/include ${blas_includes}
+                      ${BLIS_YACONV_INCLUDE_DIR})
 
-target_link_libraries(correctness benchmark::benchmark ${blas_libraries}
-                      "${TORCH_LIBRARIES}" ${BLIS_YACONV_LIBRARY_DIR} OpenMP::OpenMP_C)
+target_link_libraries(
+  correctness benchmark::benchmark ${blas_libraries} "${TORCH_LIBRARIES}"
+  ${BLIS_YACONV_LIBRARY_DIR} OpenMP::OpenMP_C)
 set_target_properties(
   correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS} ${blas_define}")

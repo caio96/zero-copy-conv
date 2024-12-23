@@ -130,13 +130,13 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
   convolution_forward::primitive_desc conv_pd;
   if (has_bias) {
     conv_pd = convolution_forward::primitive_desc(
-        engine, prop_kind::forward, algorithm::convolution_direct,
-        conv_src_md, conv_weights_md, user_bias_md, conv_dst_md, strides_dims,
-        dilation_dims, padding_dims_l, padding_dims_r, conv_attr);
+        engine, prop_kind::forward, algorithm::convolution_direct, conv_src_md,
+        conv_weights_md, user_bias_md, conv_dst_md, strides_dims, dilation_dims,
+        padding_dims_l, padding_dims_r, conv_attr);
   } else {
     conv_pd = convolution_forward::primitive_desc(
-        engine, prop_kind::forward, algorithm::convolution_direct,
-        conv_src_md, conv_weights_md, conv_dst_md, strides_dims, dilation_dims,
+        engine, prop_kind::forward, algorithm::convolution_direct, conv_src_md,
+        conv_weights_md, conv_dst_md, strides_dims, dilation_dims,
         padding_dims_l, padding_dims_r, conv_attr);
   }
 

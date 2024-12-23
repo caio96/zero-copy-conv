@@ -7,8 +7,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
-from filter_csv import split_parameters, exclude_from_df, include_only_in_df
+from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 
 
 # Saves a csv with results and produces an speedup graph
@@ -50,7 +49,9 @@ def compare_methods(joined_results, old_method_name, new_method_name):
 
     # barplot
     ax.bar(pos.index, pos, color="#2c7bb6")
-    ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="#d7191c")
+    ax.bar(
+        range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="#d7191c"
+    )
 
     # boxplot
     _, x_max = ax.get_xlim()
@@ -76,9 +77,14 @@ def compare_methods(joined_results, old_method_name, new_method_name):
     y_total = y_max - y_min
 
     ax.hlines(-y_total * 0.05, 1, inflection, "#2c7bb6")
-    ax.vlines(1, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#2c7bb6")
     ax.vlines(
-        inflection, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#2c7bb6"
+        1, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#2c7bb6"
+    )
+    ax.vlines(
+        inflection,
+        -y_total * 0.05 - y_total * 0.01,
+        -y_total * 0.05 + y_total * 0.01,
+        "#2c7bb6",
     )
     ax.text(
         (inflection / 2),
@@ -91,10 +97,16 @@ def compare_methods(joined_results, old_method_name, new_method_name):
     if neg.shape[0] != 0:
         ax.hlines(y_total * 0.05, inflection, num_points, "#d7191c")
         ax.vlines(
-            inflection, y_total * 0.05 - y_total * 0.01, y_total * 0.05 + y_total * 0.01, "#d7191c"
+            inflection,
+            y_total * 0.05 - y_total * 0.01,
+            y_total * 0.05 + y_total * 0.01,
+            "#d7191c",
         )
         ax.vlines(
-            num_points, y_total * 0.05 - y_total * 0.01, y_total * 0.05 + +y_total * 0.01, "#d7191c"
+            num_points,
+            y_total * 0.05 - y_total * 0.01,
+            y_total * 0.05 + +y_total * 0.01,
+            "#d7191c",
         )
         ax.text(
             ((num_points + inflection) / 2),
@@ -120,12 +132,21 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("CSV_Results", type=str, help="Path to the output CSV file.")
-    parser.add_argument("Output_Dir", type=str, help="Path to directory to store outputs.")
+    parser.add_argument(
+        "Output_Dir", type=str, help="Path to directory to store outputs."
+    )
     parser.add_argument(
         "--include-only-conv-type",
         type=str,
         help="Only include the specified convolution type",
-        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+        choices=[
+            "strided",
+            "pointwise",
+            "depthwise",
+            "grouped",
+            "dilated",
+            "transposed",
+        ],
         default=None,
     )
     parser.add_argument(
@@ -133,7 +154,14 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         help="List of convolution types to exclude",
-        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+        choices=[
+            "strided",
+            "pointwise",
+            "depthwise",
+            "grouped",
+            "dilated",
+            "transposed",
+        ],
     )
 
     args = parser.parse_args()
@@ -190,7 +218,9 @@ if __name__ == "__main__":
     )
     for method_name in method_names[2:]:
         joined_results = joined_results.merge(
-            df_dict[method_name].drop(columns=["time_unit"]).add_suffix("_" + method_name),
+            df_dict[method_name]
+            .drop(columns=["time_unit"])
+            .add_suffix("_" + method_name),
             how="inner",
             left_on="conv_parameters",
             right_on="conv_parameters_" + method_name,

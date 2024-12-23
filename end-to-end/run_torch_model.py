@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import argparse
-import time
 import os
+import time
 
 import torch
-import torchvision.models as models
 import torch.utils.benchmark as benchmark
+import torchvision.models as models
 
 
 # Based on torch/nn/utils/memory_format.py
@@ -14,7 +14,7 @@ import torch.utils.benchmark as benchmark
 # This function assumes that the model is already in the channels last memory format.
 def convert_conv2d_weight_OHWI_to_HWIO(module):
     if isinstance(module, torch.nn.Conv2d):
-        weight_data = (module.weight.detach().clone())
+        weight_data = module.weight.detach().clone()
         # from channel last to channel last, not changing data
         weight_data = weight_data.permute(0, 2, 3, 1)
         # from OHWI to HWIO, making data contiguous
@@ -51,18 +51,23 @@ def run_model(model_name, compile=False, batch=1):
     input = torch.randn(dummy_shape)
 
     model.eval()  # Set the model to evaluation mode
-    model = model.to(device="cpu", memory_format=torch.channels_last)  # Replace with your model
-    input = input.to(device="cpu", memory_format=torch.channels_last)  # Replace with your input tensor
-    if (compile):
+    model = model.to(
+        device="cpu", memory_format=torch.channels_last
+    )  # Replace with your model
+    input = input.to(
+        device="cpu", memory_format=torch.channels_last
+    )  # Replace with your input tensor
+    if compile:
         model = torch.compile(model)
 
     num_threads = torch.get_num_threads()
 
     t0 = benchmark.Timer(
-        stmt='run_inference(model, input)',
+        stmt="run_inference(model, input)",
         num_threads=num_threads,
-        setup='from __main__ import run_inference',
-        globals={'model': model, 'input': input})
+        setup="from __main__ import run_inference",
+        globals={"model": model, "input": input},
+    )
     m0 = t0.blocked_autorange(min_run_time=0.5)
     print(m0)
 
@@ -70,14 +75,14 @@ def run_model(model_name, compile=False, batch=1):
 def get_all_models():
     all_models = models.list_models()
     video_models = models.list_models(module=models.video)
-    all_models_minus_video = [model for model in all_models if model not in video_models]
+    all_models_minus_video = [
+        model for model in all_models if model not in video_models
+    ]
     return all_models_minus_video
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Run a PyTorch model."
-    )
+    parser = argparse.ArgumentParser(description="Run a PyTorch model.")
     parser.add_argument(
         "--model-name",
         type=str,

@@ -34,15 +34,23 @@ def split_parameters(df):
 
     return df
 
+
 # Check if kernel size is bigger than padded input
 # There are some examples like this that cause error with Libtorch
 def remove_problem_parameters(df):
     df = df.loc[
-        (df["filter height"] <= df["image height"] + df["padding top"] + df["padding bottom"])
-        & (df["filter width"] <= df["image width"] + df["padding left"] + df["padding right"])
+        (
+            df["filter height"]
+            <= df["image height"] + df["padding top"] + df["padding bottom"]
+        )
+        & (
+            df["filter width"]
+            <= df["image width"] + df["padding left"] + df["padding right"]
+        )
     ]
 
     return df.reset_index(drop=True)
+
 
 def include_only_in_df(df, conv_type):
     if not conv_type:
@@ -59,12 +67,13 @@ def include_only_in_df(df, conv_type):
     elif "transposed" == conv_type:
         df = df.loc[df["is transposed"] == 0]
     elif "depthwise" == conv_type:
-        df = df.loc[ (df["image channel"] != df["groups"]) ]
+        df = df.loc[(df["image channel"] != df["groups"])]
 
     return df.reset_index(drop=True)
 
+
 # Exclude from the data frame all convolution types listed in conv_types
-def exclude_from_df(df, conv_types : list):
+def exclude_from_df(df, conv_types: list):
     if not conv_types:
         return df
 
@@ -84,7 +93,7 @@ def exclude_from_df(df, conv_types : list):
         df = df.loc[df["is transposed"] == 0]
 
     if "depthwise" in conv_types:
-        df = df.loc[ (df["image channel"] != df["groups"]) ]
+        df = df.loc[(df["image channel"] != df["groups"])]
 
     return df.reset_index(drop=True)
 
@@ -123,22 +132,38 @@ def reduce_redundacies(df):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Filter the csv with convolution layers.")
+    parser = argparse.ArgumentParser(
+        description="Filter the csv with convolution layers."
+    )
 
     parser.add_argument("Input_CSV", type=str, help="Path to the input CSV file.")
     parser.add_argument("Output_CSV", type=str, help="Path to the output CSV file.")
     parser.add_argument(
         "--exclude-conv-types",
-        nargs='+',
+        nargs="+",
         type=str,
         help="List of convolution types to exclude",
-        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+        choices=[
+            "strided",
+            "pointwise",
+            "depthwise",
+            "grouped",
+            "dilated",
+            "transposed",
+        ],
     )
     parser.add_argument(
         "--include-only-conv-type",
         type=str,
         help="Only include the specified convolution type",
-        choices=["strided", "pointwise", "depthwise", "grouped", "dilated", "transposed"],
+        choices=[
+            "strided",
+            "pointwise",
+            "depthwise",
+            "grouped",
+            "dilated",
+            "transposed",
+        ],
         default=None,
     )
     parser.add_argument(
@@ -165,7 +190,7 @@ if __name__ == "__main__":
     num_columns = len(df.columns)
 
     # Remove name of models column
-    if 'models' in df.columns:
+    if "models" in df.columns:
         df = df.drop(columns=["models"])
         num_columns -= 1
 

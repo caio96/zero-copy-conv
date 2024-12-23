@@ -130,9 +130,9 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
   const int C_GR = C / GR;
   const int M_GR = M / GR;
 
-  #if defined USE_MKL_JIT
-    sgemm_jit_kernel_t jit_gemm = mkl_jit_get_sgemm_ptr(jitter);
-  #endif
+#if defined USE_MKL_JIT
+  sgemm_jit_kernel_t jit_gemm = mkl_jit_get_sgemm_ptr(jitter);
+#endif
 
 #pragma omp parallel for collapse(2)
   // For every batch element

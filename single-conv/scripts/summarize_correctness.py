@@ -13,7 +13,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("CSV_Results", type=str, help="Path to the output CSV file.")
-    parser.add_argument("Output_Dir", type=str, help="Path to directory to store outputs.")
+    parser.add_argument(
+        "Output_Dir", type=str, help="Path to directory to store outputs."
+    )
     parser.add_argument(
         "--tolerance",
         type=float,

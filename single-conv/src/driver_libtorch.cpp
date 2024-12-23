@@ -1,8 +1,8 @@
 #include "utils.hpp"
 #include <benchmark/benchmark.h>
+#include <cstdlib>
 #include <sstream>
 #include <torch/torch.h>
-#include <cstdlib>
 
 auto BENCHMARK_CONV2D = [](benchmark::State &state,
                            const std::vector<int> &arguments) {

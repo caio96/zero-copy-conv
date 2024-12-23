@@ -169,15 +169,19 @@ void verify_correctness(const std::vector<int> &arguments) {
       torch::TensorOptions().dtype(torch::kFloat32);
 
   // Use input memory directly without copying
-  torch::Tensor input_tensor = torch::from_blob(
-      input_NCHW, {batch, input_channels, input_height, input_width},
-      tensor_options).contiguous(torch::MemoryFormat::ChannelsLast);
+  torch::Tensor input_tensor =
+      torch::from_blob(input_NCHW,
+                       {batch, input_channels, input_height, input_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
 
   // Use filter memory directly without copying
-  torch::Tensor filters_tensor = torch::from_blob(
-      filters_OIHW,
-      {output_channels, input_channels / groups, filter_height, filter_width},
-      tensor_options).contiguous(torch::MemoryFormat::ChannelsLast);
+  torch::Tensor filters_tensor =
+      torch::from_blob(filters_OIHW,
+                       {output_channels, input_channels / groups, filter_height,
+                        filter_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
 
   std::optional<torch::Tensor> bias_tensor = {};
   if (bias != nullptr) {
