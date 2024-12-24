@@ -180,7 +180,7 @@ fi
 
 # Add header to correctness output
 if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
-  $CORRECTNESS_EXECUTABLE | head -n1 >> "$OUTPUT_LOG"
+  $CORRECTNESS_EXECUTABLE 2> /dev/null | head -n1 >> "$OUTPUT_LOG"
 fi
 
 # Set number of threads
@@ -209,7 +209,7 @@ for repeat in $(seq "$REPEATS"); do
 
     # Check correctness
     if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
-      "$CORRECTNESS_EXECUTABLE" ${conv_parameters} | tail -n +2 >> "$OUTPUT_LOG"
+      "$CORRECTNESS_EXECUTABLE" ${conv_parameters} 2>> "${OUTPUT_LOG}.err" | tail -n +2 >> "$OUTPUT_LOG"
       if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         echo "Error running with parameters: $conv_parameters"
       fi
