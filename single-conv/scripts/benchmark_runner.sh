@@ -147,9 +147,8 @@ fi
 # Create list with all executables found in build folder that start with "benchmark_"
 executables=()
 for executable in $(find "$BUILD_DIR" -type f -name "benchmark_*" | sort); do
-  # If executable contains the word naive or libtorch, skip it
-  # Libtorch is ignored because oneDNN is a better comparison
-  if [[ "$executable" == *"naive"* || "$executable" == *"libtorch"* ]] ; then
+  # If executable contains the word naive, skip it
+  if [[ "$executable" == *"naive"* ]] ; then
     continue
   fi
   executables+=("$executable")
