@@ -1,6 +1,7 @@
 build/
 output/
 .cache/
+__pycache__/
 
 *.onnx
 
