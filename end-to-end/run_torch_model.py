@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import argparse
 import os
-import time
 import sys
+import time
 
 import torch
 import torch.utils.benchmark as benchmark
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         type=str,
         choices=get_all_models(),
         default="squeezenet1_1",
-        help="The name of the model to convert. Default: squeezenet.",
+        help="The name of the model to convert. Default: squeezenet1_1.",
     )
 
     parser.add_argument(
@@ -99,27 +99,25 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--enable-zero-copy-conv",
+        "--zc-enable",
         action="store_true",
         help="Enable ZeroCopy2D in Pytorch.",
     )
 
     parser.add_argument(
-        "--show-conv-time",
-        action="store_true",
-        help="Print the execution time of each convolution in the model.",
+        "--zc-weights-layout",
+        type=str,
+        default="HWIO",
+        choices=["HWIO", "IHWO"],
+        help="Weight layout for ZeroCopy2D. IHWO is the channel last layout. HWIO is the layout preferred by ZeroCopy2D."
+        "If HWIO is chosen, weights are converted to HWIO for Conv2d layers that will call ZeroCopy2D before inference, otherwise they are kept in channel last layout."
+        "Default: HWIO.",
     )
 
     parser.add_argument(
-        "--ignore-weight-transform",
+        "--zc-disable-output-transform",
         action="store_true",
-        help="Make ZeroCopy2D ignore the weight transformation (OHWI -> HWIO) by doing it when transforming the model to channel last.",
-    )
-
-    parser.add_argument(
-        "--ignore-output-transform",
-        action="store_true",
-        help="Make ZeroCopy2D ignore the output transformation required for correct results (NWHC -> NHWC).",
+        help="Disable ZeroCopy2D output transformation (NWHC -> NHWC). WARNING: Not yet supported by Pytorch, results may be incorrect",
     )
 
     parser.add_argument(
@@ -135,6 +133,12 @@ if __name__ == "__main__":
         help="Use torch.compile to compile the model.",
     )
 
+    parser.add_argument(
+        "--show-conv-time",
+        action="store_true",
+        help="Print the execution time of each convolution in the model.",
+    )
+
     args = parser.parse_args()
 
     if args.list_models:
@@ -142,34 +146,23 @@ if __name__ == "__main__":
             print("- ", model)
         exit(0)
 
-    if args.enable_zero_copy_conv:
-        os.environ["ZERO_COPY_2D"] = "TRUE"
+    if args.zc_enable:
+        os.environ["ZC_ENABLE"] = "TRUE"
     else:
-        os.environ["ZERO_COPY_2D"] = "FALSE"
+        os.environ["ZC_ENABLE"] = "FALSE"
 
     if args.show_conv_time:
-        os.environ["SHOW_CONV_TIME"] = "TRUE"
+        os.environ["ZC_TIME"] = "TRUE"
     else:
-        os.environ["SHOW_CONV_TIME"] = "FALSE"
+        os.environ["ZC_TIME"] = "FALSE"
 
-    weights_to_hwio = False
-    if args.ignore_weight_transform:
-        os.environ["ZERO_COPY_TRANSFORM_WEIGHTS"] = "FALSE"
-        weights_to_hwio = True
+    convert_weights_to_hwio = False
+    if args.zc_weights_layout == "HWIO":
+        convert_weights_to_hwio = True
 
-        if not args.enable_zero_copy_conv:
-            print(
-                "Error: --ignore-weight-transform is set but --enable-zero-copy-conv is not. "
-                "This will likely cause errors because this option transforms weights to HWIO format.",
-                file=sys.stderr
-            )
-            sys.exit(1)
+    if args.zc_disable_output_transform:
+        os.environ["ZC_TRANSFORM_OUTPUT"] = "FALSE"
     else:
-        os.environ["ZERO_COPY_TRANSFORM_WEIGHTS"] = "TRUE"
+        os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
 
-    if args.ignore_output_transform:
-        os.environ["ZERO_COPY_TRANSFORM_OUTPUT"] = "FALSE"
-    else:
-        os.environ["ZERO_COPY_TRANSFORM_OUTPUT"] = "TRUE"
-
-    run_model(args.model_name, args.compile, args.batch_size, weights_to_hwio)
+    run_model(args.model_name, args.compile, args.batch_size, convert_weights_to_hwio)
