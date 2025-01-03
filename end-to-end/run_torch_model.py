@@ -2,6 +2,7 @@
 import argparse
 import os
 import time
+import sys
 
 import torch
 import torch.utils.benchmark as benchmark
@@ -9,17 +10,13 @@ import torchvision.models as models
 
 
 # Based on torch/nn/utils/memory_format.py
-# This function is not supported, it is just an example of how to convert the weights of convolution layers to HWIO.
-# To support it, Zero Copy Conv would need to be the only convolution implementation to run and it would need to expect HWIO weights (in the contiguous memory format).
-# This function assumes that the model is already in the channels last memory format.
+# Converts weights to HWIO layout so that ZeroCopy2D can execute without changing the weights layout
 def convert_conv2d_weight_OHWI_to_HWIO(module):
     if isinstance(module, torch.nn.Conv2d):
         weight_data = module.weight.detach().clone()
-        # from channel last to channel last, not changing data
-        weight_data = weight_data.permute(0, 2, 3, 1)
-        # from OHWI to HWIO, making data contiguous
-        weight_data = weight_data.permute(1, 2, 3, 0).contiguous()
-        # permute dimensions expected order by contiguous format
+        # weight layout to HWIO, making data contiguous (dimension order follow OIHW)
+        weight_data = weight_data.permute(2, 3, 1, 0).contiguous()
+        # permute dimensions to the order expected by pytorch (OIHW)
         weight_data = weight_data.permute(3, 2, 0, 1)
         module.weight.data = weight_data.resize_(weight_data.size())
     for child in module.children():
@@ -32,7 +29,7 @@ def run_inference(model, input):
         return model(input)
 
 
-def run_model(model_name, compile=False, batch=1):
+def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False):
     # Load model with default weights
     weights = models.get_model_weights(model_name).DEFAULT
     # TODO: check if any quantized model uses ZeroCopy2D
@@ -57,6 +54,10 @@ def run_model(model_name, compile=False, batch=1):
     input = input.to(
         device="cpu", memory_format=torch.channels_last
     )  # Replace with your input tensor
+
+    if convert_weights_to_hwio:
+        model = convert_conv2d_weight_OHWI_to_HWIO(model)
+
     if compile:
         model = torch.compile(model)
 
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--enable-zero-copy-conv",
         action="store_true",
-        help="Enable Zero Copy Conv in Pytorch.",
+        help="Enable ZeroCopy2D in Pytorch.",
     )
 
     parser.add_argument(
@@ -112,13 +113,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ignore-weight-transform",
         action="store_true",
-        help="Make Zero Copy Conv ignore the weight transformation required for correct results (OHWI -> HWIO).",
+        help="Make ZeroCopy2D ignore the weight transformation (OHWI -> HWIO) by doing it when transforming the model to channel last.",
     )
 
     parser.add_argument(
         "--ignore-output-transform",
         action="store_true",
-        help="Make Zero Copy Conv ignore the output transformation required for correct results (NWHC -> NHWC).",
+        help="Make ZeroCopy2D ignore the output transformation required for correct results (NWHC -> NHWC).",
     )
 
     parser.add_argument(
@@ -151,8 +152,18 @@ if __name__ == "__main__":
     else:
         os.environ["SHOW_CONV_TIME"] = "FALSE"
 
+    weights_to_hwio = False
     if args.ignore_weight_transform:
         os.environ["ZERO_COPY_TRANSFORM_WEIGHTS"] = "FALSE"
+        weights_to_hwio = True
+
+        if not args.enable_zero_copy_conv:
+            print(
+                "Error: --ignore-weight-transform is set but --enable-zero-copy-conv is not. "
+                "This will likely cause errors because this option transforms weights to HWIO format.",
+                file=sys.stderr
+            )
+            sys.exit(1)
     else:
         os.environ["ZERO_COPY_TRANSFORM_WEIGHTS"] = "TRUE"
 
@@ -161,4 +172,4 @@ if __name__ == "__main__":
     else:
         os.environ["ZERO_COPY_TRANSFORM_OUTPUT"] = "TRUE"
 
-    run_model(args.model_name, args.compile, args.batch_size)
+    run_model(args.model_name, args.compile, args.batch_size, weights_to_hwio)
