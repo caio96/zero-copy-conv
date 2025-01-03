@@ -188,10 +188,46 @@ void verify_correctness(const std::vector<int> &arguments) {
     bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
   }
 
+  // Get Pytorch ZeroCopy2D environment variables
+  bool transform_weights = true;
+  bool transform_output = true;
+  bool use_zerocopy2d = false;
+  if (const char* env = std::getenv("ZERO_COPY_TRANSFORM_WEIGHTS")) {
+    std::string env_str(env);
+    if (env_str == "FALSE") {
+      transform_weights = false;
+    }
+  }
+  if (const char* env = std::getenv("ZERO_COPY_TRANSFORM_OUTPUT")) {
+    std::string env_str(env);
+    if (env_str == "FALSE") {
+      transform_output = false;
+    }
+  }
+  if (const char* env = std::getenv("ZERO_COPY_2D")) {
+    std::string env_str(env);
+    if (env_str == "TRUE") {
+      use_zerocopy2d = true;
+    }
+  }
+  if (use_zerocopy2d) {
+    std::cerr << "Warning: Pytorch has ZeroCopy2D enabled" << std::endl;
+    // Transform weights to HWIO ahead of time if weight transformation is disabled
+    if (!transform_weights) {
+      filters_tensor = filters_tensor.permute({2, 3, 1, 0}).contiguous();
+      filters_tensor = filters_tensor.permute({3, 2, 0, 1});
+    }
+  }
+
   // Run all convolution methods
   torch::Tensor output_tensor_nhwc = torch::conv2d(
       input_tensor, filters_tensor, bias_tensor, {stride_h, stride_w},
       {padding_height, padding_width}, {dilation_h, dilation_w}, groups);
+  // Transpose HW if ZeroCopy2D is enabled and the output transform was disabled
+  if (use_zerocopy2d && !transform_output) {
+    // NCHW (dimension order follows contiguous even in channel last) -> NCWH
+    output_tensor_nhwc = output_tensor_nhwc.permute({0, 1, 3, 2}).contiguous(torch::MemoryFormat::ChannelsLast);
+  }
   output_torch_NHWC = output_tensor_nhwc.const_data_ptr<float>();
 
   torch::Tensor output_tensor_nchw = output_tensor_nhwc.contiguous();
