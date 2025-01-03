@@ -69,7 +69,7 @@ def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False)
         setup="from __main__ import run_inference",
         globals={"model": model, "input": input},
     )
-    m0 = t0.blocked_autorange(min_run_time=0.5)
+    m0 = t0.adaptive_autorange(min_run_time=1)
     print(m0)
 
 
