@@ -157,7 +157,7 @@ if __name__ == "__main__":
         os.environ["ZC_TIME"] = "FALSE"
 
     convert_weights_to_hwio = False
-    if args.zc_weights_layout == "HWIO":
+    if args.zc_enable and args.zc_weights_layout == "HWIO":
         convert_weights_to_hwio = True
 
     if args.zc_disable_output_transform:
