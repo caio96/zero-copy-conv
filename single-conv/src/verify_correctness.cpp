@@ -413,10 +413,9 @@ int main(int argc, char *argv[]) {
     return ret;
 
   // Get PyTorch ZeroCopy2D related environment variables
-  bool zc_enable; // Ignored as pytorch is tested with/without zero copy
   bool zc_weights_HWIO;
   bool zc_transform_output;
-  parse_zero_copy_2d_env_vars(zc_enable, zc_weights_HWIO, zc_transform_output);
+  set_zero_copy_2d_env_vars(zc_weights_HWIO, zc_transform_output);
 
   // Verify correctness
   verify_correctness(arguments, zc_weights_HWIO, zc_transform_output);

@@ -93,11 +93,38 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
                         filter_width},
                        tensor_options)
           .contiguous(torch::MemoryFormat::ChannelsLast);
+  torch::Tensor output;
+
+#if defined ZERO_COPY
+  // Get PyTorch ZeroCopy2D related environment variables
+  bool zc_weights_HWIO;
+  bool zc_transform_output; // Ignored, if output transform is disabled, it won't be timed
+  set_zero_copy_2d_env_vars(zc_weights_HWIO, zc_transform_output);
+
+  // Convert filters to HWIO for ZeroCopy2D if enabled
+  if (zc_weights_HWIO) {
+    filters_tensor = filters_tensor.permute({2, 3, 1, 0}).contiguous();
+    filters_tensor = filters_tensor.permute({3, 2, 0, 1});
+  }
+#endif
 
   for (auto _ : state) {
-    torch::Tensor output = torch::conv2d(
+#if defined ZERO_COPY
+    if (groups == 1 && dilation_h == 1 && dilation_w == 1) {
+      output = torch::zero_copy_conv2d(
+          input_tensor, filters_tensor, {filter_height, filter_width},
+          bias_tensor, {stride_h, stride_w}, {padding_height, padding_width});
+    } else {
+      output = torch::zero_copy_conv2d_ext(
+          input_tensor, filters_tensor, {filter_height, filter_width},
+          bias_tensor, {stride_h, stride_w}, {padding_height, padding_width},
+          {dilation_h, dilation_w}, groups);
+    }
+#else
+    output = torch::conv2d(
         input_tensor, filters_tensor, bias_tensor, {stride_h, stride_w},
         {padding_height, padding_width}, {dilation_h, dilation_w}, groups);
+#endif
   }
 
   // Clean up
@@ -116,12 +143,11 @@ int main(int argc, char **argv) {
     return ret;
 
 #if defined ZERO_COPY
-  std::string use_zero_copy = "TRUE";
-  setenv("ZERO_COPY_2D", use_zero_copy.c_str(), 1);
-  // Set environment variable for to enable ZeroCopy2D in PyTorch
-  // Only works if using custom PyTorch
   std::string name{"LibTorch_ZeroCopy2D"};
 #else
+  // Disable zero copy convolution
+  std::string false_str = "FALSE";
+  setenv("ZC_ENABLE", false_str.c_str(), 1);
   std::string name{"LibTorch"};
 #endif
 

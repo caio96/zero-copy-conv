@@ -160,29 +160,39 @@ void compute_output_dims(int input_height, int input_width, int filter_height,
                         1);
 }
 
-void parse_zero_copy_2d_env_vars(bool &use_zerocopy2d, bool &weights_HWIO,
-                                 bool &transform_output) {
-  use_zerocopy2d = false;
-  weights_HWIO = false;
-  transform_output = true;
-
+void set_zero_copy_2d_env_vars(bool &weights_HWIO, bool &transform_output) {
   if (const char *env = std::getenv("ZC_TRANSFORM_OUTPUT")) {
     std::string env_str(env);
     if (env_str == "FALSE") {
       transform_output = false;
+    } else if (env_str == "TRUE") {
+      transform_output = true;
+    } else {
+      std::cerr << "Invalid value for ZC_TRANSFORM_OUTPUT: " << env_str
+                << std::endl;
     }
+  // If the environment variable is not set, use default
+  } else {
+    transform_output = true;
+    std::string true_str{"TRUE"};
+    setenv("ZC_TRANSFORM_OUTPUT", true_str.c_str(), 1);
   }
+
   if (const char *env = std::getenv("ZC_WEIGHTS_LAYOUT")) {
     std::string env_str(env);
     if (env_str == "HWIO") {
       weights_HWIO = true;
+    } else if (env_str == "OHWI") {
+      weights_HWIO = false;
+    } else {
+      std::cerr << "Invalid value for ZC_WEIGHTS_LAYOUT: " << env_str
+                << std::endl;
     }
-  }
-  if (const char *env = std::getenv("ZC_ENABLE")) {
-    std::string env_str(env);
-    if (env_str == "TRUE") {
-      use_zerocopy2d = true;
-    }
+  // If the environment variable is not set, use default
+  } else {
+    weights_HWIO = true;
+    std::string hwio_str{"HWIO"};
+    setenv("ZC_WEIGHTS_LAYOUT", hwio_str.c_str(), 1);
   }
 }
 
