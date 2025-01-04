@@ -57,7 +57,7 @@ void yaconv_to_NHWC(float *input, float *output, int batch, int channels,
   }
 }
 
-void transpose_HW(float *input, float *output, int batch, int channels,
+void NWHC_to_NHWC(float *input, float *output, int batch, int channels,
                   int height, int width) {
   for (int b = 0; b < batch; ++b) {
     for (int w = 0; w < width; ++w) {

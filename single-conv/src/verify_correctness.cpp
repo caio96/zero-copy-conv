@@ -34,6 +34,145 @@ extern "C" void conv_2d_zero_copy_main(
     int padding_width, int stride_h, int stride_w, int dilation_h,
     int dilation_w, int groups, float *__restrict__ bias, void *jitter);
 
+torch::Tensor
+conv_2d_torch(float *__restrict__ input, float *__restrict__ filters, int batch,
+              int input_height, int input_width, int input_channels,
+              int filter_height, int filter_width, int output_height,
+              int output_width, int output_channels, int padding_height,
+              int padding_width, int stride_h, int stride_w, int dilation_h,
+              int dilation_w, int groups, float *__restrict__ bias) {
+
+  torch::TensorOptions tensor_options =
+      torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+
+  // Torch input in channel last layout
+  torch::Tensor input_tensor =
+      torch::from_blob(input,
+                       {batch, input_channels, input_height, input_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
+
+  // Torch filter in channel last layout
+  torch::Tensor filters_tensor =
+      torch::from_blob(filters,
+                       {output_channels, input_channels / groups, filter_height,
+                        filter_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
+
+  // Torch bias if needed
+  std::optional<torch::Tensor> bias_tensor = {};
+  if (bias != nullptr) {
+    bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
+  }
+
+  // Make sure ZeroCopy is disabled
+  std::string false_str = "FALSE";
+  setenv("ZC_ENABLE", false_str.c_str(), 1);
+
+  // PyTorch reference output
+  return torch::conv2d(input_tensor, filters_tensor, bias_tensor,
+                       {stride_h, stride_w}, {padding_height, padding_width},
+                       {dilation_h, dilation_w}, groups);
+}
+
+torch::Tensor conv_2d_torch_zero_copy(
+    float *__restrict__ input, float *__restrict__ filters, int batch,
+    int input_height, int input_width, int input_channels, int filter_height,
+    int filter_width, int output_height, int output_width, int output_channels,
+    int padding_height, int padding_width, int stride_h, int stride_w,
+    int dilation_h, int dilation_w, int groups, float *__restrict__ bias,
+    bool zc_weights_HWIO, bool zc_transform_output) {
+
+  torch::TensorOptions tensor_options =
+      torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+
+  // Torch input in channel last layout
+  torch::Tensor input_tensor =
+      torch::from_blob(input,
+                       {batch, input_channels, input_height, input_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
+
+  // Torch filter in channel last layout
+  torch::Tensor filters_tensor =
+      torch::from_blob(filters,
+                       {output_channels, input_channels / groups, filter_height,
+                        filter_width},
+                       tensor_options)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
+
+  // Convert filters to HWIO for ZeroCopy2D if enabled
+  if (zc_weights_HWIO) {
+    filters_tensor = filters_tensor.permute({2, 3, 1, 0}).contiguous();
+    filters_tensor = filters_tensor.permute({3, 2, 0, 1});
+  }
+
+  // Torch bias if needed
+  std::optional<torch::Tensor> bias_tensor = {};
+  if (bias != nullptr) {
+    bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
+  }
+
+  // Run PyTorch ZeroCopy2D
+  torch::Tensor output_tensor_zc;
+  if (groups == 1 && dilation_h == 1 && dilation_w == 1) {
+    output_tensor_zc = torch::zero_copy_conv2d(
+        input_tensor, filters_tensor, {filter_height, filter_width},
+        bias_tensor, {stride_h, stride_w}, {padding_height, padding_width});
+  } else {
+    output_tensor_zc = torch::zero_copy_conv2d_ext(
+        input_tensor, filters_tensor, {filter_height, filter_width},
+        bias_tensor, {stride_h, stride_w}, {padding_height, padding_width},
+        {dilation_h, dilation_w}, groups);
+  }
+
+  // Transpose HW if ZeroCopy2D is enabled and the output transform was disabled
+  if (!zc_transform_output) {
+    // NCWH -> NCHW (dimension order follows contiguous layout)
+    output_tensor_zc = output_tensor_zc.permute({0, 1, 3, 2})
+                           .contiguous(torch::MemoryFormat::ChannelsLast);
+  }
+
+  return output_tensor_zc;
+}
+
+void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
+                       float *__restrict__ filters, int batch, int input_height,
+                       int input_width, int input_channels, int filter_height,
+                       int filter_width, int output_height, int output_width,
+                       int output_channels, int padding_height,
+                       int padding_width, int stride_h, int stride_w,
+                       int dilation_h, int dilation_w, int groups,
+                       float *__restrict__ bias) {
+  void *jitter;
+#if defined USE_MKL_JIT
+  mkl_jit_status_t status;
+  if (dilation_h == 1 && dilation_w == 1 && groups == 1) {
+    status = mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS,
+                                  MKL_NOTRANS, output_height, output_channels,
+                                  filter_width * input_channels, 1.0f,
+                                  input_width * input_channels * stride_h,
+                                  output_channels, 1.0f, output_channels);
+  } else {
+    status = mkl_jit_create_sgemm(
+        &jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS, output_height,
+        output_channels / groups, filter_width * input_channels / groups, 1.0f,
+        filter_width * input_channels / groups, output_channels, 1.0f,
+        output_channels);
+  }
+
+  if (status != MKL_JIT_SUCCESS) {
+    jitter = NULL;
+  }
+#endif
+  conv_2d_zero_copy_main(
+      input, output, filters, batch, input_height, input_width, input_channels,
+      filter_height, filter_width, output_height, output_width, output_channels,
+      padding_height, padding_width, stride_h, stride_w, dilation_h, dilation_w,
+      groups, bias, jitter);
+}
+
 // Returns the maximum difference between two arrays
 float get_max_diff(const float *output1, const float *output2, size_t size) {
   float diff = 0.0;
@@ -170,39 +309,12 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
   HWIO_to_OIHW(filters_HWIO, filters_OIHW, output_channels,
                input_channels / groups, filter_height, filter_width);
 
-  torch::TensorOptions tensor_options =
-      torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
-
-  // Torch input in channel last layout
-  torch::Tensor input_tensor =
-      torch::from_blob(input_NCHW,
-                       {batch, input_channels, input_height, input_width},
-                       tensor_options)
-          .contiguous(torch::MemoryFormat::ChannelsLast);
-
-  // Torch filter in channel last layout
-  torch::Tensor filters_tensor =
-      torch::from_blob(filters_OIHW,
-                       {output_channels, input_channels / groups, filter_height,
-                        filter_width},
-                       tensor_options)
-          .contiguous(torch::MemoryFormat::ChannelsLast);
-
-  // Torch bias if needed
-  std::optional<torch::Tensor> bias_tensor = {};
-  if (bias != nullptr) {
-    bias_tensor = torch::from_blob(bias, {output_channels}, tensor_options);
-  }
-
-  // Make sure ZeroCopy is disabled to run the reference output
-  std::string true_str = "TRUE";
-  std::string false_str = "FALSE";
-  setenv("ZC_ENABLE", false_str.c_str(), 1);
-
-  // PyTorch reference output
-  torch::Tensor output_tensor_nhwc = torch::conv2d(
-      input_tensor, filters_tensor, bias_tensor, {stride_h, stride_w},
-      {padding_height, padding_width}, {dilation_h, dilation_w}, groups);
+  // Run PyTorch reference
+  torch::Tensor output_tensor_nhwc = conv_2d_torch(
+      input_NCHW, filters_OIHW, batch, input_height, input_width,
+      input_channels, filter_height, filter_width, output_height, output_width,
+      output_channels, padding_height, padding_width, stride_h, stride_w,
+      dilation_h, dilation_w, groups, bias);
   output_torch_NHWC = output_tensor_nhwc.const_data_ptr<float>();
 
   // PyTorch reference output in NCHW layout
@@ -219,81 +331,41 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
     return;
   }
 
-  // Convert filters to HWIO for ZeroCopy2D if enabled
-  if (zc_weights_HWIO) {
-    filters_tensor = filters_tensor.permute({2, 3, 1, 0}).contiguous();
-    filters_tensor = filters_tensor.permute({3, 2, 0, 1});
-  }
-
   // Run PyTorch ZeroCopy2D
-  torch::Tensor output_tensor_zc;
-  if (groups == 1 && dilation_h == 1 && dilation_w == 1) {
-    output_tensor_zc = torch::zero_copy_conv2d(
-        input_tensor, filters_tensor, {filter_height, filter_width},
-        bias_tensor, {stride_h, stride_w}, {padding_height, padding_width});
-  } else {
-    output_tensor_zc = torch::zero_copy_conv2d_ext(
-        input_tensor, filters_tensor, {filter_height, filter_width},
-        bias_tensor, {stride_h, stride_w}, {padding_height, padding_width},
-        {dilation_h, dilation_w}, groups);
-  }
-
-  // Transpose HW if ZeroCopy2D is enabled and the output transform was disabled
-  if (!zc_transform_output) {
-    // NCWH -> NCHW (dimension order follows contiguous layout)
-    output_tensor_zc = output_tensor_nhwc.permute({0, 1, 3, 2})
-                           .contiguous(torch::MemoryFormat::ChannelsLast);
-  }
+  torch::Tensor output_tensor_zc = conv_2d_torch_zero_copy(
+      input_NCHW, filters_OIHW, batch, input_height, input_width,
+      input_channels, filter_height, filter_width, output_height, output_width,
+      output_channels, padding_height, padding_width, stride_h, stride_w,
+      dilation_h, dilation_w, groups, bias, zc_weights_HWIO,
+      zc_transform_output);
   output_torch_zc_NHWC = output_tensor_zc.const_data_ptr<float>();
 
-  conv_2d_im2col(input_NCHW, output_im2col_NCHW, filters_OIHW, batch, input_height,
-                 input_width, input_channels, filter_height, filter_width,
-                 output_height, output_width, output_channels, padding_top,
-                 padding_right, stride_h, stride_w, dilation_h, dilation_w,
-                 groups, bias);
+  // Run Im2col convolution
+  conv_2d_im2col(input_NCHW, output_im2col_NCHW, filters_OIHW, batch,
+                 input_height, input_width, input_channels, filter_height,
+                 filter_width, output_height, output_width, output_channels,
+                 padding_height, padding_width, stride_h, stride_w, dilation_h,
+                 dilation_w, groups, bias);
 
+  // Run Yaconv convolution
   if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1 &&
       groups == 1) {
-    conv_2d_yaconv(input_NHWC, output_yaconv_NHWC, filters_HWIO, batch, input_height,
-                   input_width, input_channels, filter_height, filter_width,
-                   output_height, output_width, output_channels, padding_top,
-                   padding_right, stride_h, stride_w, dilation_h, dilation_w,
-                   groups, bias);
+    conv_2d_yaconv(input_NHWC, output_yaconv_NHWC, filters_HWIO, batch,
+                   input_height, input_width, input_channels, filter_height,
+                   filter_width, output_height, output_width, output_channels,
+                   padding_height, padding_width, stride_h, stride_w,
+                   dilation_h, dilation_w, groups, bias);
   }
 
-  void *jitter;
-  int jit_error = 0;
-#if defined USE_MKL_JIT
-  mkl_jit_status_t status;
-  if (dilation_h == 1 && dilation_w == 1 && groups == 1) {
-    status = mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS,
-                                  MKL_NOTRANS, output_height, output_channels,
-                                  filter_width * input_channels, 1.0f,
-                                  input_width * input_channels * stride_h,
-                                  output_channels, 1.0f, output_channels);
-  } else {
-    status = mkl_jit_create_sgemm(
-        &jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS, output_height,
-        output_channels / groups, filter_width * input_channels / groups, 1.0f,
-        filter_width * input_channels / groups, output_channels, 1.0f,
-        output_channels);
-  }
-
-  if (MKL_JIT_ERROR == status) {
-    print_error("ZeroCopy", conv_parameters, "Error creating JIT kernel!");
-    jit_error = 1;
-  }
-#endif
-  if (!jit_error) {
-    conv_2d_zero_copy_main(
-        input_NHWC, output_zero_copy_NWHC, filters_HWIO, batch, input_height,
-        input_width, input_channels, filter_height, filter_width, output_height,
-        output_width, output_channels, padding_top, padding_right, stride_h,
-        stride_w, dilation_h, dilation_w, groups, bias, jitter);
-  }
+  // Run ZeroCopy convolution
+  conv_2d_zero_copy(input_NHWC, output_zero_copy_NWHC, filters_HWIO, batch,
+                    input_height, input_width, input_channels, filter_height,
+                    filter_width, output_height, output_width, output_channels,
+                    padding_height, padding_width, stride_h, stride_w,
+                    dilation_h, dilation_w, groups, bias);
 
   // Transpose HW of zero copy as it flips HW to WH
-  transpose_HW(output_zero_copy_NWHC, output_zero_copy_NHWC, batch,
+  NWHC_to_NHWC(output_zero_copy_NWHC, output_zero_copy_NHWC, batch,
                output_channels, output_height, output_width);
 
   // Print output header
@@ -314,14 +386,10 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
     print_diff("Yaconv", conv_parameters, diff);
   }
 
-  if (!jit_error) {
-    diff = get_max_diff(output_torch_NHWC, output_zero_copy_NHWC,
-                        output_size);
-    print_diff("ZeroCopy", conv_parameters, diff);
-  }
+  diff = get_max_diff(output_torch_NHWC, output_zero_copy_NHWC, output_size);
+  print_diff("ZeroCopy", conv_parameters, diff);
 
-  diff = get_max_diff(output_torch_NHWC, output_torch_zc_NHWC,
-                      output_size);
+  diff = get_max_diff(output_torch_NHWC, output_torch_zc_NHWC, output_size);
   print_diff("Torch_ZeroCopy", conv_parameters, diff);
 
   if (has_bias) {
