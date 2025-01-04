@@ -160,6 +160,32 @@ void compute_output_dims(int input_height, int input_width, int filter_height,
                         1);
 }
 
+void parse_zero_copy_2d_env_vars(bool &use_zerocopy2d, bool &weights_HWIO,
+                                 bool &transform_output) {
+  use_zerocopy2d = false;
+  weights_HWIO = false;
+  transform_output = true;
+
+  if (const char *env = std::getenv("ZC_TRANSFORM_OUTPUT")) {
+    std::string env_str(env);
+    if (env_str == "FALSE") {
+      transform_output = false;
+    }
+  }
+  if (const char *env = std::getenv("ZC_WEIGHTS_LAYOUT")) {
+    std::string env_str(env);
+    if (env_str == "HWIO") {
+      weights_HWIO = true;
+    }
+  }
+  if (const char *env = std::getenv("ZC_ENABLE")) {
+    std::string env_str(env);
+    if (env_str == "TRUE") {
+      use_zerocopy2d = true;
+    }
+  }
+}
+
 int parse_command_line_arguments(int argc, char **argv,
                                  std::vector<int> &args) {
   if (argc != 19 && argc != 1) {

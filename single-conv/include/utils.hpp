@@ -33,6 +33,9 @@ void compute_output_dims(int input_height, int input_width, int filter_height,
                          int stride_w, int dilation_h, int dilation_w,
                          int &output_height, int &output_width);
 
+void parse_zero_copy_2d_env_vars(bool &use_zerocopy2d, bool &weights_HWIO,
+                                 bool &transform_output);
+
 // Parse command line
 int parse_command_line_arguments(int argc, char **argv,
                                  std::vector<int> &arguments);
