@@ -67,7 +67,7 @@ def include_only_in_df(df, conv_type):
     elif "transposed" == conv_type:
         df = df.loc[df["is transposed"] == 0]
     elif "depthwise" == conv_type:
-        df = df.loc[(df["image channel"] != df["groups"])]
+        df = df.loc[(df["image channel"] == df["groups"])]
 
     return df.reset_index(drop=True)
 
