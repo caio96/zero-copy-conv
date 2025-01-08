@@ -52,28 +52,36 @@ def remove_problem_parameters(df):
     return df.reset_index(drop=True)
 
 
-def include_only_in_df(df, conv_type):
+def include_only_in_df(df: pd.DataFrame, conv_type: list):
     if not conv_type:
         return df
 
-    if "strided" == conv_type:
-        df = df.loc[(df["stride height"] != 1) | (df["stride width"] != 1)]
-    elif "pointwise" == conv_type:
-        df = df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]
-    elif "grouped" == conv_type:
-        df = df.loc[df["groups"] != 1]
-    elif "dilated" == conv_type:
-        df = df.loc[(df["dilation height"] != 1) | (df["dilation width"] != 1)]
-    elif "transposed" == conv_type:
-        df = df.loc[df["is transposed"] == 0]
-    elif "depthwise" == conv_type:
-        df = df.loc[(df["image channel"] == df["groups"])]
+    filtered_df = pd.DataFrame()
 
-    return df.reset_index(drop=True)
+    if "strided" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["stride height"] != 1) | (df["stride width"] != 1)]])
+
+    if "pointwise" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]])
+
+    if "grouped" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[df["groups"] != 1]])
+
+    if "dilated" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["dilation height"] != 1) | (df["dilation width"] != 1)]])
+
+    if "transposed" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 0]])
+
+    if "depthwise" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["image channel"] == df["groups"])]])
+
+    # Drop duplicates to avoid duplicating rows if they match multiple types
+    return filtered_df.drop_duplicates().reset_index(drop=True)
 
 
 # Exclude from the data frame all convolution types listed in conv_types
-def exclude_from_df(df, conv_types: list):
+def exclude_from_df(df: pd.DataFrame, conv_types: list):
     if not conv_types:
         return df
 
@@ -154,8 +162,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--include-only-conv-type",
+        nargs="+",
         type=str,
-        help="Only include the specified convolution type",
+        help="Only include the specified convolution types",
         choices=[
             "strided",
             "pointwise",
