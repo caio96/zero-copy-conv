@@ -146,6 +146,10 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
     # Features
     X = pd.DataFrame()
 
+    # Add zeros and ones for the comparisons
+    df["0"] = 0
+    df["1"] = 1
+
     # Only add binary comparison features
     for feature1, feature2 in itertools.combinations(df.columns.values.tolist(), 2):
         ignore_features = ["has bias"]
@@ -157,24 +161,9 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
         X[f"{feature1} equals {feature2}"] = (df[feature1] == df[feature2]).astype(int)
 
     X["has bias"] = df["has bias"]
-    X["has stride height"] = (df["stride height"] != 1).astype(int)
-    X["has stride width"] = (df["stride width"] != 1).astype(int)
-    X["is strided"] = ((df["stride height"] != 1) | (df["stride width"] != 1)).astype(int)
-    X["is pointwise in height"] = (df["filter height"] == 1).astype(int)
-    X["is pointwise in width"] = (df["filter width"] == 1).astype(int)
-    X["is pointwise"] = ((df["filter height"] == 1) & (df["filter width"] == 1)).astype(int)
-    X["has padding height"] = (df["padding height"] > 0).astype(int)
-    X["has padding width"] = (df["padding width"] > 0).astype(int)
-    X["has padding"] = ((df["padding height"] > 0) | (df["padding width"] > 0)).astype(int)
-    X["has overlap in height"] = (df["filter height"] > df["stride height"]).astype(int)
-    X["has overlap in width"] = (df["filter width"] > df["stride width"]).astype(int)
-    X["has overlap"] = (
-        (df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])
-    ).astype(int)
 
-    if mode == "extended":
-        X["is dilated"] = ((df["dilation height"] != 1) | (df["dilation width"] != 1)).astype(int)
-        X["is grouped"] = (df["groups"] != 1).astype(int)
+    # Remove columns with the same values that may have been added
+    X = remove_invariant_features(X)
 
     return X, y, y_weights
 
