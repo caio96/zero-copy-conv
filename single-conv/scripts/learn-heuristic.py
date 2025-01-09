@@ -67,10 +67,19 @@ def get_data(df: pd.DataFrame):
 
 
 # Define a scaling function for weights
-def speedup_weights(speedup):
+def speedup_weights(speedup, speedup_clip=2.0):
     scaled = np.abs(speedup)
-    scaled = np.clip(scaled, 0, 5)
+    scaled = np.clip(scaled, 0, speedup_clip)
     scaled = (scaled - np.min(scaled)) / (np.max(scaled) - np.min(scaled))
+
+    to_print = pd.DataFrame()
+    to_print["speedup"] = speedup
+    to_print["scaled"] = scaled
+    # print all rows
+    pd.set_option("display.max_rows", None)
+    print(to_print)
+    pd.reset_option("display.max_rows")
+
     return scaled
 
 
