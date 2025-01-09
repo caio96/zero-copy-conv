@@ -8,7 +8,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import xgboost as xgb
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.feature_selection import SelectFromModel, VarianceThreshold
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
@@ -17,9 +18,6 @@ from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 
 
 def get_data(df: pd.DataFrame):
-    # mute performance warnings
-    warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
-
     # Separate the parameters
     df = split_parameters(df)
     df = df.drop(columns=["conv_parameters"])
@@ -68,6 +66,54 @@ def get_data(df: pd.DataFrame):
     return df
 
 
+# Define a scaling function for weights
+def speedup_weights(speedup):
+    scaled = np.abs(speedup)
+    scaled = np.clip(scaled, 0, 5)
+    scaled = (scaled - np.min(scaled)) / (np.max(scaled) - np.min(scaled))
+    return scaled
+
+
+def remove_invariant_features(X: pd.DataFrame):
+    # Save labels
+    columns = X.columns
+
+    selector = VarianceThreshold(threshold=0.0)
+    X = selector.fit_transform(X)
+
+    # Add labels back
+    selected_features_mask = selector.get_support()
+    selected_feature_names = columns[selected_features_mask]
+    X = pd.DataFrame(X, columns=selected_feature_names)
+
+    return X
+
+
+def reduce_dimensionality(
+    X: pd.DataFrame,
+    y: pd.Series,
+    max_features: int = None,
+    max_depth: int = None,
+    y_weights: np.array = None,
+):
+    # Save labels
+    columns = X.columns
+
+    # Reduce dimensionality using most important features from tree ensemble
+    clf = ExtraTreesClassifier(max_depth=max_depth, n_estimators=100)
+    clf = clf.fit(X, y, sample_weight=y_weights)
+    selector = SelectFromModel(clf, prefit=True, max_features=max_features)
+    selector.feature_names_in_ = columns
+    X = selector.transform(X)
+
+    # Add labels back
+    selected_features_mask = selector.get_support()
+    selected_feature_names = columns[selected_features_mask]
+    X = pd.DataFrame(X, columns=selected_feature_names)
+
+    return X
+
+
 def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
 
     # Filter by convolution type
@@ -81,11 +127,14 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
 
     # Target column
     y = (df["speedup"] > speedup_threshold).astype(int)
+    y_weights = speedup_weights(df["speedup"])
     df = df.drop(columns=["speedup"])
+
+    # Remove columns with the same values
+    df = remove_invariant_features(df)
 
     # Features
     X = pd.DataFrame()
-    print(df.columns.values.tolist())
 
     # Only add binary comparison features
     for feature1, feature2 in itertools.combinations(df.columns.values.tolist(), 2):
@@ -98,20 +147,35 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
         X[f"{feature1} equals {feature2}"] = (df[feature1] == df[feature2]).astype(int)
 
     X["has bias"] = df["has bias"]
+    X["has stride height"] = (df["stride height"] != 1).astype(int)
+    X["has stride width"] = (df["stride width"] != 1).astype(int)
     X["is strided"] = ((df["stride height"] != 1) | (df["stride width"] != 1)).astype(int)
+    X["is pointwise in height"] = (df["filter height"] == 1).astype(int)
+    X["is pointwise in width"] = (df["filter width"] == 1).astype(int)
     X["is pointwise"] = ((df["filter height"] == 1) & (df["filter width"] == 1)).astype(int)
+    X["has padding height"] = (df["padding height"] > 0).astype(int)
+    X["has padding width"] = (df["padding width"] > 0).astype(int)
+    X["has padding"] = ((df["padding height"] > 0) | (df["padding width"] > 0)).astype(int)
+    X["has overlap in height"] = (df["filter height"] > df["stride height"]).astype(int)
+    X["has overlap in width"] = (df["filter width"] > df["stride width"]).astype(int)
+    X["has overlap"] = (
+        (df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])
+    ).astype(int)
 
     if mode == "extended":
         X["is dilated"] = ((df["dilation height"] != 1) | (df["dilation width"] != 1)).astype(int)
         X["is grouped"] = (df["groups"] != 1).astype(int)
-        X["is depthwise"] = (df["image channel"] == df["groups"]).astype(int)
 
-    return X, y
+    return X, y, y_weights
 
 
-def run_decision_tree(X_train, y_train, X_test, y_test, depth):
-    model = DecisionTreeClassifier(max_depth=depth, random_state=42)
-    model.fit(X_train, y_train)
+def run_decision_tree(
+    X_train, y_train, X_test, y_test, max_depth=None, max_leaf_nodes=None, w_train=None
+):
+    model = DecisionTreeClassifier(
+        max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, random_state=42
+    )
+    model.fit(X_train, y_train, sample_weight=w_train)
     y_pred = model.predict(X_test)
 
     print("DecisionTreeClassifier report:")
@@ -120,26 +184,6 @@ def run_decision_tree(X_train, y_train, X_test, y_test, depth):
     rules = export_text(model, feature_names=list(X.columns))
     print("DecisionTreeClassifier rules:")
     print(rules)
-
-
-def run_xgboost(X_train, y_train, X_test, y_test, depth):
-    model = xgb.XGBClassifier(max_depth=depth, n_estimators=10, random_state=42)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-
-    print("XGBoost report:")
-    print(classification_report(y_test, y_pred))
-
-    feature_importance = model.get_booster().get_score(importance_type="weight")
-    sorted_importance = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)
-    print("XGBoost most important features:")
-    for feature, score in sorted_importance[:10]:
-        print(f"- {feature}: {score}")
-    print("")
-
-    for idx, rule in enumerate(model.get_booster().get_dump(with_stats=False)):
-        print(f"XGBoost rules from Tree {idx}:")
-        print(rule)
 
 
 if __name__ == "__main__":
@@ -169,28 +213,36 @@ if __name__ == "__main__":
         default=0.0,
     )
     parser.add_argument(
-        "--tree-depth",
+        "--max-depth",
         type=int,
-        help="Maximum depth of the decision tree. Default is 1.",
-        default=1,
+        help="Maximum depth of the decision tree. Default is no limit.",
+        default=None,
+    )
+    parser.add_argument(
+        "--max-leaf-nodes",
+        type=int,
+        help="Maximum leaf nodes of the decision tree. Default is no limit.",
+        default=None,
+    )
+    parser.add_argument(
+        "--max-features",
+        type=int,
+        help="Maximum number of features to use. By setting a limit, only the n most important features (decided by a tree ensemble during dimensionality reduction) are considered. Default is no limit.",
+        default=None,
     )
     parser.add_argument(
         "--split-train-test",
         action="store_true",
         help="Split input into train and test sets.",
     )
-    parser.add_argument(
-        "--xgboost",
-        action="store_true",
-        help="Use XGBoost instead of DecisionTreeClassifier.",
-    )
 
     args = parser.parse_args()
     csv_results = Path(args.CSV_Results)
     mode = args.zc_mode
     speedup_threshold = args.speedup_threshold
-    depth = args.tree_depth
-    use_xgb = args.xgboost
+    max_depth = args.max_depth
+    max_features = args.max_features
+    max_leaf_nodes = args.max_leaf_nodes
     split_train_test = args.split_train_test
 
     # Check if csv file exists
@@ -198,18 +250,22 @@ if __name__ == "__main__":
         print("CSV with results not found.", file=sys.stderr)
         sys.exit(-1)
 
+    # mute pandas warnings
+    warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+
     df = pd.read_csv(csv_results, header=0, index_col=False)
 
     df = get_data(df)
-    X, y = get_X_y(df, mode, speedup_threshold)
+    X, y, y_weights = get_X_y(df, mode, speedup_threshold)
+
+    X = reduce_dimensionality(X, y, max_features, max_depth, y_weights)
 
     if split_train_test:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
+            X, y, y_weights, test_size=0.2, random_state=42
+        )
     else:
-        X_train, y_train = X, y
-        X_test, y_test = X, y
+        X_train, y_train, w_train = X, y, y_weights
+        X_test, y_test, w_test = X, y, y_weights
 
-    if not use_xgb:
-        run_decision_tree(X_train, y_train, X_test, y_test, depth)
-    else:
-        run_xgboost(X_train, y_train, X_test, y_test, depth)
+    run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train)
