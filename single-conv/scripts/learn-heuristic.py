@@ -13,6 +13,7 @@ from sklearn.feature_selection import SelectFromModel, VarianceThreshold
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 
@@ -190,9 +191,43 @@ def run_decision_tree(
     print("DecisionTreeClassifier report:")
     print(classification_report(y_test, y_pred))
 
-    rules = export_text(model, feature_names=list(X.columns))
-    print("DecisionTreeClassifier rules:")
-    print(rules)
+    return model
+
+
+def prune_duplicate_leaves(mdl):
+
+    def is_leaf(inner_tree, index):
+        # Check whether node is leaf node
+        return (
+            inner_tree.children_left[index] == TREE_LEAF
+            and inner_tree.children_right[index] == TREE_LEAF
+        )
+
+    def prune_index(inner_tree, decisions, index=0):
+        # Start pruning from the bottom - if we start from the top, we might miss
+        # nodes that become leaves during pruning.
+        # Do not use this directly - use prune_duplicate_leaves instead.
+        if not is_leaf(inner_tree, inner_tree.children_left[index]):
+            prune_index(inner_tree, decisions, inner_tree.children_left[index])
+        if not is_leaf(inner_tree, inner_tree.children_right[index]):
+            prune_index(inner_tree, decisions, inner_tree.children_right[index])
+
+        # Prune children if both children are leaves now and make the same decision:
+        if (
+            is_leaf(inner_tree, inner_tree.children_left[index])
+            and is_leaf(inner_tree, inner_tree.children_right[index])
+            and (decisions[index] == decisions[inner_tree.children_left[index]])
+            and (decisions[index] == decisions[inner_tree.children_right[index]])
+        ):
+            # turn node into a leaf by "unlinking" its children
+            inner_tree.children_left[index] = TREE_LEAF
+            inner_tree.children_right[index] = TREE_LEAF
+            inner_tree.feature[index] = TREE_UNDEFINED
+            ##print("Pruned {}".format(index))
+
+    # Remove leaves if both
+    decisions = mdl.tree_.value.argmax(axis=2).flatten().tolist()  # Decision for each node
+    prune_index(mdl.tree_, decisions)
 
 
 if __name__ == "__main__":
@@ -277,4 +312,10 @@ if __name__ == "__main__":
         X_train, y_train, w_train = X, y, y_weights
         X_test, y_test, w_test = X, y, y_weights
 
-    run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train)
+    model = run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train)
+
+    prune_duplicate_leaves(model)
+
+    rules = export_text(model, feature_names=list(X.columns))
+    print("DecisionTreeClassifier rules:")
+    print(rules)
