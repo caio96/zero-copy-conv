@@ -68,20 +68,37 @@ def get_data(df: pd.DataFrame):
 
 
 # Define a scaling function for weights
-def speedup_weights(speedup, speedup_clip=2.0):
-    scaled = np.abs(speedup)
-    scaled = np.clip(scaled, 0, speedup_clip)
-    scaled = (scaled - np.min(scaled)) / (np.max(scaled) - np.min(scaled))
+def speedup_weights(y, speedup, balance_weights=True):
+    df = pd.DataFrame()
+    df["y"] = y
+    df["speedup"] = speedup
 
-    to_print = pd.DataFrame()
-    to_print["speedup"] = speedup
-    to_print["scaled"] = scaled
-    # print all rows
-    pd.set_option("display.max_rows", None)
-    print(to_print)
-    pd.reset_option("display.max_rows")
+    # Get raw weights clipped at the 99th percentile
+    df["weight"] = np.abs(speedup)
+    df["weight"] = np.clip(df["weight"], 0, df["weight"].quantile(0.99))
 
-    return scaled
+    # Normalize between 0 and 1
+    df["weight"] = (df["weight"] - np.min(df["weight"])) / (np.max(df["weight"]) - np.min(df["weight"]))
+
+    if balance_weights:
+        # Separate weights by class
+        weights_pos = df.loc[df["y"] == 1, "weight"]
+        weights_neg = df.loc[df["y"] == 0, "weight"]
+
+        # Balance weights per class
+        weights_pos = weights_pos / weights_pos.sum()
+        weights_neg = weights_neg / weights_neg.sum()
+
+        # Assign normalized weights back to the dataset
+        df.loc[df["y"] == 1, "weight"] = weights_pos
+        df.loc[df["y"] == 0, "weight"] = weights_neg
+
+        # Normalize between 0 and 1
+        df["weight"] = (df["weight"] - df["weight"].min()) / (
+            df["weight"].max() - df["weight"].min()
+        )
+
+    return df["weight"]
 
 
 def remove_invariant_features(X: pd.DataFrame):
@@ -124,7 +141,7 @@ def reduce_dimensionality(
     return X
 
 
-def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
+def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0, balance_weights: bool = True):
 
     # Filter by convolution type
     if mode == "normal":
@@ -137,7 +154,7 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
 
     # Target column
     y = (df["speedup"] > speedup_threshold).astype(int)
-    y_weights = speedup_weights(df["speedup"])
+    y_weights = speedup_weights(y, df["speedup"], balance_weights)
     df = df.drop(columns=["speedup"])
 
     # Remove columns with the same values
@@ -268,6 +285,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Split input into train and test sets.",
     )
+    parser.add_argument(
+        "--skip-balance-weights",
+        action="store_true",
+        help="Disable balancing weights (based on speedup) for the classes.",
+    )
 
     args = parser.parse_args()
     csv_results = Path(args.CSV_Results)
@@ -277,6 +299,7 @@ if __name__ == "__main__":
     max_features = args.max_features
     max_leaf_nodes = args.max_leaf_nodes
     split_train_test = args.split_train_test
+    balance_weights = not args.skip_balance_weights
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -289,7 +312,7 @@ if __name__ == "__main__":
     df = pd.read_csv(csv_results, header=0, index_col=False)
 
     df = get_data(df)
-    X, y, y_weights = get_X_y(df, mode, speedup_threshold)
+    X, y, y_weights = get_X_y(df, mode, speedup_threshold, balance_weights)
 
     X = reduce_dimensionality(X, y, max_features, max_depth, y_weights)
 
