@@ -161,7 +161,7 @@ if __name__ == "__main__":
         ],
     )
     parser.add_argument(
-        "--include-only-conv-type",
+        "--include-only-conv-types",
         nargs="+",
         type=str,
         help="Only include the specified convolution types",
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     output_csv = Path(args.Output_CSV)
     reduce_redundancies = args.reduce_redundancies
     exclude_conv_types = args.exclude_conv_types
-    include_only_conv_type = args.include_only_conv_type
+    include_only_conv_types = args.include_only_conv_types
 
     # Check if input file exists
     if (not input_csv.exists()) or (not input_csv.is_file()):
@@ -213,8 +213,8 @@ if __name__ == "__main__":
     if reduce_redundancies:
         df = reduce_redundacies(df)
 
-    if include_only_conv_type:
-        df = include_only_in_df(df, include_only_conv_type)
+    if include_only_conv_types:
+        df = include_only_in_df(df, include_only_conv_types)
 
     if exclude_conv_types:
         df = exclude_from_df(df, exclude_conv_types)
