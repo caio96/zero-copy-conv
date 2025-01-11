@@ -4,6 +4,7 @@ import argparse
 import sys
 import itertools
 from pathlib import Path
+from tabulate import tabulate
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -31,7 +32,7 @@ def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
     return speedup_results
 
 
-def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_dir):
+def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_dir, only_stats=False):
 
     num_points = speedup.shape[0]
 
@@ -42,6 +43,16 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
 
     pos = speedup.loc[lambda x: x >= 0].reset_index(drop=True)
     neg = speedup.loc[lambda x: x < 0].reset_index(drop=True)
+
+    stats = {
+        f"{new_method_name} vs {old_method_name}": ["Speedup", "Slowdown"],
+        "Count": [pos.shape[0], neg.shape[0]],
+        "Median": [pos.median(), neg.median()],
+        "Max": [pos.max(), neg.min()],
+    }
+    print(tabulate(stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
+    if only_stats:
+        return
 
     fig, ax = plt.subplots()
 
@@ -120,7 +131,7 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
 
 
 # Saves a csv with results and produces an speedup graph
-def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir):
+def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats):
 
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
 
@@ -130,7 +141,7 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
     )
 
     speedup = speedup_results["speedup"]
-    plot_speedup(speedup, old_method_name, new_method_name, output_dir)
+    plot_speedup(speedup, old_method_name, new_method_name, output_dir, only_stats)
 
 
 if __name__ == "__main__":
@@ -181,6 +192,11 @@ if __name__ == "__main__":
         type=str,
         help="Set new method for speedup comparison. If not set, all methods will be compared.",
     )
+    parser.add_argument(
+        "--only-stats",
+        action="store_true",
+        help="Skip generating graphs and only print stats",
+    )
 
     args = parser.parse_args()
 
@@ -190,6 +206,7 @@ if __name__ == "__main__":
     include_only_conv_types = args.include_only_conv_types
     old_method = args.old_method
     new_method = args.new_method
+    only_stats = args.only_stats
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -223,17 +240,17 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     if old_method and new_method:
-        compare_methods(df, old_method, new_method, output_dir)
+        compare_methods(df, old_method, new_method, output_dir, only_stats)
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
-            compare_methods(df, old_method, method, output_dir)
+            compare_methods(df, old_method, method, output_dir, only_stats)
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
-            compare_methods(df, method, new_method, output_dir)
+            compare_methods(df, method, new_method, output_dir, only_stats)
     else:
         for method1, method2 in itertools.combinations(methods, 2):
-            compare_methods(df, method1, method2, output_dir)
+            compare_methods(df, method1, method2, output_dir, only_stats)
