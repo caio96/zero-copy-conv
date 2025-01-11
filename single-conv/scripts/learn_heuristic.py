@@ -21,7 +21,6 @@ from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 def get_data(df: pd.DataFrame):
     # Separate the parameters
     df = split_parameters(df)
-    df = df.drop(columns=["conv_parameters"])
 
     # Remove redundant padding columns
     df = df.drop(columns=["padding bottom", "padding right"])

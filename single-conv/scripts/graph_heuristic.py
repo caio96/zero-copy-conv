@@ -7,6 +7,24 @@ from pathlib import Path
 import pandas as pd
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 from graph_performance import plot_speedup
+from learn_heuristic import get_data
+
+
+# Define the heuristic here
+def heuristic(speedup_results: pd.DataFrame):
+    num_columns = len(speedup_results.columns)
+
+    # Get all features used by heuristic from conv parameters
+    speedup_results = get_data(speedup_results)
+
+    # Get convolutions selected by heuristic
+    mask = speedup_results.query("`groups` == 1 and `dilation height` == 1 and `dilation width` == 1 and `k dim` > `n dim`")
+    mask_ext = speedup_results.query("(`groups` > 1 or `dilation height` > 1 or `dilation width` == 1) and `filter height` <= `n dim`")
+    pd.concat([mask, mask_ext])
+
+    # Remove extra columns
+    mask = mask.iloc[:, :num_columns]
+    return mask
 
 
 def simulate_heuristic_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
@@ -19,14 +37,8 @@ def simulate_heuristic_speedup(joined_results: pd.DataFrame, old_method_name, ne
 
     speedup_results = pd.DataFrame()
     speedup_results["conv_parameters"] = joined_results["conv_parameters"]
-    speedup_results["speedup"] = 0.0
 
-    num_columns = len(speedup_results.columns)
-    speedup_results = split_parameters(speedup_results)
-    mask = speedup_results["batch size"] == 1
-    speedup_results = speedup_results.iloc[:, :num_columns]
-
-    speedup_results = speedup_results[~mask]
+    speedup_results = heuristic(speedup_results)
 
     # Compute speedup
     speedup_results["speedup"] = (
@@ -39,10 +51,10 @@ def simulate_heuristic_speedup(joined_results: pd.DataFrame, old_method_name, ne
 
 
 # Saves a csv with results and produces an speedup graph
-def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name):
+def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, only_stats):
 
     speedup_results = simulate_heuristic_speedup(joined_results, old_method_name, new_method_name)
-    heuristic_name = f"heuristic_{new_method_name}_and_{old_method_name}"
+    heuristic_name = f"Heuristic_{new_method_name}"
 
     # Save resulst to csv
     speedup_results.to_csv(
@@ -50,7 +62,7 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
     )
 
     speedup = speedup_results["speedup"]
-    plot_speedup(speedup, old_method_name, heuristic_name, output_dir)
+    plot_speedup(speedup, old_method_name, heuristic_name, output_dir, only_stats)
 
 
 if __name__ == "__main__":
@@ -102,6 +114,11 @@ if __name__ == "__main__":
             "transposed",
         ],
     )
+    parser.add_argument(
+        "--only-stats",
+        action="store_true",
+        help="Skip generating graphs and only print stats",
+    )
 
     args = parser.parse_args()
 
@@ -111,6 +128,7 @@ if __name__ == "__main__":
     new_method = args.New_Method
     exclude_conv_types = args.exclude_conv_types
     include_only_conv_types = args.include_only_conv_types
+    only_stats = args.only_stats
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -143,4 +161,4 @@ if __name__ == "__main__":
         print(f"Available methods: {methods}", file=sys.stderr)
         sys.exit(-1)
 
-    compare_methods(df, old_method, new_method)
+    compare_methods(df, old_method, new_method, only_stats)
