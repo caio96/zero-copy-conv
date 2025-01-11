@@ -18,13 +18,13 @@ def heuristic(speedup_results: pd.DataFrame):
     speedup_results = get_data(speedup_results)
 
     # Get convolutions selected by heuristic
-    mask = speedup_results.query("`groups` == 1 and `dilation height` == 1 and `dilation width` == 1 and `k dim` > `n dim`")
-    mask_ext = speedup_results.query("(`groups` > 1 or `dilation height` > 1 or `dilation width` == 1) and `filter height` <= `n dim`")
-    pd.concat([mask, mask_ext])
+    selection = speedup_results.query("`groups` == 1 and `dilation height` == 1 and `dilation width` == 1 and `k dim` > `n dim`")
+    selection_ext = speedup_results.query("(`groups` > 1 or `dilation height` > 1 or `dilation width` == 1) and `filter height` <= `n dim`")
+    pd.concat([selection, selection_ext])
 
     # Remove extra columns
-    mask = mask.iloc[:, :num_columns]
-    return mask
+    selection = selection.iloc[:, :num_columns]
+    return selection
 
 
 def simulate_heuristic_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
