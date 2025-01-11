@@ -142,6 +142,8 @@ def reduce_dimensionality(
 
 def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0, balance_weights: bool = True):
 
+    df.drop(columns=["conv_parameters"], inplace=True)
+
     # Filter by convolution type
     if mode == "normal":
         df = exclude_from_df(df, ["dilated", "grouped"])
