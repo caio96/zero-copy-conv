@@ -3,7 +3,6 @@
 import argparse
 import sys
 import itertools
-from math import ceil, floor, log10
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -32,17 +31,8 @@ def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
     return speedup_results
 
 
-# Saves a csv with results and produces an speedup graph
-def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name):
+def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_dir):
 
-    speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
-
-    # Save resulst to csv
-    speedup_results.to_csv(
-        output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
-    )
-
-    speedup = speedup_results["speedup"]
     num_points = speedup.shape[0]
 
     inflection = num_points
@@ -127,6 +117,20 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
         dpi=300,
     )
     plt.close()
+
+
+# Saves a csv with results and produces an speedup graph
+def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir):
+
+    speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
+
+    # Save resulst to csv
+    speedup_results.to_csv(
+        output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
+    )
+
+    speedup = speedup_results["speedup"]
+    plot_speedup(speedup, old_method_name, new_method_name, output_dir)
 
 
 if __name__ == "__main__":
@@ -219,17 +223,17 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     if old_method and new_method:
-        compare_methods(df, old_method, new_method)
+        compare_methods(df, old_method, new_method, output_dir)
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
-            compare_methods(df, old_method, method)
+            compare_methods(df, old_method, method, output_dir)
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
-            compare_methods(df, method, new_method)
+            compare_methods(df, method, new_method, output_dir)
     else:
         for method1, method2 in itertools.combinations(methods, 2):
-            compare_methods(df, method1, method2)
+            compare_methods(df, method1, method2, output_dir)
