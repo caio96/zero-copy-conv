@@ -130,7 +130,9 @@ def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False)
 
 
 def get_all_models():
-    all_models = models.list_models()
+    # Exclude models that never use ZeroCopy2D independent from heuristics
+    all_models = models.list_models(exclude=["quantized*", "raft*"])
+    # Exclude 3D models
     video_models = models.list_models(module=models.video)
     all_models_minus_video = [
         model for model in all_models if model not in video_models
@@ -177,6 +179,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--zc-disable-heuristic",
+        action="store_true",
+        help="Disable heuristics that helps choose when to use ZeroCopy2D in Pytorch.",
+    )
+
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=1,
@@ -220,5 +228,10 @@ if __name__ == "__main__":
         os.environ["ZC_TRANSFORM_OUTPUT"] = "FALSE"
     else:
         os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
+
+    if args.zc_disable_heuristic:
+        os.environ["ZC_HEURISTIC"] = "FALSE"
+    else:
+        os.environ["ZC_HEURISTIC"] = "TRUE"
 
     run_model(args.model_name, args.compile, args.batch_size, convert_weights_to_hwio)
