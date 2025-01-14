@@ -67,7 +67,7 @@ def get_data(df: pd.DataFrame):
 
 
 # Define a scaling function for weights
-def speedup_weights(y, speedup, balance_weights=True):
+def speedup_weights(y, speedup):
     df = pd.DataFrame()
     df["y"] = y
     df["speedup"] = speedup
@@ -79,23 +79,22 @@ def speedup_weights(y, speedup, balance_weights=True):
     # Normalize between 0 and 1
     df["weight"] = (df["weight"] - np.min(df["weight"])) / (np.max(df["weight"]) - np.min(df["weight"]))
 
-    if balance_weights:
-        # Separate weights by class
-        weights_pos = df.loc[df["y"] == 1, "weight"]
-        weights_neg = df.loc[df["y"] == 0, "weight"]
+    # Separate weights by class
+    weights_pos = df.loc[df["y"] == 1, "weight"]
+    weights_neg = df.loc[df["y"] == 0, "weight"]
 
-        # Balance weights per class
-        weights_pos = weights_pos / weights_pos.sum()
-        weights_neg = weights_neg / weights_neg.sum()
+    # Balance weights per class
+    weights_pos = weights_pos / weights_pos.sum()
+    weights_neg = weights_neg / weights_neg.sum()
 
-        # Assign normalized weights back to the dataset
-        df.loc[df["y"] == 1, "weight"] = weights_pos
-        df.loc[df["y"] == 0, "weight"] = weights_neg
+    # Assign normalized weights back to the dataset
+    df.loc[df["y"] == 1, "weight"] = weights_pos
+    df.loc[df["y"] == 0, "weight"] = weights_neg
 
-        # Normalize between 0 and 1
-        df["weight"] = (df["weight"] - df["weight"].min()) / (
-            df["weight"].max() - df["weight"].min()
-        )
+    # Normalize between 0 and 1
+    df["weight"] = (df["weight"] - df["weight"].min()) / (
+        df["weight"].max() - df["weight"].min()
+    )
 
     return df["weight"]
 
@@ -140,7 +139,7 @@ def reduce_dimensionality(
     return X
 
 
-def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0, balance_weights: bool = True):
+def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
 
     df.drop(columns=["conv_parameters"], inplace=True)
 
@@ -155,7 +154,7 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0, balance
 
     # Target column
     y = (df["speedup"] > speedup_threshold).astype(int)
-    y_weights = speedup_weights(y, df["speedup"], balance_weights)
+    y_weights = speedup_weights(y, df["speedup"])
     df = df.drop(columns=["speedup"])
 
     # Remove columns with the same values
@@ -187,10 +186,19 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0, balance
 
 
 def run_decision_tree(
-    X_train, y_train, X_test, y_test, max_depth=None, max_leaf_nodes=None, w_train=None
+    X_train, y_train, X_test, y_test, max_depth=None, max_leaf_nodes=None, w_train=None, weight_balance=1.0
 ):
+    if weight_balance == 1.0 or weight_balance == -1.0:
+        class_weights = {0: 1.0, 1: 1.0}
+    elif weight_balance > 1.0:
+        class_weights = {0: 1.0, 1: weight_balance}
+    elif weight_balance < 1.0:
+        class_weights = {0: weight_balance, 1: 1.0}
+    else:
+        raise ValueError(f"Invalid weight balance {weight_balance}.")
+
     model = DecisionTreeClassifier(
-        max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, random_state=42
+        max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, random_state=42, class_weight=class_weights
     )
     model.fit(X_train, y_train, sample_weight=w_train)
     y_pred = model.predict(X_test)
@@ -287,9 +295,10 @@ if __name__ == "__main__":
         help="Split input into train and test sets.",
     )
     parser.add_argument(
-        "--skip-balance-weights",
-        action="store_true",
-        help="Disable balancing weights (based on speedup) for the classes.",
+        "--weight-balance",
+        type=float,
+        default=1.0,
+        help="Weight used to balance the classes. Default is 1.0 (equal weights), which is the same as -1.0. If greater than 1.0, class 1 is weighted more. If less than -1.0, class 0 is weighted more.",
     )
 
     args = parser.parse_args()
@@ -300,7 +309,7 @@ if __name__ == "__main__":
     max_features = args.max_features
     max_leaf_nodes = args.max_leaf_nodes
     split_train_test = args.split_train_test
-    balance_weights = not args.skip_balance_weights
+    weight_balance = args.weight_balance
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -313,7 +322,7 @@ if __name__ == "__main__":
     df = pd.read_csv(csv_results, header=0, index_col=False)
 
     df = get_data(df)
-    X, y, y_weights = get_X_y(df, mode, speedup_threshold, balance_weights)
+    X, y, y_weights = get_X_y(df, mode, speedup_threshold)
 
     X = reduce_dimensionality(X, y, max_features, max_depth, y_weights)
 
@@ -325,7 +334,7 @@ if __name__ == "__main__":
         X_train, y_train, w_train = X, y, y_weights
         X_test, y_test, w_test = X, y, y_weights
 
-    model = run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train)
+    model = run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train, weight_balance)
 
     prune_duplicate_leaves(model)
 
