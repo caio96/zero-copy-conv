@@ -14,6 +14,8 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
+from sklearn.metrics import make_scorer, f1_score, precision_score
+from sklearn.model_selection import GridSearchCV
 
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 
@@ -186,7 +188,7 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
 
 
 def run_decision_tree(
-    X_train, y_train, X_test, y_test, max_depth=None, max_leaf_nodes=None, w_train=None, weight_balance=1.0
+    X_train, y_train, X_test, y_test, max_depth=None, max_leaf_nodes=None, w_train=None, weight_balance=1.0, search=False
 ):
     if weight_balance == 1.0 or weight_balance == -1.0:
         class_weights = {0: 1.0, 1: 1.0}
@@ -197,16 +199,48 @@ def run_decision_tree(
     else:
         raise ValueError(f"Invalid weight balance {weight_balance}.")
 
-    model = DecisionTreeClassifier(
-        max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, random_state=42, class_weight=class_weights
-    )
-    model.fit(X_train, y_train, sample_weight=w_train)
-    y_pred = model.predict(X_test)
+    if not search:
+        model = DecisionTreeClassifier(
+            max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, random_state=42, class_weight=class_weights
+        )
+        model.fit(X_train, y_train, sample_weight=w_train)
+        y_pred = model.predict(X_test)
 
-    print("DecisionTreeClassifier report:")
+        print("DecisionTreeClassifier report:")
+        print(classification_report(y_test, y_pred))
+
+        return model
+
+    # Custom scorer for precision for class 1
+    # scorer = make_scorer(precision_score, pos_label=1)
+    scorer = make_scorer(f1_score, pos_label=1)
+
+    # Define parameter grid
+    param_grid = {
+        'criterion': ['gini'],  # Splitting criteria
+        'max_depth': [1, 2, None],  # Maximum depth of the tree
+        'max_leaf_nodes': [4, 5, 6],  # Maximum depth of the tree
+        'max_features': [None, 'sqrt', 'log2'],  # Number of features to consider for best split
+        'class_weight': [None, {0: 1.0, 1: 2.0}, {0: 1.0, 1: 1.5}, {0: 2.0, 1: 1.0}, {0: 1.5, 1: 1.0}],
+    }
+
+    # Perform grid search
+    grid_search = GridSearchCV(
+        DecisionTreeClassifier(),
+        param_grid,
+        scoring=scorer,
+    )
+    grid_search.fit(X_train, y_train)
+
+    # Best parameters and model
+    print("Best Parameters:", grid_search.best_params_)
+    best_model = grid_search.best_estimator_
+
+    # Evaluate the best model
+    y_pred = best_model.predict(X_test)
     print(classification_report(y_test, y_pred))
 
-    return model
+    return best_model
 
 
 def prune_duplicate_leaves(mdl):
@@ -300,6 +334,11 @@ if __name__ == "__main__":
         default=1.0,
         help="Weight used to balance the classes. Default is 1.0 (equal weights), which is the same as -1.0. If greater than 1.0, class 1 is weighted more. If less than -1.0, class 0 is weighted more.",
     )
+    parser.add_argument(
+        "--search",
+        action="store_true",
+        help="Use grid search to find the best hyperparameters.",
+    )
 
     args = parser.parse_args()
     csv_results = Path(args.CSV_Results)
@@ -310,6 +349,7 @@ if __name__ == "__main__":
     max_leaf_nodes = args.max_leaf_nodes
     split_train_test = args.split_train_test
     weight_balance = args.weight_balance
+    search = args.search
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -334,7 +374,7 @@ if __name__ == "__main__":
         X_train, y_train, w_train = X, y, y_weights
         X_test, y_test, w_test = X, y, y_weights
 
-    model = run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train, weight_balance)
+    model = run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train, weight_balance, search)
 
     prune_duplicate_leaves(model)
 
