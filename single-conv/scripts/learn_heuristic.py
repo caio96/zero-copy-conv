@@ -193,7 +193,7 @@ def run_decision_tree(
     elif weight_balance > 1.0:
         class_weights = {0: 1.0, 1: weight_balance}
     elif weight_balance < 1.0:
-        class_weights = {0: weight_balance, 1: 1.0}
+        class_weights = {0: -weight_balance, 1: 1.0}
     else:
         raise ValueError(f"Invalid weight balance {weight_balance}.")
 
