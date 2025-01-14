@@ -143,7 +143,20 @@ int main(int argc, char **argv) {
     return ret;
 
 #if defined ZERO_COPY
+  bool zc_weights_HWIO;
+  bool zc_transform_output;
+  set_zero_copy_2d_env_vars(zc_weights_HWIO, zc_transform_output);
   std::string name{"LibTorch_ZeroCopy2D"};
+  if (zc_weights_HWIO) {
+    name += "_HWIO";
+  } else {
+    name += "_OHWI";
+  }
+  if (zc_transform_output) {
+    name += "_TransformOutput";
+  } else {
+    name += "_NoTransformOutput";
+  }
 #else
   // Disable zero copy convolution
   std::string false_str = "FALSE";
