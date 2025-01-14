@@ -10,12 +10,10 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel, VarianceThreshold
-from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, f1_score, make_scorer, precision_score
+from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
-from sklearn.metrics import make_scorer, f1_score, precision_score
-from sklearn.model_selection import GridSearchCV
 
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 
@@ -79,7 +77,9 @@ def speedup_weights(y, speedup):
     df["weight"] = np.clip(df["weight"], 0, df["weight"].quantile(0.99))
 
     # Normalize between 0 and 1
-    df["weight"] = (df["weight"] - np.min(df["weight"])) / (np.max(df["weight"]) - np.min(df["weight"]))
+    df["weight"] = (df["weight"] - np.min(df["weight"])) / (
+        np.max(df["weight"]) - np.min(df["weight"])
+    )
 
     # Separate weights by class
     weights_pos = df.loc[df["y"] == 1, "weight"]
@@ -94,9 +94,7 @@ def speedup_weights(y, speedup):
     df.loc[df["y"] == 0, "weight"] = weights_neg
 
     # Normalize between 0 and 1
-    df["weight"] = (df["weight"] - df["weight"].min()) / (
-        df["weight"].max() - df["weight"].min()
-    )
+    df["weight"] = (df["weight"] - df["weight"].min()) / (df["weight"].max() - df["weight"].min())
 
     return df["weight"]
 
@@ -188,7 +186,15 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
 
 
 def run_decision_tree(
-    X_train, y_train, X_test, y_test, max_depth=None, max_leaf_nodes=None, w_train=None, weight_balance=1.0, search=False
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    max_depth=None,
+    max_leaf_nodes=None,
+    w_train=None,
+    weight_balance=1.0,
+    search=False,
 ):
     if weight_balance == 1.0 or weight_balance == -1.0:
         class_weights = {0: 1.0, 1: 1.0}
@@ -201,7 +207,10 @@ def run_decision_tree(
 
     if not search:
         model = DecisionTreeClassifier(
-            max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, random_state=42, class_weight=class_weights
+            max_depth=max_depth,
+            max_leaf_nodes=max_leaf_nodes,
+            random_state=42,
+            class_weight=class_weights,
         )
         model.fit(X_train, y_train, sample_weight=w_train)
         y_pred = model.predict(X_test)
@@ -217,11 +226,17 @@ def run_decision_tree(
 
     # Define parameter grid
     param_grid = {
-        'criterion': ['gini'],  # Splitting criteria
-        'max_depth': [1, 2, None],  # Maximum depth of the tree
-        'max_leaf_nodes': [4, 5, 6],  # Maximum depth of the tree
-        'max_features': [None, 'sqrt', 'log2'],  # Number of features to consider for best split
-        'class_weight': [None, {0: 1.0, 1: 2.0}, {0: 1.0, 1: 1.5}, {0: 2.0, 1: 1.0}, {0: 1.5, 1: 1.0}],
+        "criterion": ["gini"],  # Splitting criteria
+        "max_depth": [1, 2, None],  # Maximum depth of the tree
+        "max_leaf_nodes": [4, 5, 6],  # Maximum depth of the tree
+        "max_features": [None, "sqrt", "log2"],  # Number of features to consider for best split
+        "class_weight": [
+            None,
+            {0: 1.0, 1: 2.0},
+            {0: 1.0, 1: 1.5},
+            {0: 2.0, 1: 1.0},
+            {0: 1.5, 1: 1.0},
+        ],
     }
 
     # Perform grid search
@@ -374,7 +389,9 @@ if __name__ == "__main__":
         X_train, y_train, w_train = X, y, y_weights
         X_test, y_test, w_test = X, y, y_weights
 
-    model = run_decision_tree(X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train, weight_balance, search)
+    model = run_decision_tree(
+        X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train, weight_balance, search
+    )
 
     prune_duplicate_leaves(model)
 
