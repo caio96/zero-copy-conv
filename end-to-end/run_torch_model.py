@@ -87,12 +87,7 @@ def run_inference(model, input):
 def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False, csv_output=False, csv_header=False):
     # Load model with default weights
     weights = models.get_model_weights(model_name).DEFAULT
-    # TODO: check if any quantized model uses ZeroCopy2D
-    quantize = "quantized" in model_name
-    if quantize:
-        model = models.get_model(model_name, weights=weights, quantize=quantize)
-    else:
-        model = models.get_model(model_name, weights=weights)
+    model = models.get_model(model_name, weights=weights)
 
     # Pre process input with the model's transforms
     dummy_input = torch.randn(3, 224, 224)
