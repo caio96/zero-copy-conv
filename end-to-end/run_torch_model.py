@@ -79,12 +79,12 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
     return model
 
 
-def run_inference(model, input):
-    with torch.no_grad():  # Disable gradient calculation
-        return model(input)
+def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False, csv_output=None, csv_header=False, method_name=None):
 
+    def run_inference(model, input):
+        with torch.no_grad():  # Disable gradient calculation
+            return model(input)
 
-def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False, csv_output=False, csv_header=False):
     # Load model with default weights
     weights = models.get_model_weights(model_name).DEFAULT
     model = models.get_model(model_name, weights=weights)
@@ -117,15 +117,19 @@ def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False,
     t0 = benchmark.Timer(
         stmt="run_inference(model, input)",
         num_threads=num_threads,
-        setup="from __main__ import run_inference",
-        globals={"model": model, "input": input},
+        globals={"model": model, "input": input, "run_inference": run_inference},
     )
     m0 = t0.adaptive_autorange(min_run_time=1)
 
     if csv_output:
-        if csv_header:
-            print("Model,Mean,Median,IQR,Unit,Runs,Threads")
-        print(f"{model_name},{m0.mean*1000},{m0.median*1000},{m0.iqr*1000},ms,{len(m0.times)},{num_threads}")
+        if not method_name:
+            print("Method name is required for csv output", file=sys.stderr)
+            sys.exit(1)
+
+        with open(csv_output, "a") as f:
+            if csv_header:
+                f.write("Method,Model,Mean,Median,IQR,Unit,Runs,Threads\n")
+            f.write(f"{method_name},{model_name},{m0.mean*1000},{m0.median*1000},{m0.iqr*1000},ms,{len(m0.times)},{num_threads}\n")
     else:
         print("Model: ", model_name)
         print(m0)
