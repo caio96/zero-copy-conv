@@ -84,7 +84,7 @@ def run_inference(model, input):
         return model(input)
 
 
-def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False):
+def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False, csv_output=False, csv_header=False):
     # Load model with default weights
     weights = models.get_model_weights(model_name).DEFAULT
     # TODO: check if any quantized model uses ZeroCopy2D
@@ -126,7 +126,14 @@ def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False)
         globals={"model": model, "input": input},
     )
     m0 = t0.adaptive_autorange(min_run_time=1)
-    print(m0)
+
+    if csv_output:
+        if csv_header:
+            print("Model,Mean,Median,IQR,Unit,Runs,Threads")
+        print(f"{model_name},{m0.mean*1000},{m0.median*1000},{m0.iqr*1000},ms,{len(m0.times)},{num_threads}")
+    else:
+        print("Model: ", model_name)
+        print(m0)
 
 
 def get_all_models():
