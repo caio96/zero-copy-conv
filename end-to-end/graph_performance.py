@@ -128,10 +128,11 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
 
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
 
-    # Save resulst to csv
-    speedup_results.to_csv(
-        output_dir / f"end_to_end_{new_method_name}_vs_{old_method_name}.csv", index=False
-    )
+    # Save results to csv
+    if not only_stats:
+        speedup_results.to_csv(
+            output_dir / f"end_to_end_{new_method_name}_vs_{old_method_name}.csv", index=False
+        )
 
     speedup = speedup_results["speedup"]
     plot_speedup(speedup, old_method_name, new_method_name, output_dir, only_stats)
