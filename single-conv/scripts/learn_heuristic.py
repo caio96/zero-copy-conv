@@ -139,7 +139,11 @@ def reduce_dimensionality(
     return X
 
 
-def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
+def get_X_y(df: pd.DataFrame, mode: str, occurrences_csv: Path = None, speedup_threshold: float = 0.0):
+
+    if occurrences_csv:
+        occurrences_df = pd.read_csv(occurrences_csv, header=0, index_col=False)
+        df = df.merge(occurrences_df, on="conv_parameters", how="left")
 
     df.drop(columns=["conv_parameters"], inplace=True)
 
@@ -155,6 +159,10 @@ def get_X_y(df: pd.DataFrame, mode: str, speedup_threshold: float = 0.0):
     # Target column
     y = (df["speedup"] > speedup_threshold).astype(int)
     y_weights = speedup_weights(y, df["speedup"])
+    if occurrences_csv:
+        y_weights = y_weights * df["occurrences"]
+        df = df.drop(columns=["occurrences"])
+
     df = df.drop(columns=["speedup"])
 
     # Remove columns with the same values
@@ -315,6 +323,11 @@ if __name__ == "__main__":
         default="normal",
     )
     parser.add_argument(
+        "--occurrences-csv",
+        type=str,
+        help="Path to csv with 'conv_parameters' and 'occurences' columns. If passed, it is used to weight samples."
+    )
+    parser.add_argument(
         "--speedup-threshold",
         type=float,
         help="Speedup threshold to consider a method as preferred. Default is 0.0.",
@@ -365,19 +378,26 @@ if __name__ == "__main__":
     split_train_test = args.split_train_test
     weight_balance = args.weight_balance
     search = args.search
+    occurrences_csv = args.occurrences_csv
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
         print("CSV with results not found.", file=sys.stderr)
         sys.exit(-1)
 
-    # mute pandas warnings
+    if occurrences_csv:
+        occurrences_csv = Path(occurrences_csv)
+        if (not occurrences_csv.exists()) or (not occurrences_csv.is_file()):
+            print("CSV with occurrences not found.", file=sys.stderr)
+            sys.exit(-1)
+
+    # Mute pandas warnings
     warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
     df = pd.read_csv(csv_results, header=0, index_col=False)
 
     df = get_data(df)
-    X, y, y_weights = get_X_y(df, mode, speedup_threshold)
+    X, y, y_weights = get_X_y(df, mode, occurrences_csv, speedup_threshold)
 
     X = reduce_dimensionality(X, y, max_features, max_depth, y_weights)
 
