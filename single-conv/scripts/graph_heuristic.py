@@ -57,9 +57,10 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
     heuristic_name = f"Heuristic_{new_method_name}"
 
     # Save resulst to csv
-    speedup_results.to_csv(
-        output_dir / f"conv2d_{heuristic_name}_vs_{old_method_name}.csv", index=False
-    )
+    if not only_stats:
+        speedup_results.to_csv(
+            output_dir / f"conv2d_{heuristic_name}_vs_{old_method_name}.csv", index=False
+        )
 
     speedup = speedup_results["speedup"]
     plot_speedup(speedup, old_method_name, heuristic_name, output_dir, only_stats)
