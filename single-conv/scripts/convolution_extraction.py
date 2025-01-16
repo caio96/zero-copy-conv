@@ -6,17 +6,26 @@ from pathlib import Path
 
 import pandas as pd
 import timm
+import torchvision.models as models
 import torch
 from tqdm import tqdm
 
 
 class VerboseExecution(torch.nn.Module):
-    def __init__(self, model, model_name, conv_parameters):
+    def __init__(self, model, model_name, conv_parameters, source, weights=None):
         super().__init__()
         self.model = model
         self.conv_parameters = conv_parameters
-        data_config = timm.data.resolve_model_data_config(model)
-        channels, height, width = data_config["input_size"]
+        if source == "timm":
+            data_config = timm.data.resolve_model_data_config(model)
+            channels, height, width = data_config["input_size"]
+        elif source == "torch":
+            # Pre process input with the model's transforms
+            dummy_input = torch.randn(3, 224, 224)
+            if weights:
+                preprocess = weights.transforms()
+                dummy_input = preprocess(dummy_input)
+            channels, height, width = dummy_input.shape
         self.input_size = (1, channels, height, width)
 
         # Register a hook for each Conv2D layer
@@ -57,24 +66,43 @@ class VerboseExecution(torch.nn.Module):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Gather convolutional layer parameters from Timm into a csv file."
+        description="Gather convolutional layer parameters into a csv file."
     )
     parser.add_argument(
         "Output_Dir", type=str, help="Path to the directory where to save csv output."
     )
+    parser.add_argument(
+        "Source", type=str, choices=["timm", "torch"], default="timm", help="Source used to get models to extract convolutions."
+    )
 
     args = parser.parse_args()
     output_dir = Path(args.Output_Dir).absolute()
+    source = args.Source
 
     # Store results
     conv_parameters = defaultdict(list)
 
     # For each model in timm
-    for model_name in tqdm(timm.list_models()):
+    if source == "timm":
+        model_names = timm.list_models()
+    elif source == "torch":
+        all_model_names = models.list_models()
+        # Exclude video models
+        video_model_names = models.list_models(module=models.video)
+        model_names = [
+            model for model in all_model_names if model not in video_model_names
+        ]
+
+    for model_name in tqdm(models):
+        weights = None
         # Create it in evaluation mode
-        model = timm.create_model(model_name).eval()
+        if source == "timm":
+            model = timm.create_model(model_name).eval()
+        elif source == "torch":
+            weights = models.get_model_weights(model_name).DEFAULT
+            model = models.get_model(model_name, weights=weights)
         # Save the parameters for Conv2D layers
-        model = VerboseExecution(model, model_name, conv_parameters)
+        model = VerboseExecution(model, model_name, conv_parameters, source, weights)
         # Delete it
         del model
 
