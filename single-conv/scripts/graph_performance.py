@@ -43,6 +43,7 @@ def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name
         median = df["speedup"][cumsum >= cutoff].iloc[0]
         return median
 
+    speedup_results = speedup_results.reset_index(drop=True)
     speedup = speedup_results["speedup"]
     occurrences = speedup_results["occurrences"]
     num_points = speedup_results.shape[0]
