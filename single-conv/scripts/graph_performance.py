@@ -3,6 +3,7 @@
 import argparse
 import sys
 import itertools
+import numpy as np
 from pathlib import Path
 from tabulate import tabulate
 
@@ -32,7 +33,7 @@ def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
     return speedup_results
 
 
-def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_dir, only_stats=False):
+def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_dir, only_stats=False, clip_pos=False, clip_neg=False):
 
     num_points = speedup.shape[0]
 
@@ -54,11 +55,27 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
     if only_stats:
         return
 
+    # Clip positive outliers if enabled
+    if clip_pos:
+        pos_threshold = pos.quantile(0.99)
+        pos = np.clip(pos, 0, pos_threshold)
+    # Clip negative outliers if enabled
+    if clip_neg:
+        neg_threshold = neg.quantile(0.01)
+        neg = np.clip(neg, neg_threshold, 0)
+
     fig, ax = plt.subplots()
 
     # barplot
-    ax.bar(pos.index, pos, color="#2c7bb6")
-    ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="#d7191c")
+    pos_bars = ax.bar(pos.index, pos, color="#2c7bb6")
+    neg_bars = ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="#d7191c")
+
+    # Add line showing that positive outliers clipped
+    if clip_pos:
+        ax.axhline(y=pos_threshold, color='gray', linestyle='--', linewidth=0.5)
+    # Add line showing that positive outliers clipped
+    if clip_neg:
+        ax.axhline(y=neg_threshold, color='gray', linestyle='--', linewidth=0.5)
 
     # boxplot
     _, x_max = ax.get_xlim()
@@ -131,7 +148,7 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
 
 
 # Saves a csv with results and produces an speedup graph
-def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats):
+def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg):
 
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
 
@@ -141,7 +158,7 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
     )
 
     speedup = speedup_results["speedup"]
-    plot_speedup(speedup, old_method_name, new_method_name, output_dir, only_stats)
+    plot_speedup(speedup, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg)
 
 
 if __name__ == "__main__":
@@ -197,6 +214,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip generating graphs and only print stats",
     )
+    parser.add_argument(
+        "--clip-positive-outliers",
+        action="store_true",
+        help="Clip positive outliers in the speedup graph",
+    )
+    parser.add_argument(
+        "--clip-negative-outliers",
+        action="store_true",
+        help="Clip negative outliers in the speedup graph",
+    )
 
     args = parser.parse_args()
 
@@ -207,6 +234,8 @@ if __name__ == "__main__":
     old_method = args.old_method
     new_method = args.new_method
     only_stats = args.only_stats
+    clip_pos = args.clip_positive_outliers
+    clip_neg = args.clip_negative_outliers
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -240,17 +269,17 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     if old_method and new_method:
-        compare_methods(df, old_method, new_method, output_dir, only_stats)
+        compare_methods(df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg) 
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
-            compare_methods(df, old_method, method, output_dir, only_stats)
+            compare_methods(df, old_method, method, output_dir, only_stats, clip_pos, clip_neg) 
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
-            compare_methods(df, method, new_method, output_dir, only_stats)
+            compare_methods(df, method, new_method, output_dir, only_stats, clip_pos, clip_neg) 
     else:
         for method1, method2 in itertools.combinations(methods, 2):
-            compare_methods(df, method1, method2, output_dir, only_stats)
+            compare_methods(df, method1, method2, output_dir, only_stats, clip_pos, clip_neg)
