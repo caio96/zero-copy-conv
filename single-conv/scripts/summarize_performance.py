@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def summarize_results(df: pd.DataFrame, output_dir):
+def summarize_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir):
 
     # Split the 'name' column into 'conv_type' and 'conv_parameters'
     df[["conv_type", "conv_parameters"]] = df["name"].str.split(" ", n=1, expand=True)
@@ -56,6 +56,9 @@ def summarize_results(df: pd.DataFrame, output_dir):
             suffixes=(None, None),
         ).drop(columns=["conv_parameters_" + method_name])
 
+    # Add occurrences column
+    joined_results = joined_results.merge(occurrences_df, how="left", on="conv_parameters")
+
     # Save joined results
     joined_results.to_csv(output_dir / f"performance-results.csv", index=False)
 
@@ -69,11 +72,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "CSV_Input", type=str, help="Path to the input CSV file with performance logs."
     )
+    parser.add_argument(
+        "Occurrences_CSV", type=str, help="Path to the CSV file with conv_parameters and occurrences."
+    )
     parser.add_argument("Output_Dir", type=str, help="Path to directory to store outputs.")
 
     args = parser.parse_args()
 
     csv_input = Path(args.CSV_Input)
+    occurrences_csv = Path(args.Occurrences_CSV)
     output_dir = Path(args.Output_Dir)
 
     # Check if csv file exists
@@ -81,9 +88,15 @@ if __name__ == "__main__":
         print("CSV with results not found.", file=sys.stderr)
         sys.exit(-1)
 
+    if (not occurrences_csv.exists()) or (not occurrences_csv.is_file()):
+        print("CSV with occurrences not found.", file=sys.stderr)
+        sys.exit(-1)
+
     # Check if output dir exists
     if (not output_dir.exists()) or (not output_dir.is_dir()):
         print("Output directory not found.", file=sys.stderr)
 
     df = pd.read_csv(csv_input, header=0, index_col=False)
-    summarize_results(df, output_dir)
+    occurrences_df = pd.read_csv(occurrences_csv, header=0, index_col=False)
+
+    summarize_results(df, occurrences_df, output_dir)

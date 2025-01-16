@@ -22,6 +22,7 @@ def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
 
     speedup_results = pd.DataFrame()
     speedup_results["conv_parameters"] = joined_results["conv_parameters"]
+    speedup_results["occurrences"] = joined_results["occurrences"]
 
     # Compute speedup
     speedup_results["speedup"] = (
@@ -33,23 +34,36 @@ def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
     return speedup_results
 
 
-def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_dir, only_stats=False, clip_pos=False, clip_neg=False):
+def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats=False, clip_pos=False, clip_neg=False):
 
-    num_points = speedup.shape[0]
+    def weighted_median(df: pd.DataFrame):
+        df = df.sort_values('speedup')
+        cumsum = df["occurrences"].cumsum()
+        cutoff = df["occurrences"].sum() / 2.0
+        median = df["speedup"][cumsum >= cutoff].iloc[0]
+        return median
+
+    speedup = speedup_results["speedup"]
+    occurrences = speedup_results["occurrences"]
+    num_points = speedup_results.shape[0]
 
     inflection = num_points
     for i in range(0, num_points - 1):
         if speedup.iloc[i] > 0 and speedup.iloc[i + 1] < 0:
             inflection = i + 0.5
 
-    pos = speedup.loc[lambda x: x >= 0].reset_index(drop=True)
-    neg = speedup.loc[lambda x: x < 0].reset_index(drop=True)
+    pos = speedup_results.loc[lambda x: x.speedup >= 0]
+    neg = speedup_results.loc[lambda x: x.speedup < 0]
+    pos_speedup = pos["speedup"]
+    neg_speedup = neg["speedup"]
 
     stats = {
         f"{new_method_name} vs {old_method_name}": ["Speedup", "Slowdown"],
-        "Count": [pos.shape[0], neg.shape[0]],
-        "Median": [pos.median(), neg.median()],
-        "Max": [pos.max(), neg.min()],
+        "Count": [pos_speedup.shape[0], neg_speedup.shape[0]],
+        "Median": [pos_speedup.median(), neg_speedup.median()],
+        "Max": [pos_speedup.max(), neg_speedup.min()],
+        "Occurrences": [int(pos["occurrences"].sum()), int(neg["occurrences"].sum())],
+        "Weighted Median": [weighted_median(pos), weighted_median(neg)]
     }
     print(tabulate(stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
     if only_stats:
@@ -57,18 +71,18 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
 
     # Clip positive outliers if enabled
     if clip_pos:
-        pos_threshold = pos.quantile(0.99)
-        pos = np.clip(pos, 0, pos_threshold)
+        pos_threshold = pos_speedup.quantile(0.99)
+        pos_speedup = np.clip(pos_speedup, 0, pos_threshold)
     # Clip negative outliers if enabled
     if clip_neg:
-        neg_threshold = neg.quantile(0.01)
-        neg = np.clip(neg, neg_threshold, 0)
+        neg_threshold = neg_speedup.quantile(0.01)
+        neg_speedup = np.clip(neg_speedup, neg_threshold, 0)
 
     fig, ax = plt.subplots()
 
     # barplot
-    pos_bars = ax.bar(pos.index, pos, color="#2c7bb6")
-    neg_bars = ax.bar(range(pos.shape[0], pos.shape[0] + neg.shape[0], 1), neg.values, color="#d7191c")
+    pos_bars = ax.bar(pos_speedup.index, pos_speedup, color="#2c7bb6")
+    neg_bars = ax.bar(range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1), neg_speedup.values, color="#d7191c")
 
     # Add line showing that positive outliers clipped
     if clip_pos:
@@ -81,7 +95,7 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
     _, x_max = ax.get_xlim()
     ax.set_xlim((-x_max * 0.05, num_points + x_max * 0.05))
     ax.boxplot(
-        [pos, neg],
+        [pos_speedup, neg_speedup],
         showfliers=False,
         positions=[-x_max * 0.025, num_points + x_max * 0.025],
         widths=x_max * 0.02,
@@ -111,12 +125,12 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
     ax.text(
         (inflection / 2),
         -y_total * 0.08,
-        f"{pos.shape[0]}",
+        f"{pos_speedup.shape[0]}",
         horizontalalignment="center",
         verticalalignment="center",
     )
 
-    if neg.shape[0] != 0:
+    if neg_speedup.shape[0] != 0:
         ax.hlines(y_total * 0.05, inflection, num_points, "#d7191c")
         ax.vlines(
             inflection,
@@ -133,7 +147,7 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
         ax.text(
             ((num_points + inflection) / 2),
             y_total * 0.08,
-            f"{neg.shape[0]}",
+            f"{neg_speedup.shape[0]}",
             horizontalalignment="center",
             verticalalignment="center",
         )
@@ -158,8 +172,7 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
             output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
 
-    speedup = speedup_results["speedup"]
-    plot_speedup(speedup, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg)
+    plot_speedup(speedup_results, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+import itertools
 import pandas as pd
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 from graph_performance import plot_speedup
@@ -37,6 +38,7 @@ def simulate_heuristic_speedup(joined_results: pd.DataFrame, old_method_name, ne
 
     speedup_results = pd.DataFrame()
     speedup_results["conv_parameters"] = joined_results["conv_parameters"]
+    speedup_results["occurrences"] = joined_results["occurrences"]
 
     speedup_results = heuristic(speedup_results)
 
@@ -51,7 +53,7 @@ def simulate_heuristic_speedup(joined_results: pd.DataFrame, old_method_name, ne
 
 
 # Saves a csv with results and produces an speedup graph
-def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, only_stats):
+def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg):
 
     speedup_results = simulate_heuristic_speedup(joined_results, old_method_name, new_method_name)
     heuristic_name = f"Heuristic_{new_method_name}"
@@ -62,8 +64,7 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
             output_dir / f"conv2d_{heuristic_name}_vs_{old_method_name}.csv", index=False
         )
 
-    speedup = speedup_results["speedup"]
-    plot_speedup(speedup, old_method_name, heuristic_name, output_dir, only_stats)
+    plot_speedup(speedup_results, old_method_name, heuristic_name, output_dir, only_stats, clip_pos, clip_neg)
 
 
 if __name__ == "__main__":
@@ -76,14 +77,14 @@ if __name__ == "__main__":
     parser.add_argument("Output_Dir", type=str, help="Path to directory to store outputs.")
 
     parser.add_argument(
-        "Old_Method",
+        "--old-method",
         type=str,
-        help="Set old method for speedup comparison. This should be something like default Libtorch or OneDNN",
+        help="Set old method for speedup comparison. If not set, all methods will be compared",
     )
     parser.add_argument(
-        "New_Method",
+        "--new-method",
         type=str,
-        help="Set new method for speedup comparison. This should be ZeroCopy convolution.",
+        help="Set new method for speedup comparison. If not set, all methods will be compared.",
     )
 
     parser.add_argument(
@@ -121,16 +122,28 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip generating graphs and only print stats",
     )
+    parser.add_argument(
+        "--clip-positive-outliers",
+        action="store_true",
+        help="Clip positive outliers in the speedup graph",
+    )
+    parser.add_argument(
+        "--clip-negative-outliers",
+        action="store_true",
+        help="Clip negative outliers in the speedup graph",
+    )
 
     args = parser.parse_args()
 
     csv_results = Path(args.CSV_Results)
     output_dir = Path(args.Output_Dir)
-    old_method = args.Old_Method
-    new_method = args.New_Method
+    old_method = args.old_method
+    new_method = args.new_method
     exclude_conv_types = args.exclude_conv_types
     include_only_conv_types = args.include_only_conv_types
     only_stats = args.only_stats
+    clip_pos = args.clip_positive_outliers
+    clip_neg = args.clip_negative_outliers
 
     # Check if csv file exists
     if (not csv_results.exists()) or (not csv_results.is_file()):
@@ -154,13 +167,27 @@ if __name__ == "__main__":
     methods = [col.replace("mean_time_", "") for col in df.columns if "mean_time" in col]
 
     # Check if both methods are present
-    if f"mean_time_{old_method}" not in df.columns:
+    if old_method and f"mean_time_{old_method}" not in df.columns:
         print(f"Method {old_method} not found in results.", file=sys.stderr)
         print(f"Available methods: {methods}", file=sys.stderr)
         sys.exit(-1)
-    if f"mean_time_{new_method}" not in df.columns:
+    if new_method and f"mean_time_{new_method}" not in df.columns:
         print(f"Method {new_method} not found in results.", file=sys.stderr)
         print(f"Available methods: {methods}", file=sys.stderr)
         sys.exit(-1)
 
-    compare_methods(df, old_method, new_method, only_stats)
+    if old_method and new_method:
+        compare_methods(df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg)
+    elif old_method:
+        for method in methods:
+            if method == old_method:
+                continue
+            compare_methods(df, old_method, method, output_dir, only_stats, clip_pos, clip_neg)
+    elif new_method:
+        for method in methods:
+            if method == new_method:
+                continue
+            compare_methods(df, method, new_method, output_dir, only_stats, clip_pos, clip_neg)
+    else:
+        for method1, method2 in itertools.combinations(methods, 2):
+            compare_methods(df, method1, method2, output_dir, only_stats, clip_pos, clip_neg)
