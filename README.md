@@ -1,12 +1,15 @@
 # Zero-Copy GEMM-Based Fast Convolution :zap:
 
-This repository is designed to test the zero-copy gemm-based convolution.
+This repository is designed to test the Zero-Copy GEMM-based convolution (in CPUs).
 The repository is divided in two:
 - [Single convolution testing](#single-convolution-testing)
 - [End-to-end model testing](#end-to-end-model-testing)
+
 ---
 
-# Conda Environment
+# Common Dependecies
+
+## Conda Environment
 
 Install conda first if necessary:
 
@@ -27,53 +30,104 @@ conda activate eval-zero-copy
 conda install cmake ninja
 ```
 
-Activate this environment when building or running the following experiments.
+Use this environment when building or running the following experiments.
 
+## Custom PyTorch + TorchVision
+
+Build and install a custom PyTorch that has a Zero-Copy Convolution implementation, and TorchVision.
+
+- [Custom PyTorch](https://github.com/caio96/pytorch-zero-copy.git)
+- [Pytorch Vision](https://github.com/pytorch/vision/tree/main)
+
+### How to build custom PyTorch
+
+Install MKL:
+
+```sh
+conda install conda-forge::mkl-static==2025.0.0 conda-forge::mkl-include==2025.0.0
+```
+
+Build and install
+
+```sh
+git clone --recursive git@github.com:caio96/pytorch-zero-copy.git pytorch
+cd pytorch
+git checkout v2.5.1-zero-copy
+git submodule sync
+git submodule update --init --recursive
+
+pip install -r requirements.txt
+
+# Setup build environment
+export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
+export _GLIBCXX_USE_CXX11_ABI=1
+export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
+
+# Set number of threads and compile, this command will install torch and build LibTorch
+MAX_JOBS=8 python setup.py develop && python tools/build_libtorch.py
+```
+
+### How to build PyTorch vision
+
+```sh
+conda install libpng libjpeg-turbo -c pytorch
+
+git clone https://github.com/pytorch/vision.git
+cd vision
+git checkout v0.20.1
+MAX_JOBS=8 python setup.py develop
+```
 
 ---
 
 # Single Convolution Testing
 
-Compares the Zero-Copy convolution with the following convolution implementations in over 10000 convolution layers extracted from real models.
+Compares the following convolution implementations.
+Over 9000 convolution layers were extracted from real models to evaluate the different methods.
 Data type used is float32.
 
-- Naive convolution: For loops and simple multiply accumulate
-- Im2col convolution: Transforms the input image with im2col and executes convolution as a single GEMM call
-- Yaconv convolution: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements. Defined in [blis-conv](https://github.com/caio96/blis-conv)
-- Zero-Copy convolution: New convolution implementation, yet to be published
-- LibTorch convolution: Pytorch Conv2D implementation using the C++ API
-- OneDNN_any concolution: Intel's OneDNN implementation allowing the framework to decide the best layouts. Transforming the layout is not included in the timing.
+- Naive: For loops and simple multiply accumulate
+- Im2col: Transforms the input image with im2col and executes convolution as a GEMM call
+- Yaconv: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements. Defined in [blis-conv](https://github.com/caio96/blis-conv)
+- ZeroCopy: Standalone C++ implementation that executes convolution as a sequence of GEMMs without transforming the input
+- OneDNN_any: Intel's OneDNN implementation allowing the framework to decide the best layouts. Transforming the layout is not included in the timing.
+- LibTorch_ZeroCopy: ZeroCopy Conv2D implemented inside Pytorch, run using its C++ API
+- LibTorch: Pytorch Conv2D implementation using the C++ API (the ZeroCopy implementation in Pytorch is disabled)
 
-|             | Feature Layout | Weight Layout | Output Layout | Multithreading     |
-| ----------- | -------------- | ------------- | ------------- | ------------------ |
-| Naive       | NCHW           | OIHW          | NCHW          | :x:                |
-| Im2col      | NCHW           | OIHW          | NCHW          | :white_check_mark: |
-| Yaconv      | NHWC           | HWIO          | NHWC          | :x:                |
-| Zero-Copy   | NHWC           | HWIO          | NWHC          | :white_check_mark: |
-| LibTorch    | NHWC           | OHWI          | NHWC          | :white_check_mark: |
-| OneDNN_any  | ??             | ??            | ??            | :white_check_mark: |
+|                   | Feature Layout | Weight Layout | Output Layout | Multithreading     |
+| ----------------- | -------------- | ------------- | ------------- | ------------------ |
+| Naive             | NCHW           | OIHW          | NCHW          | :x:                |
+| Im2col            | NCHW           | OIHW          | NCHW          | :white_check_mark: |
+| Yaconv            | NHWC           | HWIO          | NHWC          | :x:                |
+| ZeroCopy          | NHWC           | HWIO          | NWHC          | :white_check_mark: |
+| OneDNN_any        | ??             | ??            | ??            | :white_check_mark: |
+| LibTorch_ZeroCopy | NHWC           | HWIO          | NHWC          | :white_check_mark: |
+| LibTorch          | NHWC           | OHWI          | NHWC          | :white_check_mark: |
 
 Note:
 
 - Yaconv only supports stride == 1, no grouping, and no dilation.
-- Libtorch has a slightly different semantic from other methods: it also allocates its output in its convolution call, so that is included in the timing, while other methods only run convolution with a preallocated output.
+- The LibTorch methods have a slightly different semantic from other methods: they also allocates their output inside the convolution call. Therefore, output allocation is included in the timing, while other methods only run convolution with a preallocated output.
 
-## Repository Structure
+## Files
 
-- `data`: Contains convolution layer parameters obtained with the script `util/timm_convolution_extraction`. Timm version 1.0.11 was used.
+- `data`: Contains convolution layer parameters obtained with the script `util/convolution_extraction`. Timm 1.0.13 and TorchVision 0.20.1 were used.
 - `include`
 - `src`
   - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method is called
-  - `kernel_conv_[method_name]` files have the implementation of each convolution method
   - `driver_[method_name]` is a specialized driver if the method differs too much from the main driver
-  - `utils` has helper functions
+  - `kernel_conv_[method_name]` files have the implementation of each convolution method
+  - `utils`
   - `verify_correctness` calls all convolutions methods converting their output if necessary to verify results. LibTorch's output is used as a reference.
 - `scripts`:
-  - `timm_convolution_extraction` is adapted from [ConvBench](https://github.com/LucasFernando-aes/ConvBench/) to extracts convolution layer parameters from multiple models into a csv
-  - `filter_csv` allows filtering the csv containing convolution layer parameters
-  - `benchmark_runner` controls running all convolutions in a generated csv to measure correctness or performance
+  - `convolution_extraction` extracts convolution layer parameters from multiple models into a csv (adapted from [ConvBench](https://github.com/LucasFernando-aes/ConvBench/))
+  - `filter_csv` allows filtering the csv containing convolution layer parameters and removing redundancies
+  - `benchmark_runner` controls running convolutions from a csv to measure correctness or performance
   - `summarize_correctness` generates csv files that summarize correctness results based on the logs from `benchmark_runner`
-  - `summarize_performance` generates csv files and graphs that summarize performance results based on the logs from `benchmark_runner`
+  - `summarize_performance` generates a csv file that summarizes performance results based on the logs from `benchmark_runner`
+  - `graph_performance` generates comparison summaries between methods in the csv generated by `summarize_performance`, and speedup graphs
+  - `learn_heuristic` uses the speedup csv generated by `graph_performance` to train a decision tree to decide which method to use based the convolution parameters
+  - `graph_heuristic` hardcodes a heuristic and has the same outputs as `graph_performance`, but exclude convolution layers not chosen by the heuristic
   - `zero_copy_conv` is a simplified version of the Zero-Copy Convolution implemented in Python
 
 ## Dependencies
@@ -81,7 +135,6 @@ Note:
 - [Google Benchmark](https://github.com/google/benchmark)
 - [Blis](https://github.com/flame/blis)
 - [Yaconv Blis](https://github.com/caio96/blis-conv), which is a fork of Blis that contains Yaconv
-- [LibTorch](https://pytorch.org/cppdocs/installing.html)
 - [OneDNN](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onednn.html)
 - [OneMKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
 
@@ -126,7 +179,16 @@ git checkout yaconv-update
 make install -j4
 ```
 
-### How to get LibTorch
+### How to install OneDNN and OneMKL
+
+```sh
+conda install conda-forge::onednn==3.5.3 conda-forge::mkl-devel==2025.0.0
+```
+
+### (Alternative) How to get LibTorch
+
+This method will work for the default LibTorch implementation, but it won't have LibTorch_ZeroCopy.
+Some adjustments in the repo may be needed for this to work as the custom PyTorch implementation is expected.
 
 - Go to [link](https://pytorch.org/get-started/locally/)
 - Select Package as "LibTorch", Language as "C++/Java", Compute platform as "CPU"
@@ -139,13 +201,7 @@ wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-de
 unzip libtorch.zip -d .
 ```
 
-### How to install OneDNN and OneMKL
-
-```sh
-conda install conda-forge::onednn==3.5.3 conda-forge::mkl-devel==2025.0.0
-```
-
-## Building Single Conv Benchmarks
+## How to Build Single Convolution Benchmarks
 
 ```sh
 cd single-conv
@@ -154,7 +210,7 @@ cd build
 cmake -DCMAKE_C_COMPILER=clang                                \
       -DCMAKE_CXX_COMPILER=clang++                            \
       -DBENCHMARK_INSTALL="/path/to/google-benchmark-install" \
-      -DTORCH_INSTALL="/path/to/libtorch"                     \
+      -DTORCH_INSTALL="/path/to/custom-pytorch/torch"         \
       -DBLIS_INSTALL="/path/to/blis-install"                  \
       -DBLIS_YACONV_INSTALL="/path/to/blis-conv-install"      \
       -DUSE_MKL="[ON/OFF]"                                    \
@@ -162,9 +218,8 @@ cmake -DCMAKE_C_COMPILER=clang                                \
       ..
 ```
 
-- Instead of using the path to the downloaded LibTorch, TORCH_INSTALL can also use the path to `pytorch/torch`, where `pytorch` is the custom PyTorch built for the end-to-end testing in this [section](#how-to-build-custom-pytorch)
 - If USE_MKL is set OFF, Blis is used as a BLAS library.
-- If USE_MKL_JIT is set ON, the Zero Copy Convolution will use MKL's jit for its base GEMM configuration, other GEMMs configurations (mostly due to padding) won't use jit.
+- If USE_MKL_JIT is set ON, the Zero Copy Convolution may use MKL's jit for some GEMM configuration.
 
 ## Running Benchmarks
 
@@ -173,8 +228,8 @@ The executables can be run with `--help` to show the parameters they take. If ru
 
 ### Multithreading
 
-To control the number of threads set the environment variable `OMP_NUM_THREADS`.
-`LibTorch`, `OneDNN`, and `Zero-Copy` will automatically parallelize, `Im2col` may require the following environment variable be set to the number of threads.
+To control the number of threads, set the environment variable `OMP_NUM_THREADS`.
+`LibTorch`, `OneDNN`, and `Zero-Copy` will automatically parallelize, `Im2col` may require the environment variable be set to the number of threads.
 It is also recommended to disable Hyper-Threading or to use numactl to set which cores are used.
 
 To set it, run:
@@ -197,88 +252,86 @@ OMP_NUM_THREADS=8 numactl -C 0-7 ./benchmark_zero_copy
 # Check how to use custom parameters
 ./benchmark_zero_copy -h
 # Zero-Copy Conv, custom parameters, 8 threads, using cores 0 to 7
-OMP_NUM_THREADS=8 numactl -C 0-7 ./benchmark_zero_copy 16 64 64 64 128 3 3 1 1 1 1 1 1 1 1 1 0 0
+OMP_NUM_THREADS=8 numactl -C 0-7 ./benchmark_zero_copy 1 128 14 14 32 3 3 1 1 1 1 1 1 1 1 1 0 0
 ```
 
-More custom layer configurations are found in `data/conv_layers.csv`
+More custom layer configurations are found in `data/`
 
 ## Verifying correctness
 
 Also in the `this-repo/build/bin/` directory, the `correctness` executable allows verifying if outputs match.
 The output does not say if the results are correct or not, it rather shows the maximum absolute difference between two elements in the output.
-The reference outputs are from LibTorch.
+The reference outputs are from LibTorch (with the ZeroCopy convolution implementation disabled).
 This executable can also be run with `--help` and it takes the same parameters as the `benchmark_` executables.
 
-## Scripts
+## Workflow
 
-Scripts gather convolutional layer parameters, run benchmarks and summarize results.
+Scripts gather convolutional layer parameters, run benchmarks, and summarize results.
 All scripts can take the `-h` flag to show usage information.
 
-Workflow:
-
-1.  Run `timm_convolution_extraction` to generate a csv file containing convolution parameters, or use the csv file provided (`data/conv_layers.csv`)
-2.  (optional) Run `filter_csv` to filter the csv generated in step 1
-3.  Build this repo
-4.  Run `benchmark_runner` with the build dir and the csv from step 1 or 2 to test performance or correctness
-5.  Run `summarize_correctness` or `summarize_performance` depending on the type of run with the output csv generated by the runner to get final csv and graphs
+1. Run `convolution_extraction` to generate a csv file containing convolution parameters, or use the csv files provided (`data/conv_layers.csv`)
+2. Run `filter_csv` to reduce redundancies in the csv generated in step 1 and to optionally filter convolution types
+3. Build this repo
+4. Run `benchmark_runner` with the build dir and the csv from step 2 to test performance or correctness
+    - This script will use the `benchmark_*` executables found in the build dir (except the naive one), remove executables if you do not want to execute them
+5. Run `summarize_correctness` or `summarize_performance` depending on the type of run with the output csv generated by the runner to summary csvs
+6. Run `graph_performance` on the output of `summarize_performance` to compare methods and get speedup graphs
+7. Run `learn_heuristic` on one of the speedup outputs of `graph_performance` to see decision tree heuristics
+8. Modify `graph_heuristic` with a heuristic and run it on the output of `summarize_performance` to see the effects of the heuristic
 
 ---
 
 # End-to-end Model Testing
 
-Adds Zero-Copy Convolution to PyTorch, enabling end-to-end runs that use this convolution implementation.
-Zero-Copy Convolution is integrated to the convolution selector in PyTorch, so it may not always be selected.
+Evaluates the performance of Zero-Copy convolution integrated to PyTorch, enabling end-to-end runs that use this convolution implementation.
+The Zero-Copy convolution is split into two implementations `ZeroCopy2d` and `ZeroCopy2d_Ext`. The `Ext` version supports dilated and grouped convolution.
+Zero-Copy Convolution is integrated to the convolution selector in PyTorch and it has its own heuristic, so it may not always be selected.
 
-## Dependencies
+## Files
 
-- [Custom PyTorch](https://github.com/caio96/pytorch-zero-copy.git)
-- [Pytorch Vision](https://github.com/pytorch/vision/tree/main)
+- `run_torch_model` executes a model multiple times using the `torch.utils.benchmark` API and reports execution time metrics.
+- `benchmark_models` executes all models with multiple methods (*e.g.* ZeroCopy2d enabled and disabled) and saves results in a csv
+- `summarize_performance` generates a csv file that summarizes performance results based on the logs from `benchmark_models`
+- `graph_performance` generates comparison summaries between methods in the csv generated by `summarize_performance`, and speedup graphs
 
-### How to build custom PyTorch
+## ZeroCopy2d Behavior in PyTorch
 
-Install MKL:
+The execution of ZeroCopy2d in PyTorch is controlled by the following environment variables.
+- <code>ZC_ENABLE=[TRUE/**FALSE**]</code>: Enables ZeroCopy2d
+- <code>ZC_TIME=[TRUE/**FALSE**]</code>: Prints the parameters and execution time of the convolution layers run in the model
+- <code>ZC_TRANSFORM_OUTPUT=[**TRUE**/FALSE]</code>: If set to FALSE, disables the transposition of `WH` to `HW` of the output.
+    - Disabling the transformation is not supported and may generated incorrect results
+- <code>ZC_HEURISTIC=[**TRUE**/FALSE]</code>: If set to FALSE, the heuristic that decides whether to use ZeroCopy2d (and ZeroCopy2d_Ext) is ignored. Thus, ZeroCopy2d is always used (and ZeroCopy2d_Ext is never used).
+- <code>ZC_WEIGHTS_LAYOUT=[**HWIO**/OHWI]</code>: This variable does not affect PyTorch, but it maybe affect some scripts by changing layouts of the weights given to ZeroCopy2d (it only affects convolution layers that will execute using ZeroCopy2d)
 
-```sh
-conda install conda-forge::mkl-static==2025.0.0 conda-forge::mkl-include==2025.0.0
-```
-
-Build and install
-
-```sh
-git clone --recursive git@github.com:caio96/pytorch-zero-copy.git pytorch
-cd pytorch
-git checkout v2.5.1-zero-copy
-git submodule sync
-git submodule update --init --recursive
-
-pip install -r requirements.txt
-
-# Setup build environment
-export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
-export _GLIBCXX_USE_CXX11_ABI=1
-export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
-
-# Set number of threads and compile, this command will install torch
-MAX_JOBS=8 python setup.py develop && python tools/build_libtorch.py
-```
-
-### How to build PyTorch vision
-
-```sh
-conda install libpng libjpeg-turbo -c pytorch
-
-git clone https://github.com/pytorch/vision.git
-cd vision
-git checkout v0.20.1
-MAX_JOBS=8 python setup.py develop
-```
+For end-to-end execution, the scripts control these variables automatically.
+Thus setting them before the end-to-end scripts has no effect.
+They do affect the execution of `LibTorch_ZeroCopy` in the single-conv experiments with the exception of `ZC_ENABLE`.
 
 ## Running Models
 
 Use the script `run_torch_model.py` to run a PyTorch model.
-- Zero-Copy Convolution is not enabled by default, use the flag `--enable-zero-copy-conv` to enable it.
-- PyTorch models in channel last use a weight layout of OHWI, whereas Zero-Copy Conv expects HWIO. By default Zero-Copy Conv transfoms the weights to produce correct results. Disable this transformation with the flag `--ignore-weight-transform`.
-- Zero-Copy Conv transposes the height and width of the output. By default Zero-Copy Conv transfoms the output to produce correct results. Disable this transformation with the flag `--ignore-output-transform`.
+- Enable ZeroCopy2d with `--zc-enable`
 - For more options, run `run_torch_model.py -h`
 - Multithreading works the same as explained in this [section](#multithreading).
 
+### Examples
+
+```sh
+# Check how to use flags
+./run_torch_model.py -h
+# Run mobilenet_v3_large with default PyTorch, 8 threads, using cores 0 to 7
+OMP_NUM_THREADS=8 numactl -C 0-7 ./run_torch_model.py --model-name mobilenet_v3_large
+# Run mobilenet_v3_large with ZeroCopy2d enabled, 8 threads, using cores 0 to 7
+OMP_NUM_THREADS=8 numactl -C 0-7 ./run_torch_model.py --model-name mobilenet_v3_large --zc-enable
+```
+
+## Workflow
+
+All scripts can take the `-h` flag to show usage information.
+
+Workflow:
+
+1. Run `benchmark_models` to test performance of running model with different methods
+2. Run `summarize_performance` with the output csv generated by the `benchmark_models` to get a summary csv
+3. Run `graph_performance` on the output of `summarize_performance` to compare methods and get speedup graphs
