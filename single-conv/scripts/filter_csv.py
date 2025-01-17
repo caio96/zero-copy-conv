@@ -211,15 +211,15 @@ if __name__ == "__main__":
     # Remove convolutions that cause problems with LibTorch
     df = remove_problem_parameters(df)
 
-    # Remove redundancies
-    if reduce_redundancies:
-        df = reduce_redundacies(df)
-
     if include_only_conv_types:
         df = include_only_in_df(df, include_only_conv_types)
 
     if exclude_conv_types:
         df = exclude_from_df(df, exclude_conv_types)
+
+    # Remove redundancies
+    if reduce_redundancies:
+        df = reduce_redundacies(df)
 
     # Remove extra columns from split
     df = df.iloc[:, :num_columns]
