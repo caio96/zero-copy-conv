@@ -118,14 +118,13 @@ def reduce_dimensionality(
     X: pd.DataFrame,
     y: pd.Series,
     max_features: int = None,
-    max_depth: int = None,
     y_weights: np.array = None,
 ):
     # Save labels
     columns = X.columns
 
     # Reduce dimensionality using most important features from tree ensemble
-    clf = ExtraTreesClassifier(max_depth=max_depth, n_estimators=100)
+    clf = ExtraTreesClassifier(n_estimators=100)
     clf = clf.fit(X, y, sample_weight=y_weights)
     selector = SelectFromModel(clf, prefit=True, max_features=max_features)
     selector.feature_names_in_ = columns
@@ -161,7 +160,7 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float = 0.0):
     X = pd.DataFrame()
 
     # Only add binary comparison features
-    for feature1, feature2 in itertools.combinations(sorted(df.columns.values.tolist()), 2):
+    for feature1, feature2 in itertools.combinations(sorted(df.columns.values.tolist(), reverse=True), 2):
         ignore_features = ["has bias"]
         if feature1 in ignore_features or feature2 in ignore_features:
             continue
@@ -403,12 +402,11 @@ if __name__ == "__main__":
 
     # Separate X, y, and weights
     X, y, y_weights = separate_features(df, speedup_threshold)
-
-    X = reduce_dimensionality(X, y, max_features, max_depth, y_weights)
+    X = reduce_dimensionality(X, y, max_features, y_weights)
 
     if split_train_test:
         X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
-            X, y, y_weights, test_size=0.2, random_state=42
+            X, y, y_weights, test_size=0.2
         )
     else:
         X_train, y_train, w_train = X, y, y_weights
