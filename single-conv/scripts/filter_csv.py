@@ -134,7 +134,6 @@ def reduce_redundacies(df):
             conv_parameters=("conv_parameters", "first"),
             occurrences=("occurrences", "sum"),
         )
-        .sort_values(by=["occurrences"], ascending=False)
     )
 
     return df_reduced.reset_index(drop=True)
@@ -223,6 +222,12 @@ if __name__ == "__main__":
 
     # Remove extra columns from split
     df = df.iloc[:, :num_columns]
+
+    # Make sure there are no duplicates
+    df = df.groupby("conv_parameters").agg(
+            conv_parameters=("conv_parameters", "first"),
+            occurrences=("occurrences", "sum"),
+        ).sort_values(by=["occurrences"], ascending=False)
 
     # Save df to csv removing extra split columns
     df.to_csv(output_csv, index=False)
