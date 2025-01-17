@@ -109,6 +109,7 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
 # Remove convolutions that only differ in "has bias" and padding values
 # keeping the one with the most occurrences (first in the dataframe)
 def reduce_redundacies(df):
+    # All columns except bias and padding
     group_columns = [
         "batch size",
         "image channel",
@@ -126,6 +127,7 @@ def reduce_redundacies(df):
     ]
 
     # Group by the specified columns and keep the first occurrence
+    df.sort_values(by=["occurrences"], ascending=False, inplace=True)
     df_reduced = (
         df.groupby(group_columns)
         .agg(
