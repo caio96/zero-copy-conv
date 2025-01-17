@@ -56,12 +56,15 @@ def get_data(df: pd.DataFrame):
 
     # Add matrix dimensions used by ZeroCopy2D
     # They are independent of the convolution type
-    df["m dim"] = df["output height"]
-    df["k dim"] = df["filter width"] * df["image channel"] / df["groups"]
-    df["n dim"] = df["output channel"] / df["groups"]
-    df["A size"] = df["m dim"] * df["k dim"]
-    df["B size"] = df["k dim"] * df["n dim"]
-    df["C size"] = df["m dim"] * df["n dim"]
+    df["dim m"] = df["output height"]
+    df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
+    df["dim n"] = df["output channel"] / df["groups"]
+    df["A size"] = df["dim m"] * df["dim k"]
+    df["B size"] = df["dim k"] * df["dim n"]
+    df["C size"] = df["dim m"] * df["dim n"]
+
+    # ZeroCopy2d
+    df["lda"] = df["image width"] * df["image channel"] * df["stride height"]
 
     return df
 
