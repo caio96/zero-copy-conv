@@ -9,6 +9,7 @@ from tabulate import tabulate
 
 import numpy as np
 import pandas as pd
+from sklearn import set_config
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel, VarianceThreshold
 from sklearn.metrics import classification_report, recall_score, accuracy_score, f1_score, make_scorer, precision_score, confusion_matrix, precision_recall_fscore_support
@@ -219,6 +220,8 @@ def run_decision_tree(
     search=False,
     search_scoring=None,
 ):
+    set_config(enable_metadata_routing=True)
+
     if not search:
         if weight_balance == 1.0 or weight_balance == -1.0:
             class_weights = {0: 1.0, 1: 1.0}
@@ -240,17 +243,14 @@ def run_decision_tree(
         return model, y_pred
 
     # Custom scorer for class 1
-    scorer = None
     if search_scoring == "precision":
-        scorer = make_scorer(precision_score, sample_weight=w_test)
+        scorer = make_scorer(precision_score).set_score_request(sample_weight=True)
     elif search_scoring == "f1":
-        scorer = make_scorer(f1_score, sample_weight=w_test)
+        scorer = make_scorer(f1_score).set_score_request(sample_weight=True)
     elif search_scoring == "recall":
-        scorer = make_scorer(recall_score, sample_weight=w_test)
-    elif search_scoring == "accuracy":
-        scorer = make_scorer(accuracy_score, sample_weight=w_test)
-    elif search_scoring is not None:
-        raise ValueError(f"Invalid scoring function {search_scoring}.")
+        scorer = make_scorer(recall_score).set_score_request(sample_weight=True)
+    else:
+        scorer = make_scorer(accuracy_score).set_score_request(sample_weight=True)
 
     # Define parameter grid
     param_grid = {
@@ -268,11 +268,14 @@ def run_decision_tree(
 
     # Perform grid search
     grid_search = GridSearchCV(
-        DecisionTreeClassifier(),
+        DecisionTreeClassifier().set_fit_request(sample_weight=True),
         param_grid,
         scoring=scorer,
+        n_jobs=-1,
+        cv=5,
+        verbose=1,
     )
-    grid_search.fit(X_train, y_train)
+    grid_search.fit(X_train, y_train, sample_weight=w_train)
 
     # Best parameters and model
     print("Best Parameters:", grid_search.best_params_)
@@ -393,7 +396,7 @@ if __name__ == "__main__":
         type=str,
         default=None,
         choices=["precision", "f1", "recall", "accuracy"],
-        help="Scoring function used in the grid search. Default is None.",
+        help="Scoring function used in the grid search. Default is accuracy.",
     )
 
     args = parser.parse_args()
