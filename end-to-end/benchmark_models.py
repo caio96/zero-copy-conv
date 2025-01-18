@@ -2,13 +2,8 @@
 import argparse
 import os
 import sys
-import time
-from itertools import product
 from pathlib import Path
 
-import torch
-import torch.utils.benchmark as benchmark
-import torchvision.models as models
 from run_torch_model import get_all_models, run_model
 from tqdm import tqdm
 
@@ -98,4 +93,3 @@ if __name__ == "__main__":
                     if first:
                         first = False
                     pbar.update(1)
-

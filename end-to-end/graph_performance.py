@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
 import itertools
+import sys
 from pathlib import Path
-from tabulate import tabulate
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from tabulate import tabulate
 
 
 def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
@@ -17,15 +17,16 @@ def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
 
     # Compute speedup
     speedup_results["speedup"] = (
-        joined_results["Mean_" + old_method_name]
-        - joined_results["Mean_" + new_method_name]
+        joined_results["Mean_" + old_method_name] - joined_results["Mean_" + new_method_name]
     ) / joined_results["Mean_" + new_method_name]
     speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
 
     return speedup_results
 
 
-def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_dir, only_stats=False):
+def plot_speedup(
+    speedup: pd.Series, old_method_name, new_method_name, output_dir, only_stats=False
+):
 
     num_points = speedup.shape[0]
 
@@ -67,13 +68,7 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
     ax.set_xlabel("Models")
     ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
 
-    y_factor = 0.1
     y_min, y_max = ax.get_ylim()
-    if y_min < 0:
-        relative_y = min(-y_min * y_factor, y_max * y_factor)
-    else:
-        relative_y = y_max * y_factor
-
     y_total = y_max - y_min
 
     ax.hlines(-y_total * 0.05, 1, inflection, "#2c7bb6")
@@ -124,7 +119,9 @@ def plot_speedup(speedup: pd.Series, old_method_name, new_method_name, output_di
 
 
 # Saves a csv with results and produces an speedup graph
-def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats):
+def compare_methods(
+    joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats
+):
 
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
 

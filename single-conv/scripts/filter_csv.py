@@ -39,14 +39,8 @@ def split_parameters(df):
 # There are some examples like this that cause error with Libtorch
 def remove_problem_parameters(df):
     df = df.loc[
-        (
-            df["filter height"]
-            <= df["image height"] + df["padding top"] + df["padding bottom"]
-        )
-        & (
-            df["filter width"]
-            <= df["image width"] + df["padding left"] + df["padding right"]
-        )
+        (df["filter height"] <= df["image height"] + df["padding top"] + df["padding bottom"])
+        & (df["filter width"] <= df["image width"] + df["padding left"] + df["padding right"])
     ]
 
     return df.reset_index(drop=True)
@@ -59,16 +53,22 @@ def include_only_in_df(df: pd.DataFrame, conv_type: list):
     filtered_df = pd.DataFrame()
 
     if "strided" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["stride height"] != 1) | (df["stride width"] != 1)]])
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["stride height"] != 1) | (df["stride width"] != 1)]]
+        )
 
     if "pointwise" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]])
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]]
+        )
 
     if "grouped" in conv_type:
         filtered_df = pd.concat([filtered_df, df.loc[df["groups"] != 1]])
 
     if "dilated" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["dilation height"] != 1) | (df["dilation width"] != 1)]])
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["dilation height"] != 1) | (df["dilation width"] != 1)]]
+        )
 
     if "transposed" in conv_type:
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 0]])
@@ -128,12 +128,9 @@ def reduce_redundacies(df):
 
     # Group by the specified columns and keep the first occurrence
     df.sort_values(by=["occurrences"], ascending=False, inplace=True)
-    df_reduced = (
-        df.groupby(group_columns)
-        .agg(
-            conv_parameters=("conv_parameters", "first"),
-            occurrences=("occurrences", "sum"),
-        )
+    df_reduced = df.groupby(group_columns).agg(
+        conv_parameters=("conv_parameters", "first"),
+        occurrences=("occurrences", "sum"),
     )
 
     return df_reduced.reset_index(drop=True)
@@ -141,9 +138,7 @@ def reduce_redundacies(df):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="Filter the csv with convolution layers."
-    )
+    parser = argparse.ArgumentParser(description="Filter the csv with convolution layers.")
 
     parser.add_argument("Input_CSV", type=str, help="Path to the input CSV file.")
     parser.add_argument("Output_CSV", type=str, help="Path to the output CSV file.")
@@ -224,10 +219,14 @@ if __name__ == "__main__":
     df = df.iloc[:, :num_columns]
 
     # Make sure there are no duplicates
-    df = df.groupby("conv_parameters").agg(
+    df = (
+        df.groupby("conv_parameters")
+        .agg(
             conv_parameters=("conv_parameters", "first"),
             occurrences=("occurrences", "sum"),
-        ).sort_values(by=["occurrences"], ascending=False)
+        )
+        .sort_values(by=["occurrences"], ascending=False)
+    )
 
     # Save df to csv removing extra split columns
     df.to_csv(output_csv, index=False)

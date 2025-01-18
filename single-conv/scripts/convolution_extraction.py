@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pandas as pd
 import timm
-import torchvision.models as models
 import torch
+import torchvision.models as models
 from tqdm import tqdm
 
 
@@ -51,7 +51,11 @@ if __name__ == "__main__":
         "Output_Dir", type=str, help="Path to the directory where to save csv output."
     )
     parser.add_argument(
-        "Source", type=str, choices=["timm", "torch"], default="timm", help="Source used to get models to extract convolutions."
+        "Source",
+        type=str,
+        choices=["timm", "torch"],
+        default="timm",
+        help="Source used to get models to extract convolutions.",
     )
 
     args = parser.parse_args()
@@ -70,9 +74,7 @@ if __name__ == "__main__":
         exclude_models = models.list_models(module=models.video)
         exclude_models += models.list_models(module=models.quantization)
         exclude_models += models.list_models(module=models.optical_flow)
-        model_names = [
-            model for model in all_model_names if model not in exclude_models
-        ]
+        model_names = [model for model in all_model_names if model not in exclude_models]
 
     for model_name in tqdm(model_names):
         if source == "torch":
@@ -101,8 +103,7 @@ if __name__ == "__main__":
     # Value is a list of model names that contain the layer (key), set is used to remove duplicates
     # Make list into a string and count the number of times that the layer is used
     conv_parameters = {
-        key: (len(value), " ".join(set(value)))
-        for key, value in conv_parameters.items()
+        key: (len(value), " ".join(set(value))) for key, value in conv_parameters.items()
     }
 
     # Save results to pandas dataframe

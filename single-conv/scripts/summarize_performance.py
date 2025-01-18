@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
 import itertools
-import numpy as np
+import sys
 from pathlib import Path
-from tabulate import tabulate
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
+from tabulate import tabulate
 
 
 def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, only_stats=False):
@@ -65,7 +65,7 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
     joined_results = joined_results.merge(occurrences_df, how="left", on="conv_parameters")
 
     if not only_stats:
-        joined_results.to_csv(output_dir / f"performance-results.csv", index=False)
+        joined_results.to_csv(output_dir / "performance-results.csv", index=False)
 
     return joined_results
 
@@ -75,12 +75,17 @@ def heuristic(speedup_results: pd.DataFrame):
     num_columns = len(speedup_results.columns)
 
     # Get all features used by heuristic from conv parameters
-    from learn_heuristic import get_data # Here to avoid circular import
+    from learn_heuristic import get_data  # Here to avoid circular import
+
     speedup_results = get_data(speedup_results)
 
     # Get convolutions selected by heuristic
-    selection = speedup_results.query("(`groups` == 1 and `dilation height` == 1 and `dilation width` == 1) and ((`dim k` > `dim n` and `dim k` > `dim m`) or `output width` == 1 or `output height` == 1)")
-    selection_ext = speedup_results.query("(`groups` != 1 or `dilation height` != 1 or `dilation width` != 1) and (`dim m` < `dim n`)")
+    selection = speedup_results.query(
+        "(`groups` == 1 and `dilation height` == 1 and `dilation width` == 1) and ((`dim k` > `dim n` and `dim k` > `dim m`) or `output width` == 1 or `output height` == 1)"
+    )
+    selection_ext = speedup_results.query(
+        "(`groups` != 1 or `dilation height` != 1 or `dilation width` != 1) and (`dim m` < `dim n`)"
+    )
     selection = pd.concat([selection, selection_ext])
 
     # Remove extra columns
@@ -88,7 +93,9 @@ def heuristic(speedup_results: pd.DataFrame):
     return selection
 
 
-def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name, use_heuristic=False):
+def get_speedup(
+    joined_results: pd.DataFrame, old_method_name, new_method_name, use_heuristic=False
+):
 
     # Remove rows where an error occurred in either method
     joined_results = joined_results.loc[
@@ -113,10 +120,18 @@ def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name, 
     return speedup_results
 
 
-def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats=False, clip_pos=False, clip_neg=False):
+def plot_speedup(
+    speedup_results: pd.DataFrame,
+    old_method_name,
+    new_method_name,
+    output_dir,
+    only_stats=False,
+    clip_pos=False,
+    clip_neg=False,
+):
 
     def weighted_median(df: pd.DataFrame):
-        df = df.sort_values('speedup')
+        df = df.sort_values("speedup")
         cumsum = df["occurrences"].cumsum()
         cutoff = df["occurrences"].sum() / 2.0
         median = df["speedup"][cumsum >= cutoff].iloc[0]
@@ -124,7 +139,6 @@ def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name
 
     speedup_results = speedup_results.reset_index(drop=True)
     speedup = speedup_results["speedup"]
-    occurrences = speedup_results["occurrences"]
     num_points = speedup_results.shape[0]
 
     inflection = num_points
@@ -143,7 +157,7 @@ def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name
         "Median": [pos_speedup.median(), neg_speedup.median()],
         "Max": [pos_speedup.max(), neg_speedup.min()],
         "Occurrences": [int(pos["occurrences"].sum()), int(neg["occurrences"].sum())],
-        "Weighted Median": [weighted_median(pos), weighted_median(neg)]
+        "Weighted Median": [weighted_median(pos), weighted_median(neg)],
     }
     print(tabulate(stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
     if only_stats:
@@ -161,15 +175,19 @@ def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name
     fig, ax = plt.subplots()
 
     # barplot
-    pos_bars = ax.bar(pos_speedup.index, pos_speedup, color="#2c7bb6")
-    neg_bars = ax.bar(range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1), neg_speedup.values, color="#d7191c")
+    ax.bar(pos_speedup.index, pos_speedup, color="#2c7bb6")
+    ax.bar(
+        range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
+        neg_speedup.values,
+        color="#d7191c",
+    )
 
     # Add line showing that positive outliers clipped
     if clip_pos:
-        ax.axhline(y=pos_threshold, color='gray', linestyle='--', linewidth=0.5)
+        ax.axhline(y=pos_threshold, color="gray", linestyle="--", linewidth=0.5)
     # Add line showing that positive outliers clipped
     if clip_neg:
-        ax.axhline(y=neg_threshold, color='gray', linestyle='--', linewidth=0.5)
+        ax.axhline(y=neg_threshold, color="gray", linestyle="--", linewidth=0.5)
 
     # boxplot
     _, x_max = ax.get_xlim()
@@ -185,13 +203,7 @@ def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name
     ax.set_xlabel("Convolutions Layers")
     ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
 
-    y_factor = 0.1
     y_min, y_max = ax.get_ylim()
-    if y_min < 0:
-        relative_y = min(-y_min * y_factor, y_max * y_factor)
-    else:
-        relative_y = y_max * y_factor
-
     y_total = y_max - y_min
 
     ax.hlines(-y_total * 0.05, 1, inflection, "#2c7bb6")
@@ -242,14 +254,27 @@ def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name
 
 
 # Saves a csv with results and produces an speedup graph
-def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg, use_heuristic):
+def compare_methods(
+    joined_results: pd.DataFrame,
+    old_method_name,
+    new_method_name,
+    output_dir,
+    only_stats,
+    clip_pos,
+    clip_neg,
+    use_heuristic,
+):
 
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
 
     if use_heuristic:
         # Only print original results if heuristic is used
-        plot_speedup(speedup_results, old_method_name, new_method_name, output_dir, True, clip_pos, clip_neg)
-        speedup_results = get_speedup(joined_results, old_method_name, new_method_name, use_heuristic)
+        plot_speedup(
+            speedup_results, old_method_name, new_method_name, output_dir, True, clip_pos, clip_neg
+        )
+        speedup_results = get_speedup(
+            joined_results, old_method_name, new_method_name, use_heuristic
+        )
         new_method_name = f"Heuristic_{new_method_name}"
 
     # Save results to csv
@@ -258,7 +283,15 @@ def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_na
             output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
 
-    plot_speedup(speedup_results, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg)
+    plot_speedup(
+        speedup_results,
+        old_method_name,
+        new_method_name,
+        output_dir,
+        only_stats,
+        clip_pos,
+        clip_neg,
+    )
 
 
 if __name__ == "__main__":
@@ -271,7 +304,9 @@ if __name__ == "__main__":
         "CSV_Input", type=str, help="Path to the input CSV file (generated by benchmark_runner)."
     )
     parser.add_argument(
-        "Occurrences_CSV", type=str, help="Path to the CSV file with conv_parameters and occurrences (generated by filter_csv or convolution_extraction)."
+        "Occurrences_CSV",
+        type=str,
+        help="Path to the CSV file with conv_parameters and occurrences (generated by filter_csv or convolution_extraction).",
     )
     parser.add_argument("Output_Dir", type=str, help="Path to directory to store outputs.")
     parser.add_argument(
@@ -388,17 +423,25 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     if old_method and new_method:
-        compare_methods(df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic)
+        compare_methods(
+            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+        )
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
-            compare_methods(df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic)
+            compare_methods(
+                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+            )
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
-            compare_methods(df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic)
+            compare_methods(
+                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+            )
     else:
         for method1, method2 in itertools.combinations(methods, 2):
-            compare_methods(df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic)
+            compare_methods(
+                df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+            )

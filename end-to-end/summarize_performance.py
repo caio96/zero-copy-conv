@@ -52,7 +52,7 @@ def summarize_results(df: pd.DataFrame, output_dir):
         ).drop(columns=["Model_" + method_name])
 
     # Save joined results
-    joined_results.to_csv(output_dir / f"performance-results.csv", index=False)
+    joined_results.to_csv(output_dir / "performance-results.csv", index=False)
 
 
 if __name__ == "__main__":

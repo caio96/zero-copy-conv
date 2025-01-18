@@ -2,7 +2,6 @@
 import argparse
 import os
 import sys
-import time
 
 import torch
 import torch.utils.benchmark as benchmark
@@ -79,7 +78,15 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
     return model
 
 
-def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False, csv_output=None, csv_header=False, method_name=None):
+def run_model(
+    model_name,
+    compile=False,
+    batch=1,
+    convert_weights_to_hwio=False,
+    csv_output=None,
+    csv_header=False,
+    method_name=None,
+):
 
     def run_inference(model, input):
         with torch.no_grad():  # Disable gradient calculation
@@ -98,9 +105,7 @@ def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False,
     input = torch.randn(dummy_shape)
 
     model.eval()  # Set the model to evaluation mode
-    model = model.to(
-        device="cpu", memory_format=torch.channels_last
-    )  # Replace with your model
+    model = model.to(device="cpu", memory_format=torch.channels_last)  # Replace with your model
     input = input.to(
         device="cpu", memory_format=torch.channels_last
     )  # Replace with your input tensor
@@ -129,7 +134,9 @@ def run_model(model_name, compile=False, batch=1, convert_weights_to_hwio=False,
         with open(csv_output, "a") as f:
             if csv_header:
                 f.write("Method,Model,Mean,Median,IQR,Unit,Runs,Threads\n")
-            f.write(f"{method_name},{model_name},{m0.mean*1000},{m0.median*1000},{m0.iqr*1000},ms,{len(m0.times)},{num_threads}\n")
+            f.write(
+                f"{method_name},{model_name},{m0.mean*1000},{m0.median*1000},{m0.iqr*1000},ms,{len(m0.times)},{num_threads}\n"
+            )
     else:
         print("Model: ", model_name)
         print(m0)
@@ -140,9 +147,7 @@ def get_all_models():
     all_models = models.list_models(exclude=["quantized*", "raft*"])
     # Exclude 3D models
     video_models = models.list_models(module=models.video)
-    all_models_minus_video = [
-        model for model in all_models if model not in video_models
-    ]
+    all_models_minus_video = [model for model in all_models if model not in video_models]
     return all_models_minus_video
 
 

@@ -5,22 +5,29 @@ import itertools
 import sys
 import warnings
 from pathlib import Path
-from tabulate import tabulate
 
 import numpy as np
 import pandas as pd
-from sklearn.exceptions import UndefinedMetricWarning
+from filter_csv import exclude_from_df, include_only_in_df, split_parameters
+from joblib import parallel_backend
 from sklearn import set_config
 from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.feature_selection import SelectFromModel, VarianceThreshold
-from sklearn.metrics import classification_report, recall_score, accuracy_score, f1_score, make_scorer, precision_score, confusion_matrix, precision_recall_fscore_support
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    make_scorer,
+    precision_recall_fscore_support,
+    precision_score,
+    recall_score,
+)
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
-from joblib import parallel_backend
-
 from summarize_performance import plot_speedup
-from filter_csv import exclude_from_df, include_only_in_df, split_parameters
+from tabulate import tabulate
 
 
 def get_data(df: pd.DataFrame):
@@ -123,7 +130,7 @@ def reduce_dimensionality(
     X: pd.DataFrame,
     y: pd.Series,
     y_weights: np.array = None,
-    max_leaf_nodes = None,
+    max_leaf_nodes=None,
 ):
     # Save labels
     columns = X.columns
@@ -165,7 +172,9 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float = 0.0):
     X = pd.DataFrame()
 
     # Only add binary comparison features
-    for feature1, feature2 in itertools.combinations(sorted(df.columns.values.tolist(), reverse=True), 2):
+    for feature1, feature2 in itertools.combinations(
+        sorted(df.columns.values.tolist(), reverse=True), 2
+    ):
         ignore_features = ["has bias"]
         if feature1 in ignore_features or feature2 in ignore_features:
             continue
@@ -188,8 +197,22 @@ def print_results(y_test, y_pred, w_test):
     accuracy = accuracy_score(y_test, y_pred, sample_weight=w_test)
 
     print("\nWeighted classification report:")
-    summary = {"precision": precision, "recall": recall, "f1-score": f1, "support": support, "accuracy": [accuracy]}
-    print(tabulate(summary, headers="keys", tablefmt="psql", floatfmt=".2f", showindex=["class 0", "class 1"]))
+    summary = {
+        "precision": precision,
+        "recall": recall,
+        "f1-score": f1,
+        "support": support,
+        "accuracy": [accuracy],
+    }
+    print(
+        tabulate(
+            summary,
+            headers="keys",
+            tablefmt="psql",
+            floatfmt=".2f",
+            showindex=["class 0", "class 1"],
+        )
+    )
 
     print("\nConfusion matrix:")
     conf_matrix = confusion_matrix(y_test, y_pred)
@@ -278,9 +301,9 @@ def run_decision_tree(
         verbose=1,
     )
     with parallel_backend("multiprocessing"):
-      with warnings.catch_warnings():
-        warnings.simplefilter(action="ignore", category=UndefinedMetricWarning)
-        grid_search.fit(X_train, y_train, sample_weight=w_train)
+        with warnings.catch_warnings():
+            warnings.simplefilter(action="ignore", category=UndefinedMetricWarning)
+            grid_search.fit(X_train, y_train, sample_weight=w_train)
 
     # Best parameters and model
     print("Best Parameters:", grid_search.best_params_)
@@ -322,7 +345,7 @@ def prune_duplicate_leaves(mdl):
             inner_tree.children_left[index] = TREE_LEAF
             inner_tree.children_right[index] = TREE_LEAF
             inner_tree.feature[index] = TREE_UNDEFINED
-            ##print("Pruned {}".format(index))
+            # print("Pruned {}".format(index))
 
     # Remove leaves if both
     decisions = mdl.tree_.value.argmax(axis=2).flatten().tolist()  # Decision for each node
@@ -448,7 +471,16 @@ if __name__ == "__main__":
         X_test, y_test, w_test = X, y, y_weights
 
     model, y_pred = run_decision_tree(
-        X_train, y_train, X_test, y_test, w_train, w_test, max_leaf_nodes, weight_balance, search, scoring
+        X_train,
+        y_train,
+        X_test,
+        y_test,
+        w_train,
+        w_test,
+        max_leaf_nodes,
+        weight_balance,
+        search,
+        scoring,
     )
 
     if not split_train_test:

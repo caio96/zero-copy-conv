@@ -103,9 +103,7 @@ def zero_copy_conv2d(images, filters, padding, stride):
                 ]
 
                 # Flattened filter: 1,FW,C,M -> FWxC,M
-                flattened_filter = np.reshape(
-                    filter_slice, (-1, filter_slice.shape[-1])
-                )
+                flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
                 # Flattened image: OH,FW,C -> OH,FWxC
                 flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
 
@@ -228,13 +226,9 @@ def zero_copy_conv2d_ext(images, filters, padding, stride, dilation, groups):
                     ]
 
                     # Flattened filter: 1,FW,C,M -> FWxC,M
-                    flattened_filter = np.reshape(
-                        filter_slice, (-1, filter_slice.shape[-1])
-                    )
+                    flattened_filter = np.reshape(filter_slice, (-1, filter_slice.shape[-1]))
                     # Flattened image: OH,FW,C -> OH,FWxC
-                    flattened_image = np.reshape(
-                        image_slice, (image_slice.shape[0], -1)
-                    )
+                    flattened_image = np.reshape(image_slice, (image_slice.shape[0], -1))
 
                     # print("-------\nImage ", flattened_image.shape)
                     # print(np.squeeze(flattened_image))
@@ -250,15 +244,12 @@ def zero_copy_conv2d_ext(images, filters, padding, stride, dilation, groups):
                     # Select output slice of size OH,1,M and handle edge cases
                     if height_offset < 0:
                         output_slice = single_output[
-                            -(height_offset // SH) : -(height_offset // SH)
-                            + height_slice,
+                            -(height_offset // SH) : -(height_offset // SH) + height_slice,
                             ow,
                             gr * M_GC : (gr + 1) * M_GC,
                         ]
                     else:
-                        output_slice = single_output[
-                            :height_slice, ow, gr * M_GC : (gr + 1) * M_GC
-                        ]
+                        output_slice = single_output[:height_slice, ow, gr * M_GC : (gr + 1) * M_GC]
 
                     # Place the result in the output matrix
                     output_slice += result
@@ -278,9 +269,7 @@ if __name__ == "__main__":
     )
 
     # Image parameters
-    parser.add_argument(
-        "--N", type=int, default=2, help="Number of images (batch size)"
-    )
+    parser.add_argument("--N", type=int, default=2, help="Number of images (batch size)")
     parser.add_argument("--H", type=int, default=56, help="Height of images")
     parser.add_argument("--W", type=int, default=56, help="Width of images")
     parser.add_argument("--C", type=int, default=3, help="Number of channels in images")
@@ -288,9 +277,7 @@ if __name__ == "__main__":
     # Filter parameters
     parser.add_argument("--FH", type=int, default=3, help="Height of filters")
     parser.add_argument("--FW", type=int, default=3, help="Width of filters")
-    parser.add_argument(
-        "--M", type=int, default=8, help="Number of filters (output channels)"
-    )
+    parser.add_argument("--M", type=int, default=8, help="Number of filters (output channels)")
 
     # Padding
     parser.add_argument("--PH", type=int, default=1, help="Padding height")
@@ -305,14 +292,10 @@ if __name__ == "__main__":
     parser.add_argument("--DW", type=int, default=1, help="Dilation width")
 
     # Groups
-    parser.add_argument(
-        "--GR", type=int, default=1, help="Groups (for grouped convolution)"
-    )
+    parser.add_argument("--GR", type=int, default=1, help="Groups (for grouped convolution)")
 
     # Seed for reproducibility
-    parser.add_argument(
-        "--seed", type=int, default=None, help="Random seed for reproducibility"
-    )
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
 
     args = parser.parse_args()
 
@@ -320,12 +303,8 @@ if __name__ == "__main__":
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    assert (
-        args.C % args.GR == 0
-    ), "Number of input channels must be divisible by number of groups"
-    assert (
-        args.M % args.GR == 0
-    ), "Number of output channels must be divisible by number of groups"
+    assert args.C % args.GR == 0, "Number of input channels must be divisible by number of groups"
+    assert args.M % args.GR == 0, "Number of output channels must be divisible by number of groups"
 
     # Create random images and filters
     images = np.random.rand(args.N, args.H, args.W, args.C)
