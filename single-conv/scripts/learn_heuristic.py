@@ -9,6 +9,7 @@ from tabulate import tabulate
 
 import numpy as np
 import pandas as pd
+from sklearn.exceptions import UndefinedMetricWarning
 from sklearn import set_config
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel, VarianceThreshold
@@ -16,6 +17,7 @@ from sklearn.metrics import classification_report, recall_score, accuracy_score,
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
+from joblib import parallel_backend
 
 from summarize_performance import plot_speedup
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
@@ -275,7 +277,10 @@ def run_decision_tree(
         cv=5,
         verbose=1,
     )
-    grid_search.fit(X_train, y_train, sample_weight=w_train)
+    with parallel_backend("multiprocessing"):
+      with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=UndefinedMetricWarning)
+        grid_search.fit(X_train, y_train, sample_weight=w_train)
 
     # Best parameters and model
     print("Best Parameters:", grid_search.best_params_)
