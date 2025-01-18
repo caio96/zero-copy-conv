@@ -5,16 +5,18 @@ import itertools
 import sys
 import warnings
 from pathlib import Path
+from tabulate import tabulate
 
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel, VarianceThreshold
-from sklearn.metrics import classification_report, f1_score, make_scorer, precision_score
+from sklearn.metrics import classification_report, recall_score, accuracy_score, f1_score, make_scorer, precision_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.tree import DecisionTreeClassifier, export_text
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 
+from summarize_performance import plot_speedup
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 
 
@@ -117,16 +119,16 @@ def remove_invariant_features(X: pd.DataFrame):
 def reduce_dimensionality(
     X: pd.DataFrame,
     y: pd.Series,
-    max_features: int = None,
     y_weights: np.array = None,
+    max_leaf_nodes = None,
 ):
     # Save labels
     columns = X.columns
 
     # Reduce dimensionality using most important features from tree ensemble
-    clf = ExtraTreesClassifier(n_estimators=100)
+    clf = ExtraTreesClassifier(n_estimators=100, max_leaf_nodes=max_leaf_nodes)
     clf = clf.fit(X, y, sample_weight=y_weights)
-    selector = SelectFromModel(clf, prefit=True, max_features=max_features)
+    selector = SelectFromModel(clf, prefit=True)
     selector.feature_names_in_ = columns
     X = selector.transform(X)
 
@@ -177,50 +179,83 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float = 0.0):
     return X, y, y_weights
 
 
+def print_results(y_test, y_pred, w_test):
+    precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, sample_weight=w_test)
+    _, _, _, support = precision_recall_fscore_support(y_test, y_pred)
+    accuracy = accuracy_score(y_test, y_pred, sample_weight=w_test)
+
+    print("\nWeighted classification report:")
+    summary = {"precision": precision, "recall": recall, "f1-score": f1, "support": support, "accuracy": [accuracy]}
+    print(tabulate(summary, headers="keys", tablefmt="psql", floatfmt=".2f", showindex=["class 0", "class 1"]))
+
+    print("\nConfusion matrix:")
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    conf_matrix_df = pd.DataFrame(
+        conf_matrix,
+        index=["Actual 0", "Actual 1"],
+        columns=["Predicted 0", "Predicted 1"],
+    )
+    print(tabulate(conf_matrix_df, headers="keys", tablefmt="psql", floatfmt=".2f"))
+
+    print("\nWeighted confusion matrix:")
+    conf_matrix = confusion_matrix(y_test, y_pred, sample_weight=w_test)
+    conf_matrix_df = pd.DataFrame(
+        conf_matrix,
+        index=["Actual 0", "Actual 1"],
+        columns=["Predicted 0", "Predicted 1"],
+    )
+    print(tabulate(conf_matrix_df, headers="keys", tablefmt="psql", floatfmt=".2f"))
+
+
 def run_decision_tree(
     X_train,
     y_train,
     X_test,
     y_test,
-    max_depth=None,
-    max_leaf_nodes=None,
     w_train=None,
-    weight_balance=1.0,
+    w_test=None,
+    max_leaf_nodes=None,
+    weight_balance=None,
     search=False,
+    search_scoring=None,
 ):
-    if weight_balance == 1.0 or weight_balance == -1.0:
-        class_weights = {0: 1.0, 1: 1.0}
-    elif weight_balance > 1.0:
-        class_weights = {0: 1.0, 1: weight_balance}
-    elif weight_balance < 1.0:
-        class_weights = {0: -weight_balance, 1: 1.0}
-    else:
-        raise ValueError(f"Invalid weight balance {weight_balance}.")
-
     if not search:
+        if weight_balance == 1.0 or weight_balance == -1.0:
+            class_weights = {0: 1.0, 1: 1.0}
+        elif weight_balance > 1.0:
+            class_weights = {0: 1.0, 1: weight_balance}
+        elif weight_balance < 1.0:
+            class_weights = {0: -weight_balance, 1: 1.0}
+        elif weight_balance is not None:
+            raise ValueError(f"Invalid weight balance {weight_balance}.")
+
         model = DecisionTreeClassifier(
-            max_depth=max_depth,
             max_leaf_nodes=max_leaf_nodes,
-            random_state=42,
             class_weight=class_weights,
         )
         model.fit(X_train, y_train, sample_weight=w_train)
         y_pred = model.predict(X_test)
+        print_results(y_test, y_pred, w_test)
 
-        print("DecisionTreeClassifier report:")
-        print(classification_report(y_test, y_pred))
+        return model, y_pred
 
-        return model
-
-    # Custom scorer for precision for class 1
-    # scorer = make_scorer(precision_score, pos_label=1)
-    scorer = make_scorer(f1_score, pos_label=1)
+    # Custom scorer for class 1
+    scorer = None
+    if search_scoring == "precision":
+        scorer = make_scorer(precision_score, sample_weight=w_test)
+    elif search_scoring == "f1":
+        scorer = make_scorer(f1_score, sample_weight=w_test)
+    elif search_scoring == "recall":
+        scorer = make_scorer(recall_score, sample_weight=w_test)
+    elif search_scoring == "accuracy":
+        scorer = make_scorer(accuracy_score, sample_weight=w_test)
+    elif search_scoring is not None:
+        raise ValueError(f"Invalid scoring function {search_scoring}.")
 
     # Define parameter grid
     param_grid = {
-        "criterion": ["gini"],  # Splitting criteria
-        "max_depth": [1, 2, None],  # Maximum depth of the tree
-        "max_leaf_nodes": [4, 5, 6],  # Maximum depth of the tree
+        "criterion": ["gini", "entropy", "log_loss"],  # Splitting criteria
+        "max_leaf_nodes": [2, 3, 4, 5, 6],  # Maximum number of leaf nodes
         "max_features": [None, "sqrt", "log2"],  # Number of features to consider for best split
         "class_weight": [
             None,
@@ -245,9 +280,9 @@ def run_decision_tree(
 
     # Evaluate the best model
     y_pred = best_model.predict(X_test)
-    print(classification_report(y_test, y_pred))
+    print_results(y_test, y_pred, w_test)
 
-    return best_model
+    return best_model, y_pred
 
 
 def prune_duplicate_leaves(mdl):
@@ -325,7 +360,6 @@ if __name__ == "__main__":
             "transposed",
         ],
     )
-
     parser.add_argument(
         "--speedup-threshold",
         type=float,
@@ -333,22 +367,10 @@ if __name__ == "__main__":
         default=0.0,
     )
     parser.add_argument(
-        "--max-depth",
-        type=int,
-        help="Maximum depth of the decision tree. Default is no limit.",
-        default=None,
-    )
-    parser.add_argument(
         "--max-leaf-nodes",
         type=int,
         help="Maximum leaf nodes of the decision tree. Default is no limit.",
-        default=None,
-    )
-    parser.add_argument(
-        "--max-features",
-        type=int,
-        help="Maximum number of features to use. By setting a limit, only the n most important features (decided by a tree ensemble during dimensionality reduction) are considered. Default is no limit.",
-        default=None,
+        default=6,
     )
     parser.add_argument(
         "--split-train-test",
@@ -366,19 +388,24 @@ if __name__ == "__main__":
         action="store_true",
         help="Use grid search to find the best hyperparameters.",
     )
+    parser.add_argument(
+        "--scoring",
+        type=str,
+        default=None,
+        choices=["precision", "f1", "recall", "accuracy"],
+        help="Scoring function used in the grid search. Default is None.",
+    )
 
     args = parser.parse_args()
     csv_input = Path(args.Speedup_CSV)
     exclude_conv_types = args.exclude_conv_types
     include_only_conv_types = args.include_only_conv_types
-
     speedup_threshold = args.speedup_threshold
-    max_depth = args.max_depth
-    max_features = args.max_features
     max_leaf_nodes = args.max_leaf_nodes
     split_train_test = args.split_train_test
     weight_balance = args.weight_balance
     search = args.search
+    scoring = args.scoring
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -402,7 +429,7 @@ if __name__ == "__main__":
 
     # Separate X, y, and weights
     X, y, y_weights = separate_features(df, speedup_threshold)
-    X = reduce_dimensionality(X, y, max_features, y_weights)
+    X = reduce_dimensionality(X, y, y_weights, max_leaf_nodes)
 
     if split_train_test:
         X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
@@ -412,12 +439,23 @@ if __name__ == "__main__":
         X_train, y_train, w_train = X, y, y_weights
         X_test, y_test, w_test = X, y, y_weights
 
-    model = run_decision_tree(
-        X_train, y_train, X_test, y_test, max_depth, max_leaf_nodes, w_train, weight_balance, search
+    model, y_pred = run_decision_tree(
+        X_train, y_train, X_test, y_test, w_train, w_test, max_leaf_nodes, weight_balance, search, scoring
     )
+
+    if not split_train_test:
+        speedup_results = df[["conv_parameters", "occurrences", "speedup"]]
+        print("\nOriginal speedup results:")
+        plot_speedup(speedup_results, "old", "new", None, True)
+
+        df["prediction"] = y_pred
+        df = df.loc[df["prediction"] == 1]
+        speedup_results = df[["conv_parameters", "occurrences", "speedup"]]
+        print("\nHeuristic speedup results:")
+        plot_speedup(speedup_results, "old", "new", None, True)
 
     prune_duplicate_leaves(model)
 
     rules = export_text(model, feature_names=list(X.columns))
-    print("DecisionTreeClassifier rules:")
+    print("\nDecisionTreeClassifier rules:")
     print(rules)

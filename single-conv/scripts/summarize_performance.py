@@ -9,7 +9,6 @@ from tabulate import tabulate
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from learn_heuristic import get_data
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 
 
@@ -76,6 +75,7 @@ def heuristic(speedup_results: pd.DataFrame):
     num_columns = len(speedup_results.columns)
 
     # Get all features used by heuristic from conv parameters
+    from learn_heuristic import get_data # Here to avoid circular import
     speedup_results = get_data(speedup_results)
 
     # Get convolutions selected by heuristic
