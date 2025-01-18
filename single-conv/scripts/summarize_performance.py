@@ -244,9 +244,12 @@ def plot_speedup(speedup_results: pd.DataFrame, old_method_name, new_method_name
 # Saves a csv with results and produces an speedup graph
 def compare_methods(joined_results: pd.DataFrame, old_method_name, new_method_name, output_dir, only_stats, clip_pos, clip_neg, use_heuristic):
 
-    speedup_results = get_speedup(joined_results, old_method_name, new_method_name, use_heuristic)
+    speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
 
     if use_heuristic:
+        # Only print original results if heuristic is used
+        plot_speedup(speedup_results, old_method_name, new_method_name, output_dir, True, clip_pos, clip_neg)
+        speedup_results = get_speedup(joined_results, old_method_name, new_method_name, use_heuristic)
         new_method_name = f"Heuristic_{new_method_name}"
 
     # Save results to csv
