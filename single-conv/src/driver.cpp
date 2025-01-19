@@ -134,17 +134,29 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
 #if defined ZERO_COPY && defined USE_MKL_JIT
   mkl_jit_status_t status;
   if (dilation_h == 1 && dilation_w == 1 && groups == 1) {
-    status = mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS,
-                                  MKL_NOTRANS, output_height, output_channels,
-                                  filter_width * input_channels, 1.0f,
-                                  input_width * input_channels * stride_h,
-                                  output_channels, 1.0f, output_channels);
+    int m_dim = output_height;
+    int n_dim = output_channels;
+    int k_dim = std::min(filter_width, input_width) * input_channels;
+    float alpha = 1.0f;
+    int lda = input_width * input_channels * stride_h;
+    int ldb = output_channels;
+    float beta = 1.0f;
+    int ldc = output_channels;
+    status =
+        mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
+                             m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
   } else {
-    status = mkl_jit_create_sgemm(
-        &jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS, output_height,
-        output_channels / groups, filter_width * input_channels / groups, 1.0f,
-        filter_width * input_channels / groups, output_channels, 1.0f,
-        output_channels);
+    int m_dim = output_height;
+    int n_dim = output_channels / groups;
+    int k_dim = std::min(filter_width, input_width) * input_channels / groups;
+    float alpha = 1.0f;
+    int lda = std::min(filter_width, input_width) * input_channels / groups;
+    int ldb = output_channels;
+    float beta = 1.0f;
+    int ldc = output_channels;
+    status =
+        mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
+                             m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
   }
 
   if (status != MKL_JIT_SUCCESS) {
