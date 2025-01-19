@@ -86,6 +86,9 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     state.SkipWithError("Padding height and width do not match!");
   if (input_channels % groups != 0 || output_channels % groups != 0)
     state.SkipWithError("Input and output channels not divisible by groups!");
+  if (filter_height > input_height + padding_top + padding_bottom ||
+      filter_width > input_width + padding_left + padding_right)
+    state.SkipWithError("Filter is larger than input with padding!");
   if (is_transposed)
     state.SkipWithError("Transposed convolution is not supported!");
 
@@ -94,6 +97,8 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
       groups > 1)
     state.SkipWithError(
         "Stride > 1, Dilation > 1, and Groups > 1 not supported by Yaconv!");
+  if (filter_width > input_width)
+    state.SkipWithError("Filter width > Input width not supported by Yaconv!");
 #endif
 
   // Buffer sizes

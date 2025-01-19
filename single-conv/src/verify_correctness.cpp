@@ -260,6 +260,12 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
                         "Input and output channels not divisible by groups!");
     return;
   }
+  if (filter_height > input_height + padding_top + padding_bottom ||
+      filter_width > input_width + padding_left + padding_right) {
+    print_error_for_all(method_names, conv_parameters,
+                        "Filter is larger than input with padding!");
+    return;
+  }
   if (is_transposed) {
     print_error_for_all(method_names, conv_parameters,
                         "Transposed convolution is not supported!");
@@ -349,7 +355,7 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
 
   // Run Yaconv convolution
   if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1 &&
-      groups == 1) {
+      groups == 1 || filter_width > input_width) {
     conv_2d_yaconv(input_NHWC, output_yaconv_NHWC, filters_HWIO, batch,
                    input_height, input_width, input_channels, filter_height,
                    filter_width, output_height, output_width, output_channels,
@@ -381,6 +387,8 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
     print_error("Yaconv", conv_parameters, "Stride > 1 not supported");
   } else if (groups > 1) {
     print_error("Yaconv", conv_parameters, "Grouped convolution not supported");
+  } else if (filter_width > input_width) {
+    print_error("Yaconv", conv_parameters, "Filter width > input width not supported");
   } else {
     diff = get_max_diff(output_torch_NHWC, output_yaconv_NHWC, output_size);
     print_diff("Yaconv", conv_parameters, diff);
