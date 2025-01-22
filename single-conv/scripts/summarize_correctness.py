@@ -24,7 +24,7 @@ def summarize_correctness(df: pd.DataFrame, output_dir, tolerance, only_stats=Fa
     summary_diffs = []
     summary_methods = []
     summary_incorrect_results = []
-    summary_error_results = []
+    summary_unsupported_results = []
     summary_correct_results = []
     for name, group in groups:
         name = name[0]
@@ -38,7 +38,7 @@ def summarize_correctness(df: pd.DataFrame, output_dir, tolerance, only_stats=Fa
         summary_incorrect_results.append(incorrect_convs)
 
         error_convs = group.loc[group["error_occurred"] == True].shape[0]
-        summary_error_results.append(error_convs)
+        summary_unsupported_results.append(error_convs)
 
         total_convs = group.shape[0]
         summary_correct_results.append(total_convs - incorrect_convs - error_convs)
@@ -49,7 +49,7 @@ def summarize_correctness(df: pd.DataFrame, output_dir, tolerance, only_stats=Fa
         "Maximum Difference": summary_diffs,
         "Correct Results": summary_correct_results,
         "Incorrect Results": summary_incorrect_results,
-        "Error Results": summary_error_results,
+        "Unsupported": summary_unsupported_results,
         "Tolerance": [tolerance] * len(summary_methods),
     }
     summary = pd.DataFrame(summary).set_index("Method").sort_values(by="Method")
