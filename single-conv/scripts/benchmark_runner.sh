@@ -210,16 +210,13 @@ for repeat in $(seq "$REPEATS"); do
     if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
       "$CORRECTNESS_EXECUTABLE" ${conv_parameters} 2>> "${OUTPUT_LOG}.err" | tail -n +2 >> "$OUTPUT_LOG"
       if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-        echo "Error running with parameters: $conv_parameters"
+        echo "Error running with parameters: $conv_parameters" | tee -a "${OUTPUT_LOG}.err"
       fi
       continue
     fi
 
     # For each executable (shuffled order)
     for executable in $(shuf -e "${executables[@]}"); do
-      # # Get random core list within range of size OMP_NUM_THREADS
-      # CORES=$(shuf -i "$CORE_RANGE" -n "$OMP_NUM_THREADS" | tr '\n' ',' | sed 's/,$//')
-
       # Run executable in a random core
       numactl --physcpubind "$CORE_RANGE" "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
     done
