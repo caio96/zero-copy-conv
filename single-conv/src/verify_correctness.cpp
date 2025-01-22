@@ -367,7 +367,7 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
 
   // Run Yaconv convolution
   if (stride_w == 1 && stride_h == 1 && dilation_h == 1 && dilation_w == 1 &&
-      groups == 1 || filter_width > input_width) {
+      groups == 1 || filter_width <= input_width) {
     conv_2d_yaconv(input_NHWC, output_yaconv_NHWC, filters_HWIO, batch,
                    input_height, input_width, input_channels, filter_height,
                    filter_width, output_height, output_width, output_channels,
