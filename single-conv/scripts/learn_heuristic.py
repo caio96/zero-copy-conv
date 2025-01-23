@@ -24,7 +24,8 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
+from matplotlib import pyplot as plt
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 from summarize_performance import plot_speedup
 from tabulate import tabulate
@@ -77,6 +78,8 @@ def get_data(df: pd.DataFrame):
 
     # ZeroCopy2d
     df["lda"] = df["image width"] * df["image channel"] * df["stride height"]
+    # ZeroCopy2d_Ext
+    df["image channel / groups"] = df["image channel"] / df["groups"]
 
     return df
 
@@ -429,6 +432,11 @@ if __name__ == "__main__":
         choices=["precision", "f1", "recall", "accuracy"],
         help="Scoring function used in the grid search. Default is f1.",
     )
+    parser.add_argument(
+        "--plot-tree",
+        type=str,
+        help="Exports the decision tree to a file. Pass the output dir as argument.",
+    )
 
     args = parser.parse_args()
     csv_input = Path(args.Speedup_CSV)
@@ -440,11 +448,18 @@ if __name__ == "__main__":
     weight_balance = args.weight_balance
     search = args.search
     scoring = args.scoring
+    plot_output_dir = args.plot_tree
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
         print("CSV with results not found.", file=sys.stderr)
         sys.exit(-1)
+
+    if plot_output_dir:
+        plot_output_dir = Path(plot_output_dir)
+        if not Path(plot_output_dir).exists() or not Path(plot_output_dir).is_dir():
+            print("Output directory for plot does not exist.", file=sys.stderr)
+            sys.exit(-1)
 
     # Mute pandas warnings
     warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
@@ -502,3 +517,12 @@ if __name__ == "__main__":
     rules = export_text(model, feature_names=list(X.columns))
     print("\nDecisionTreeClassifier rules:")
     print(rules)
+
+    if plot_output_dir:
+        plot_tree(model, proportion=True, filled=True, feature_names=list(X.columns), class_names=["class 0", "class 1"])
+        plt.savefig(
+            plot_output_dir / "decision_tree.png",
+            bbox_inches="tight",
+            dpi=300,
+        )
+        plt.close()
