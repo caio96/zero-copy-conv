@@ -186,7 +186,8 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float = 0.0):
         X[f"{feature1} greater than {feature2}"] = (df[feature1] > df[feature2]).astype(int)
         X[f"{feature1} equals {feature2}"] = (df[feature1] == df[feature2]).astype(int)
 
-    X["has bias"] = df["has bias"]
+    if "has bias" in df.columns:
+        X["has bias"] = df["has bias"]
 
     # Remove columns with the same values that may have been added
     X = remove_invariant_features(X)
