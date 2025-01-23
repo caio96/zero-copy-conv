@@ -81,7 +81,7 @@ def heuristic(speedup_results: pd.DataFrame):
 
     # Get convolutions selected by heuristic
     selection = speedup_results.query(
-        "(`groups` == 1 and `dilation height` == 1 and `dilation width` == 1) and ((`dim k` > `dim n` and `dim k` > `dim m`) or `output width` == 1 or `output height` == 1)"
+        "(`groups` == 1 and `dilation height` == 1 and `dilation width` == 1) and ((`output channel` < `image channel`) or `output width` == 1 or `output height` == 1)"
     )
     selection_ext = speedup_results.query(
         "(`groups` != 1 or `dilation height` != 1 or `dilation width` != 1) and (`dim m` < `dim n`)"
