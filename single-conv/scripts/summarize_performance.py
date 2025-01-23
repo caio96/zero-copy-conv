@@ -106,9 +106,12 @@ def get_speedup(
     speedup_results = pd.DataFrame()
     speedup_results["conv_parameters"] = joined_results["conv_parameters"]
     speedup_results["occurrences"] = joined_results["occurrences"]
+    speedup_results["speedup"] = None
 
     if use_heuristic:
         speedup_results = heuristic(speedup_results)
+        if speedup_results.empty:
+            return speedup_results
 
     # Compute speedup
     speedup_results["speedup"] = (
@@ -131,6 +134,8 @@ def plot_speedup(
 ):
 
     def weighted_median(df: pd.DataFrame):
+        if df.empty:
+            return float("nan")
         df = df.sort_values("speedup")
         cumsum = df["occurrences"].cumsum()
         cutoff = df["occurrences"].sum() / 2.0
@@ -159,7 +164,8 @@ def plot_speedup(
         "Occurrences": [int(pos["occurrences"].sum()), int(neg["occurrences"].sum())],
         "Weighted Median": [weighted_median(pos), weighted_median(neg)],
     }
-    print(tabulate(stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
+    df_stats = pd.DataFrame(stats).fillna(0).set_index(f"{new_method_name} vs {old_method_name}")
+    print(tabulate(df_stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
     if only_stats:
         return
 

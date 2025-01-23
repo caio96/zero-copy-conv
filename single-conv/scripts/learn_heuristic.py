@@ -243,7 +243,7 @@ def run_decision_tree(
     max_leaf_nodes=None,
     weight_balance=None,
     search=False,
-    search_scoring=None,
+    search_scoring="f1"
 ):
     set_config(enable_metadata_routing=True)
 
@@ -274,8 +274,11 @@ def run_decision_tree(
         scorer = make_scorer(f1_score).set_score_request(sample_weight=True)
     elif search_scoring == "recall":
         scorer = make_scorer(recall_score).set_score_request(sample_weight=True)
-    else:
+    elif search_scoring == "accuracy":
         scorer = make_scorer(accuracy_score).set_score_request(sample_weight=True)
+    else:
+        print("Invalid scoring function.", file=sys.stderr)
+        sys.exit(-1)
 
     # Define parameter grid
     param_grid = {
@@ -422,9 +425,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--scoring",
         type=str,
-        default=None,
+        default="f1",
         choices=["precision", "f1", "recall", "accuracy"],
-        help="Scoring function used in the grid search. Default is accuracy.",
+        help="Scoring function used in the grid search. Default is f1.",
     )
 
     args = parser.parse_args()
