@@ -290,8 +290,10 @@ def run_decision_tree(
         "max_features": [None, "sqrt", "log2"],  # Number of features to consider for best split
         "class_weight": [
             None,
+            {0: 1.0, 1: 3.0},
             {0: 1.0, 1: 2.0},
             {0: 1.0, 1: 1.5},
+            {0: 3.0, 1: 1.0},
             {0: 2.0, 1: 1.0},
             {0: 1.5, 1: 1.0},
         ],
