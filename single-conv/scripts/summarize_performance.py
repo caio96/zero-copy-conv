@@ -415,11 +415,11 @@ if __name__ == "__main__":
     methods = [col.replace("mean_time_", "") for col in df.columns if "mean_time" in col]
 
     # Check if both methods are present
-    if old_method and f"mean_time_{old_method}" not in df.columns:
+    if old_method and old_method not in methods:
         print(f"Method {old_method} not found in results.", file=sys.stderr)
         print(f"Available methods: {methods}", file=sys.stderr)
         sys.exit(-1)
-    if new_method and f"mean_time_{new_method}" not in df.columns:
+    if new_method and new_method not in methods:
         print(f"Method {new_method} not found in results.", file=sys.stderr)
         print(f"Available methods: {methods}", file=sys.stderr)
         sys.exit(-1)
