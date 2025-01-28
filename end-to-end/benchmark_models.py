@@ -13,26 +13,46 @@ def run_model_zc(model_name, batch_size, compile, output_csv, csv_header):
     os.environ["ZC_TIME"] = "FALSE"
     os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
     os.environ["ZC_HEURISTIC"] = "FALSE"
-    run_model(model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d")
+    try:
+        run_model(model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d")
+    except RuntimeError as e:
+        with open(f"{output_csv}.err", "a") as f:
+            f.write(f"Error running {model_name}, with ZeroCopy2d, {e}")
 
 
-def run_model_zc_heuristic(model_name, batch_size, compile, output_csv, csv_header):
+def run_model_zc_heuristic(source, model_name, batch_size, compile, output_csv, csv_header):
     os.environ["ZC_ENABLE"] = "TRUE"
     os.environ["ZC_TIME"] = "FALSE"
     os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
     os.environ["ZC_HEURISTIC"] = "TRUE"
-    run_model(model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d_Heuristic")
+    try:
+        run_model(source, model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d_Heuristic")
+    except RuntimeError as e:
+        with open(f"{output_csv}.err", "a") as f:
+            f.write(f"Error running {model_name}, with ZeroCopy2d_Heuristic, {e}")
 
 
-def run_model_torch(model_name, batch_size, compile, output_csv, csv_header):
+def run_model_torch(source, model_name, batch_size, compile, output_csv, csv_header):
     os.environ["ZC_ENABLE"] = "FALSE"
     os.environ["ZC_TIME"] = "FALSE"
-    run_model(model_name, compile, batch_size, False, output_csv, csv_header, "Torch")
+    try:
+        run_model(source, model_name, compile, batch_size, False, output_csv, csv_header, "Torch")
+    except RuntimeError as e:
+        with open(f"{output_csv}.err", "a") as f:
+            f.write(f"Error running {model_name}, with Torch, {e}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Run all PyTorch models available in run_torch_model.py."
+        description="Run all PyTorch models available in the chosen source."
+    )
+
+    parser.add_argument(
+        "Source",
+        type=str,
+        choices=["timm", "torch"],
+        default="torch",
+        help="Source used to get models.",
     )
 
     parser.add_argument(
@@ -67,6 +87,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    source = args.Source
     output_csv = Path(args.Output_CSV)
     repeats = args.repeats
 
@@ -74,12 +95,12 @@ if __name__ == "__main__":
         print(f"Output CSV {output_csv} already exists.", file=sys.stderr)
         sys.exit(1)
 
+    models = get_all_models(source)
     if args.list_models:
-        for model in get_all_models():
+        for model in models:
             print("- ", model)
         exit(0)
 
-    models = get_all_models()
     methods = [run_model_zc, run_model_zc_heuristic, run_model_torch]
 
     first = True
@@ -89,7 +110,7 @@ if __name__ == "__main__":
         for repeat in range(repeats):
             for model_name in models:
                 for method in methods:
-                    method(model_name, args.batch_size, args.compile, output_csv, first)
+                    method(source, model_name, args.batch_size, args.compile, output_csv, first)
                     if first:
                         first = False
                     pbar.update(1)

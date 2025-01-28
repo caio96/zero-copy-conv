@@ -2,6 +2,7 @@
 import argparse
 import os
 import sys
+import timm
 
 import torch
 import torch.utils.benchmark as benchmark
@@ -18,10 +19,6 @@ def convert_conv2d_weights_to_HWIO_static(module):
             module.in_channels,
             module.out_channels,
             module.weight,
-            module.kernel_size,
-            module.bias,
-            module.stride,
-            module.padding,
             module.dilation,
             module.groups,
             module.transposed,
@@ -46,10 +43,6 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
         if torch._C._nn.will_use_zero_copy_conv2d_dynamic(
             inputs[0].to(device="cpu"),
             module.weight.to(device="cpu"),
-            module.kernel_size,
-            module.bias,
-            module.stride,
-            module.padding,
             module.dilation,
             module.groups,
             module.transposed,
@@ -79,6 +72,7 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
 
 
 def run_model(
+    source,
     model_name,
     compile=False,
     batch=1,
@@ -92,17 +86,22 @@ def run_model(
         with torch.no_grad():  # Disable gradient calculation
             return model(input)
 
-    # Load model with default weights
-    weights = models.get_model_weights(model_name).DEFAULT
-    model = models.get_model(model_name, weights=weights)
-
-    # Pre process input with the model's transforms
-    dummy_input = torch.randn(3, 224, 224)
-    preprocess = weights.transforms()
-    dummy_input = preprocess(dummy_input)
-    dummy_shape = list(dummy_input.shape)
-    dummy_shape = [batch] + dummy_shape
-    input = torch.randn(dummy_shape)
+    if source == "torch":
+        # Get model and weights
+        weights = models.get_model_weights(model_name).DEFAULT
+        model = models.get_model(model_name, weights=weights)
+        # Pre process input with the model's transforms
+        dummy_input = torch.randn(3, 224, 224)
+        preprocess = weights.transforms()
+        input = preprocess(dummy_input)
+        # Add batch dimension
+        input = input.unsqueeze(0)
+    elif source == "timm":
+        # Get model
+        model = timm.create_model(model_name)
+        # Get input
+        input_shape = (1, *model.default_cfg["input_size"])
+        input = torch.randn(input_shape)
 
     model.eval()  # Set the model to evaluation mode
     model = model.to(device="cpu", memory_format=torch.channels_last)  # Replace with your model
@@ -142,23 +141,34 @@ def run_model(
         print(m0)
 
 
-def get_all_models():
-    # Exclude models that never use ZeroCopy2D independent from heuristics
-    all_models = models.list_models(exclude=["quantized*", "raft*"])
-    # Exclude 3D models
-    video_models = models.list_models(module=models.video)
-    all_models_minus_video = [model for model in all_models if model not in video_models]
-    return all_models_minus_video
+def get_all_models(source):
+    if source == "timm":
+        model_names = timm.list_models(pretrained=True)
+    elif source == "torch":
+        all_model_names = models.list_models()
+        exclude_models = models.list_models(module=models.video)
+        exclude_models += models.list_models(module=models.quantization)
+        exclude_models += models.list_models(module=models.optical_flow)
+        model_names = [model for model in all_model_names if model not in exclude_models]
+    else:
+        model_names = []
+        print("Unknown source", file=sys.stderr)
+    return model_names
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a PyTorch model.")
     parser.add_argument(
+        "Source",
+        type=str,
+        choices=["timm", "torch"],
+        default="torch",
+        help="Source used to get models.",
+    )
+    parser.add_argument(
         "--model-name",
         type=str,
-        choices=get_all_models(),
-        default="squeezenet1_1",
-        help="The name of the model to convert. Default: squeezenet1_1.",
+        help="The name of the model to convert. Default: squeezenet1_1 for torch, mobilenetv3_small_100.lamb_in1k for timm.",
     )
 
     parser.add_argument(
@@ -215,11 +225,23 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    source = args.Source
+    model_names = get_all_models(source)
 
     if args.list_models:
-        for model in get_all_models():
+        for model in model_names:
             print("- ", model)
         exit(0)
+
+    if args.model_name is None:
+        if source == "torch":
+            args.model_name = "squeezenet1_1"
+        elif source == "timm":
+            args.model_name = "mobilenetv3_small_100.lamb_in1k"
+
+    if args.model_name not in model_names:
+        print(f"Model {args.model_name} not found.", file=sys.stderr)
+        exit(1)
 
     if args.zc_enable:
         os.environ["ZC_ENABLE"] = "TRUE"
@@ -245,4 +267,4 @@ if __name__ == "__main__":
     else:
         os.environ["ZC_HEURISTIC"] = "TRUE"
 
-    run_model(args.model_name, args.compile, args.batch_size, convert_weights_to_hwio)
+    run_model(source, args.model_name, args.compile, args.batch_size, convert_weights_to_hwio)
