@@ -14,7 +14,7 @@ import torchvision.models as models
 # This version works without executing the model, but input sizes will be unknown, therefore it can convert the weights
 # for a Conv2D layer where ZeroCopy2D won't be used. It won't affect correctness, but may slowdown execution
 def convert_conv2d_weights_to_HWIO_static(module):
-    if isinstance(module, torch.nn.Conv2d):
+    if type(module) is torch.nn.Conv2d:
         if torch._C._nn.will_use_zero_copy_conv2d_static(
             module.in_channels,
             module.out_channels,
@@ -39,10 +39,10 @@ def convert_conv2d_weights_to_HWIO_static(module):
 # The commented version above works without running the model
 def convert_conv2d_weights_to_HWIO_dynamic(model, input):
 
-    def process_layer(module: torch.nn.Conv2d, inputs, output):
+    def process_layer(module: torch.nn.Conv2d, inputs):
         if torch._C._nn.will_use_zero_copy_conv2d_dynamic(
-            inputs[0].to(device="cpu"),
-            module.weight.to(device="cpu"),
+            inputs[0],
+            module.weight,
             module.dilation,
             module.groups,
             module.transposed,
@@ -57,8 +57,8 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
     # Register hooks to process each Conv2d layer
     hooks = []
     for module in model.modules():
-        if isinstance(module, torch.nn.Conv2d):
-            hooks.append(module.register_forward_hook(process_layer))
+        if type(module) is torch.nn.Conv2d:
+            hooks.append(module.register_forward_pre_hook(process_layer))
 
     # Perform a forward pass to trigger the hooks
     with torch.no_grad():
@@ -117,13 +117,16 @@ def run_model(
         model = torch.compile(model)
 
     num_threads = torch.get_num_threads()
+    # Warm up runs: for big models, the adaptive_autorange may not run enough warm up runs
+    for i in range(10):
+        model(input)
 
     t0 = benchmark.Timer(
         stmt="run_inference(model, input)",
         num_threads=num_threads,
         globals={"model": model, "input": input, "run_inference": run_inference},
     )
-    m0 = t0.adaptive_autorange(min_run_time=1)
+    m0 = t0.adaptive_autorange(min_run_time=1, min_times=10, max_run_time=30)
 
     if csv_output:
         if not method_name:
