@@ -9,65 +9,112 @@ import torch.utils.benchmark as benchmark
 import torchvision.models as models
 
 
+def get_model_and_input(model_name, source):
+    if source == "torch":
+        # Get model and weights
+        weights = models.get_model_weights(model_name).DEFAULT
+        model = models.get_model(model_name, weights=weights)
+        # Pre process input with the model's transforms
+        dummy_input = torch.randn(3, 224, 224)
+        preprocess = weights.transforms()
+        input = preprocess(dummy_input)
+        # Add batch dimension
+        input = input.unsqueeze(0)
+    elif source == "timm":
+        # Get model
+        model = timm.create_model(model_name)
+        # Get input
+        input_shape = (1, *model.default_cfg["input_size"])
+        input = torch.randn(input_shape)
+    else:
+        print("Unknown source", file=sys.stderr)
+        sys.exit(1)
+
+    # Set the model to evaluation mode
+    model.eval()
+    # Convert model and input to channel last memory format
+    model = model.to(device="cpu", memory_format=torch.channels_last)
+    input = input.to(
+        device="cpu", memory_format=torch.channels_last
+    )
+
+    return model, input
+
+
 # Based on torch/nn/utils/memory_format.py
 # Converts weights to HWIO layout so that ZeroCopy2D can execute without changing the weights layout
 # This version works without executing the model, but input sizes will be unknown, therefore it can convert the weights
 # for a Conv2D layer where ZeroCopy2D won't be used. It won't affect correctness, but may slowdown execution
-def convert_conv2d_weights_to_HWIO_static(module):
-    if type(module) is torch.nn.Conv2d:
-        if torch._C._nn.will_use_zero_copy_conv2d_static(
-            module.in_channels,
-            module.out_channels,
-            module.weight,
-            module.dilation,
-            module.groups,
-            module.transposed,
-        ):
-            weight_data = module.weight.detach().clone()
-            # weight layout to HWIO, making data contiguous (dimension order follow OIHW)
-            weight_data = weight_data.permute(2, 3, 1, 0).contiguous()
-            # permute dimensions to the order expected by pytorch (OIHW)
-            weight_data = weight_data.permute(3, 2, 0, 1)
-            module.weight.data = weight_data.resize_(weight_data.size())
-    for child in module.children():
-        convert_conv2d_weights_to_HWIO_static(child)
-    return module
+def convert_conv2d_weights_to_HWIO_static(model):
+    for name, module in model.named_modules():
+        if type(module) is torch.nn.Conv2d:
+            if torch._C._nn.will_use_zero_copy_conv2d_static(
+                module.in_channels,
+                module.out_channels,
+                module.weight,
+                module.dilation,
+                module.groups,
+                module.transposed,
+            ):
+                weight_data = module.weight.detach().clone()
+                # weight layout to HWIO, making data contiguous (dimension order follow OIHW)
+                weight_data = weight_data.permute(2, 3, 1, 0).contiguous()
+                # permute dimensions to the order expected by pytorch (OIHW)
+                weight_data = weight_data.permute(3, 2, 0, 1)
+                module.weight.data = weight_data.resize_(weight_data.size())
+    return model
 
 
 # Converts weights to HWIO layout so that ZeroCopy2D can execute without changing the weights layout
 # This function requires running the model once to obtain the input size for each Conv2D layer
 # The commented version above works without running the model
-def convert_conv2d_weights_to_HWIO_dynamic(model, input):
+def get_convs_to_convert(model_name, source):
+    convs_to_convert = []
 
-    def process_layer(module: torch.nn.Conv2d, inputs):
-        if torch._C._nn.will_use_zero_copy_conv2d_dynamic(
-            inputs[0],
-            module.weight,
-            module.dilation,
-            module.groups,
-            module.transposed,
-        ):
-            weight_data = module.weight.detach().clone()
-            # weight layout to HWIO, making data contiguous (dimension order follow OIHW)
-            weight_data = weight_data.permute(2, 3, 1, 0).contiguous()
-            # permute dimensions to the order expected by pytorch (OIHW)
-            weight_data = weight_data.permute(3, 2, 0, 1)
-            module.weight.data = weight_data.resize_(weight_data.size())
+    # Define hook
+    def get_hook(module_name):
+        def hook(module: torch.nn.Conv2d, inputs):
+            if torch._C._nn.will_use_zero_copy_conv2d_dynamic(
+                inputs[0],
+                module.weight,
+                module.dilation,
+                module.groups,
+                module.transposed,
+            ):
+                convs_to_convert.append(module_name)
+        return hook
+
+    # Get temporary model: hooks may affect performance and we don't want to change the original
+    model, input = get_model_and_input(model_name, source)
 
     # Register hooks to process each Conv2d layer
-    hooks = []
-    for module in model.modules():
+    handles = []
+    for name, module in model.named_modules():
         if type(module) is torch.nn.Conv2d:
-            hooks.append(module.register_forward_pre_hook(process_layer))
+            hook = get_hook(name)
+            handles.append(module.register_forward_pre_hook(hook))
 
     # Perform a forward pass to trigger the hooks
     with torch.no_grad():
         model(input)
 
     # Remove hooks
-    for hook in hooks:
-        hook.remove()
+    for handle in handles:
+        handle.remove()
+    del model
 
+    return convs_to_convert
+
+def convert_conv2d_weights_to_HWIO_dynamic(model, model_name, source):
+    convs_to_convert = get_convs_to_convert(model_name, source)
+    for name, module in model.named_modules():
+        if type(module) is torch.nn.Conv2d and name in convs_to_convert:
+            weight_data = module.weight.detach().clone()
+            # weight layout to HWIO, making data contiguous (dimension order follow OIHW)
+            weight_data = weight_data.permute(2, 3, 1, 0).contiguous()
+            # permute dimensions to the order expected by pytorch (OIHW)
+            weight_data = weight_data.permute(3, 2, 0, 1)
+            module.weight.data = weight_data.resize_(weight_data.size())
     return model
 
 
@@ -86,32 +133,11 @@ def run_model(
         with torch.no_grad():  # Disable gradient calculation
             return model(input)
 
-    if source == "torch":
-        # Get model and weights
-        weights = models.get_model_weights(model_name).DEFAULT
-        model = models.get_model(model_name, weights=weights)
-        # Pre process input with the model's transforms
-        dummy_input = torch.randn(3, 224, 224)
-        preprocess = weights.transforms()
-        input = preprocess(dummy_input)
-        # Add batch dimension
-        input = input.unsqueeze(0)
-    elif source == "timm":
-        # Get model
-        model = timm.create_model(model_name)
-        # Get input
-        input_shape = (1, *model.default_cfg["input_size"])
-        input = torch.randn(input_shape)
-
-    model.eval()  # Set the model to evaluation mode
-    model = model.to(device="cpu", memory_format=torch.channels_last)  # Replace with your model
-    input = input.to(
-        device="cpu", memory_format=torch.channels_last
-    )  # Replace with your input tensor
+    model, input = get_model_and_input(model_name, source)
 
     if convert_weights_to_hwio:
         # model = convert_conv2d_weights_to_HWIO_static(model)
-        model = convert_conv2d_weights_to_HWIO_dynamic(model, input)
+        model = convert_conv2d_weights_to_HWIO_dynamic(model, model_name, source)
 
     if compile:
         model = torch.compile(model)
