@@ -144,7 +144,7 @@ def run_model(
 
     num_threads = torch.get_num_threads()
     # Warm up runs: for big models, the adaptive_autorange may not run enough warm up runs
-    for i in range(10):
+    for i in range(5):
         model(input)
 
     t0 = benchmark.Timer(
