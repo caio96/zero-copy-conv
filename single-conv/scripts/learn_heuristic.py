@@ -298,6 +298,7 @@ def run_decision_tree(
             {0: 2.0, 1: 1.0},
             {0: 1.5, 1: 1.0},
         ],
+        "min_samples_split": [0.01, 0.05, 0.1],
     }
 
     # Perform grid search
