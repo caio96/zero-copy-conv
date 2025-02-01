@@ -8,16 +8,16 @@ from run_torch_model import get_all_models, run_model
 from tqdm import tqdm
 
 
-def run_model_zc(model_name, batch_size, compile, output_csv, csv_header):
+def run_model_zc(source, model_name, batch_size, compile, output_csv, csv_header):
     os.environ["ZC_ENABLE"] = "TRUE"
     os.environ["ZC_TIME"] = "FALSE"
     os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
     os.environ["ZC_HEURISTIC"] = "FALSE"
     try:
-        run_model(model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d")
+        run_model(source, model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d")
     except RuntimeError as e:
         with open(f"{output_csv}.err", "a") as f:
-            f.write(f"Error running {model_name}, with ZeroCopy2d, {e}")
+            f.write(f"Error running {model_name}, with ZeroCopy2d, {e}\n")
 
 
 def run_model_zc_heuristic(source, model_name, batch_size, compile, output_csv, csv_header):
@@ -29,7 +29,7 @@ def run_model_zc_heuristic(source, model_name, batch_size, compile, output_csv, 
         run_model(source, model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d_Heuristic")
     except RuntimeError as e:
         with open(f"{output_csv}.err", "a") as f:
-            f.write(f"Error running {model_name}, with ZeroCopy2d_Heuristic, {e}")
+            f.write(f"Error running {model_name}, with ZeroCopy2d_Heuristic, {e}\n")
 
 
 def run_model_torch(source, model_name, batch_size, compile, output_csv, csv_header):
@@ -39,7 +39,7 @@ def run_model_torch(source, model_name, batch_size, compile, output_csv, csv_hea
         run_model(source, model_name, compile, batch_size, False, output_csv, csv_header, "Torch")
     except RuntimeError as e:
         with open(f"{output_csv}.err", "a") as f:
-            f.write(f"Error running {model_name}, with Torch, {e}")
+            f.write(f"Error running {model_name}, with Torch, {e}\n")
 
 
 if __name__ == "__main__":
