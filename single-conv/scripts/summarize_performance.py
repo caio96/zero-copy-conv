@@ -129,6 +129,9 @@ def plot_speedup(
     only_stats=False,
     clip_pos=False,
     clip_neg=False,
+    show_boxplot=True,
+    show_counts=True,
+    show_inflection=True,
 ):
 
     def weighted_median(df: pd.DataFrame):
@@ -197,11 +200,12 @@ def plot_speedup(
     fig, ax = plt.subplots()
 
     # barplot
-    ax.bar(pos_speedup.index, pos_speedup, color="#2c7bb6")
+    ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
     ax.bar(
         range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
         neg_speedup.values,
-        color="#d7191c",
+        color="#ca0020",
+        label=f"Slowdown: {neg_speedup.shape[0]}"
     )
 
     # Add line showing that positive outliers clipped
@@ -238,63 +242,77 @@ def plot_speedup(
         )
 
     # boxplot
-    _, x_max = ax.get_xlim()
-    ax.set_xlim((-x_max * 0.05, num_points + x_max * 0.05))
-    ax.boxplot(
-        [pos_speedup, neg_speedup],
-        showfliers=False,
-        positions=[-x_max * 0.025, num_points + x_max * 0.025],
-        widths=x_max * 0.02,
-    )
+    if show_boxplot:
+        _, x_max = ax.get_xlim()
+        ax.set_xlim((-x_max * 0.05, num_points + x_max * 0.05))
+        ax.boxplot(
+            [pos_speedup, neg_speedup],
+            showfliers=False,
+            positions=[-x_max * 0.025, num_points + x_max * 0.025],
+            widths=x_max * 0.02,
+        )
+    else:
+        x_total = pos_speedup.shape[0] + neg_speedup.shape[0]
+        ax.set_xlim(left=-x_total*0.02, right=x_total*1.02)
+
+    legend = plt.legend(frameon=True, framealpha=1)
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('black')
 
     ax.set_ylabel("\% Speedup")
     ax.set_xlabel("Conv2D Layers")
-    ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
-    # ax.set_xticks([0, num_points], [0, num_points])
-    # ax.xaxis.set_label_coords(.5, -.05)
+    if show_inflection:
+        ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
+    else:
+        ax.set_xticks([0, num_points], [0, num_points])
+        ax.xaxis.set_label_coords(.5, -.05)
 
-    y_min, y_max = ax.get_ylim()
-    y_total = y_max - y_min
+    if show_counts:
+        y_min, y_max = ax.get_ylim()
+        y_total = y_max - y_min
 
-    ax.hlines(-y_total * 0.05, 1, inflection, "#2c7bb6")
-    ax.vlines(1, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#2c7bb6")
-    ax.vlines(
-        inflection,
-        -y_total * 0.05 - y_total * 0.01,
-        -y_total * 0.05 + y_total * 0.01,
-        "#2c7bb6",
-    )
-    ax.text(
-        (inflection / 2),
-        -y_total * 0.08,
-        f"{pos_speedup.shape[0]}",
-        fontsize=12,
-        horizontalalignment="center",
-        verticalalignment="center",
-    )
-
-    if neg_speedup.shape[0] != 0:
-        ax.hlines(y_total * 0.05, inflection, num_points, "#d7191c")
+        ax.hlines(-y_total * 0.05, 1, inflection, "#0571b0")
+        ax.vlines(1, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#0571b0")
         ax.vlines(
             inflection,
-            y_total * 0.05 - y_total * 0.01,
-            y_total * 0.05 + y_total * 0.01,
-            "#d7191c",
-        )
-        ax.vlines(
-            num_points,
-            y_total * 0.05 - y_total * 0.01,
-            y_total * 0.05 + +y_total * 0.01,
-            "#d7191c",
+            -y_total * 0.05 - y_total * 0.01,
+            -y_total * 0.05 + y_total * 0.01,
+            "#0571b0",
         )
         ax.text(
-            ((num_points + inflection) / 2),
-            y_total * 0.08,
-            f"{neg_speedup.shape[0]}",
+            (inflection / 2),
+            -y_total * 0.08,
+            f"{pos_speedup.shape[0]}",
             fontsize=12,
             horizontalalignment="center",
             verticalalignment="center",
         )
+
+        if neg_speedup.shape[0] != 0:
+            ax.hlines(y_total * 0.05, inflection, num_points, "#ca0020")
+            ax.vlines(
+                inflection,
+                y_total * 0.05 - y_total * 0.01,
+                y_total * 0.05 + y_total * 0.01,
+                "#ca0020",
+            )
+            ax.vlines(
+                num_points,
+                y_total * 0.05 - y_total * 0.01,
+                y_total * 0.05 + +y_total * 0.01,
+                "#ca0020",
+            )
+            ax.text(
+                ((num_points + inflection) / 2),
+                y_total * 0.08,
+                f"{neg_speedup.shape[0]}",
+                fontsize=12,
+                horizontalalignment="center",
+                verticalalignment="center",
+            )
+    else:
+        ax.set_ylim(top=pos_speedup.max(), bottom=neg_speedup.min())
 
     # save figure
     plt.savefig(
