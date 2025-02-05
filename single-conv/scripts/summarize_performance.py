@@ -170,11 +170,29 @@ def plot_speedup(
     # Clip positive outliers if enabled
     if clip_pos:
         pos_threshold = pos_speedup.quantile(0.99)
+        max_pos = pos_speedup.max()
+        clipped_pos_indices = pos_speedup[pos_speedup > pos_threshold].index.to_series()
         pos_speedup = np.clip(pos_speedup, 0, pos_threshold)
     # Clip negative outliers if enabled
     if clip_neg:
         neg_threshold = neg_speedup.quantile(0.01)
+        min_neg = neg_speedup.min()
+        clipped_neg_indices = neg_speedup[neg_speedup < neg_threshold].index.to_series()
         neg_speedup = np.clip(neg_speedup, neg_threshold, 0)
+
+    from matplotlib import rc
+    rc('font', **{'family': 'serif', 'serif': ['Libertine']})
+    rc('text', usetex=True)
+    rc('text.latex', preamble="\n".join([
+        r"\usepackage[utf8]{inputenc}",
+        r"\usepackage[T1]{fontenc}",
+        r"\usepackage{libertine}",
+        r"\usepackage{newtxtext,newtxmath}",
+    ]))
+    plt.rcParams.update({
+        "font.size": 16,
+        "legend.fontsize": 16,
+    })
 
     fig, ax = plt.subplots()
 
@@ -187,11 +205,37 @@ def plot_speedup(
     )
 
     # Add line showing that positive outliers clipped
-    if clip_pos:
-        ax.axhline(y=pos_threshold, color="gray", linestyle="--", linewidth=0.5)
+    if clip_pos and len(clipped_pos_indices) > 0:
+        mid_x_pos = clipped_pos_indices.mean()
+        cutoff_x_start = clipped_pos_indices.min() - 3 * mid_x_pos
+        cutoff_x_end = clipped_pos_indices.max() + 3 * mid_x_pos
+        ax.hlines(pos_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
+        # Annotate clipped value
+        ax.text(
+            mid_x_pos,
+            pos_threshold,
+            f"{max_pos:.0f}",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+            color="black",
+        )
     # Add line showing that positive outliers clipped
     if clip_neg:
-        ax.axhline(y=neg_threshold, color="gray", linestyle="--", linewidth=0.5)
+        mid_x_neg = clipped_neg_indices.mean()
+        cutoff_x_start = clipped_neg_indices.min() - 3 * mid_x_neg
+        cutoff_x_end = clipped_neg_indices.max() + 3 * mid_x_neg
+        ax.hlines(neg_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
+        # Annotate clipped value
+        ax.text(
+            mid_x_neg,
+            neg_threshold,
+            f"{min_neg:.0f}",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+            color="black",
+        )
 
     # boxplot
     _, x_max = ax.get_xlim()
@@ -203,9 +247,11 @@ def plot_speedup(
         widths=x_max * 0.02,
     )
 
-    ax.set_ylabel("Speedup/Slowdown")
-    ax.set_xlabel("Convolutions Layers")
+    ax.set_ylabel("\% Speedup")
+    ax.set_xlabel("Conv2D Layers")
     ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
+    # ax.set_xticks([0, num_points], [0, num_points])
+    # ax.xaxis.set_label_coords(.5, -.05)
 
     y_min, y_max = ax.get_ylim()
     y_total = y_max - y_min
@@ -222,6 +268,7 @@ def plot_speedup(
         (inflection / 2),
         -y_total * 0.08,
         f"{pos_speedup.shape[0]}",
+        fontsize=12,
         horizontalalignment="center",
         verticalalignment="center",
     )
@@ -244,6 +291,7 @@ def plot_speedup(
             ((num_points + inflection) / 2),
             y_total * 0.08,
             f"{neg_speedup.shape[0]}",
+            fontsize=12,
             horizontalalignment="center",
             verticalalignment="center",
         )
