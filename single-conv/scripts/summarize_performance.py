@@ -145,6 +145,10 @@ def plot_speedup(
         median = df["speedup"][cumsum >= cutoff].iloc[0]
         return median
 
+    # Remove rows where speedup or slowdown is less than 0.01
+    small_change_count = speedup_results.loc[lambda x: x.speedup.abs() < 0.01].shape[0]
+    speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01]
+
     speedup_results = speedup_results.reset_index(drop=True)
     speedup = speedup_results["speedup"]
     num_points = speedup_results.shape[0]
@@ -166,6 +170,7 @@ def plot_speedup(
         "Max": [pos_speedup.max(), neg_speedup.min()],
         "Occurrences": [int(pos["occurrences"].sum()), int(neg["occurrences"].sum())],
         "Weighted Median": [weighted_median(pos), weighted_median(neg)],
+        "Less than 1% change": [small_change_count, ""],
     }
     df_stats = pd.DataFrame(stats).fillna(0).set_index(f"{new_method_name} vs {old_method_name}")
     print(tabulate(df_stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
@@ -209,7 +214,7 @@ def plot_speedup(
             f"{max_pos:.0f}",
             ha="center",
             va="bottom",
-            fontsize=12,
+            fontsize=20,
             color="black",
         )
     # Add line showing that positive outliers clipped
@@ -225,7 +230,7 @@ def plot_speedup(
             f"{min_neg:.0f}",
             ha="center",
             va="bottom",
-            fontsize=12,
+            fontsize=20,
             color="black",
         )
 
@@ -243,12 +248,12 @@ def plot_speedup(
         x_total = pos_speedup.shape[0] + neg_speedup.shape[0]
         ax.set_xlim(left=-x_total*0.02, right=x_total*1.02)
 
-    legend = plt.legend(frameon=True, framealpha=1)
+    legend = plt.legend(frameon=True, framealpha=1, handlelength=1)
     frame = legend.get_frame()
     frame.set_facecolor('white')
     frame.set_edgecolor('black')
 
-    ax.set_ylabel("\% Speedup")
+    ax.set_ylabel("Percentage Speedup")
     ax.set_xlabel("Conv2D Layers")
     if show_inflection:
         ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
@@ -272,7 +277,7 @@ def plot_speedup(
             (inflection / 2),
             -y_total * 0.08,
             f"{pos_speedup.shape[0]}",
-            fontsize=12,
+            fontsize=20,
             horizontalalignment="center",
             verticalalignment="center",
         )
@@ -295,12 +300,14 @@ def plot_speedup(
                 ((num_points + inflection) / 2),
                 y_total * 0.08,
                 f"{neg_speedup.shape[0]}",
-                fontsize=12,
+                fontsize=20,
                 horizontalalignment="center",
                 verticalalignment="center",
             )
     else:
-        ax.set_ylim(top=pos_speedup.max(), bottom=neg_speedup.min())
+        top = pos_speedup.max() if clip_pos else None
+        bottom = neg_speedup.min() if clip_neg else None
+        ax.set_ylim(top=top, bottom=bottom)
 
     # save figure
     plt.savefig(
@@ -566,8 +573,8 @@ if __name__ == "__main__":
             r"\usepackage{newtxtext,newtxmath}",
         ]))
         plt.rcParams.update({
-            "font.size": 16,
-            "legend.fontsize": 16,
+            "font.size": 22,
+            "legend.fontsize": 20,
         })
 
         # Add graph with execution times for all methods
