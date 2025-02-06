@@ -6,10 +6,12 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib import rc
 import numpy as np
 import pandas as pd
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 from tabulate import tabulate
+import scipy.stats as st
 
 
 def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, only_stats=False):
@@ -129,6 +131,9 @@ def plot_speedup(
     only_stats=False,
     clip_pos=False,
     clip_neg=False,
+    show_boxplot=True,
+    show_counts=True,
+    show_inflection=True,
 ):
 
     def weighted_median(df: pd.DataFrame):
@@ -170,83 +175,132 @@ def plot_speedup(
     # Clip positive outliers if enabled
     if clip_pos:
         pos_threshold = pos_speedup.quantile(0.99)
+        max_pos = pos_speedup.max()
+        clipped_pos_indices = pos_speedup[pos_speedup > pos_threshold].index.to_series()
         pos_speedup = np.clip(pos_speedup, 0, pos_threshold)
     # Clip negative outliers if enabled
     if clip_neg:
         neg_threshold = neg_speedup.quantile(0.01)
+        min_neg = neg_speedup.min()
+        clipped_neg_indices = neg_speedup[neg_speedup < neg_threshold].index.to_series()
         neg_speedup = np.clip(neg_speedup, neg_threshold, 0)
 
     fig, ax = plt.subplots()
 
     # barplot
-    ax.bar(pos_speedup.index, pos_speedup, color="#2c7bb6")
+    ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
     ax.bar(
         range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
         neg_speedup.values,
-        color="#d7191c",
+        color="#ca0020",
+        label=f"Slowdown: {neg_speedup.shape[0]}"
     )
 
     # Add line showing that positive outliers clipped
-    if clip_pos:
-        ax.axhline(y=pos_threshold, color="gray", linestyle="--", linewidth=0.5)
+    if clip_pos and len(clipped_pos_indices) > 0:
+        mid_x_pos = clipped_pos_indices.mean()
+        cutoff_x_start = clipped_pos_indices.min() - 3 * mid_x_pos
+        cutoff_x_end = clipped_pos_indices.max() + 3 * mid_x_pos
+        ax.hlines(pos_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
+        # Annotate clipped value
+        ax.text(
+            mid_x_pos,
+            pos_threshold,
+            f"{max_pos:.0f}",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+            color="black",
+        )
     # Add line showing that positive outliers clipped
     if clip_neg:
-        ax.axhline(y=neg_threshold, color="gray", linestyle="--", linewidth=0.5)
+        mid_x_neg = clipped_neg_indices.mean()
+        cutoff_x_start = clipped_neg_indices.min() - 3 * mid_x_neg
+        cutoff_x_end = clipped_neg_indices.max() + 3 * mid_x_neg
+        ax.hlines(neg_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
+        # Annotate clipped value
+        ax.text(
+            mid_x_neg,
+            neg_threshold,
+            f"{min_neg:.0f}",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+            color="black",
+        )
 
     # boxplot
-    _, x_max = ax.get_xlim()
-    ax.set_xlim((-x_max * 0.05, num_points + x_max * 0.05))
-    ax.boxplot(
-        [pos_speedup, neg_speedup],
-        showfliers=False,
-        positions=[-x_max * 0.025, num_points + x_max * 0.025],
-        widths=x_max * 0.02,
-    )
+    if show_boxplot:
+        _, x_max = ax.get_xlim()
+        ax.set_xlim((-x_max * 0.05, num_points + x_max * 0.05))
+        ax.boxplot(
+            [pos_speedup, neg_speedup],
+            showfliers=False,
+            positions=[-x_max * 0.025, num_points + x_max * 0.025],
+            widths=x_max * 0.02,
+        )
+    else:
+        x_total = pos_speedup.shape[0] + neg_speedup.shape[0]
+        ax.set_xlim(left=-x_total*0.02, right=x_total*1.02)
 
-    ax.set_ylabel("Speedup/Slowdown")
-    ax.set_xlabel("Convolutions Layers")
-    ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
+    legend = plt.legend(frameon=True, framealpha=1)
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('black')
 
-    y_min, y_max = ax.get_ylim()
-    y_total = y_max - y_min
+    ax.set_ylabel("\% Speedup")
+    ax.set_xlabel("Conv2D Layers")
+    if show_inflection:
+        ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
+    else:
+        ax.set_xticks([0, num_points], [0, num_points])
+        ax.xaxis.set_label_coords(.5, -.05)
 
-    ax.hlines(-y_total * 0.05, 1, inflection, "#2c7bb6")
-    ax.vlines(1, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#2c7bb6")
-    ax.vlines(
-        inflection,
-        -y_total * 0.05 - y_total * 0.01,
-        -y_total * 0.05 + y_total * 0.01,
-        "#2c7bb6",
-    )
-    ax.text(
-        (inflection / 2),
-        -y_total * 0.08,
-        f"{pos_speedup.shape[0]}",
-        horizontalalignment="center",
-        verticalalignment="center",
-    )
+    if show_counts:
+        y_min, y_max = ax.get_ylim()
+        y_total = y_max - y_min
 
-    if neg_speedup.shape[0] != 0:
-        ax.hlines(y_total * 0.05, inflection, num_points, "#d7191c")
+        ax.hlines(-y_total * 0.05, 1, inflection, "#0571b0")
+        ax.vlines(1, -y_total * 0.05 - y_total * 0.01, -y_total * 0.05 + y_total * 0.01, "#0571b0")
         ax.vlines(
             inflection,
-            y_total * 0.05 - y_total * 0.01,
-            y_total * 0.05 + y_total * 0.01,
-            "#d7191c",
-        )
-        ax.vlines(
-            num_points,
-            y_total * 0.05 - y_total * 0.01,
-            y_total * 0.05 + +y_total * 0.01,
-            "#d7191c",
+            -y_total * 0.05 - y_total * 0.01,
+            -y_total * 0.05 + y_total * 0.01,
+            "#0571b0",
         )
         ax.text(
-            ((num_points + inflection) / 2),
-            y_total * 0.08,
-            f"{neg_speedup.shape[0]}",
+            (inflection / 2),
+            -y_total * 0.08,
+            f"{pos_speedup.shape[0]}",
+            fontsize=12,
             horizontalalignment="center",
             verticalalignment="center",
         )
+
+        if neg_speedup.shape[0] != 0:
+            ax.hlines(y_total * 0.05, inflection, num_points, "#ca0020")
+            ax.vlines(
+                inflection,
+                y_total * 0.05 - y_total * 0.01,
+                y_total * 0.05 + y_total * 0.01,
+                "#ca0020",
+            )
+            ax.vlines(
+                num_points,
+                y_total * 0.05 - y_total * 0.01,
+                y_total * 0.05 + +y_total * 0.01,
+                "#ca0020",
+            )
+            ax.text(
+                ((num_points + inflection) / 2),
+                y_total * 0.08,
+                f"{neg_speedup.shape[0]}",
+                fontsize=12,
+                horizontalalignment="center",
+                verticalalignment="center",
+            )
+    else:
+        ax.set_ylim(top=pos_speedup.max(), bottom=neg_speedup.min())
 
     # save figure
     plt.savefig(
@@ -281,8 +335,12 @@ def compare_methods(
         )
         new_method_name = f"Heuristic_{new_method_name}"
 
-    # Save results to csv
     if not only_stats:
+        # Add graph with execution times for comparison
+        methods = [col.replace("mean_time_", "") for col in joined_results.columns if "mean_time" in col]
+        graph_execution_times(joined_results, methods, output_dir, old_method, new_method)
+
+        # Save results to csv
         speedup_results.to_csv(
             output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
@@ -296,6 +354,88 @@ def compare_methods(
         clip_pos,
         clip_neg,
     )
+
+
+# Function to estimate the FLOPs of a convolution
+# Used to sort the convolutions by complexity
+def compute_conv_flops(
+    input_channels, input_height, input_width,
+    output_channels, kernel_height, kernel_width,
+    stride_height=1, stride_width=1, padding_height=0, padding_width=0,
+    dilation_height=1, dilation_width=1, groups=1
+):
+    # Compute output dimensions
+    output_height = ((input_height + 2 * padding_height - (dilation_height * (kernel_height - 1) + 1)) // stride_height) + 1
+    output_width = ((input_width + 2 * padding_width - (dilation_width * (kernel_width - 1) + 1)) // stride_width) + 1
+    # Channels per group
+    input_channels_per_group = input_channels // groups
+    # Compute FLOPs
+    flops = output_channels * output_height * output_width * input_channels_per_group * kernel_height * kernel_width
+    return flops
+
+
+def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None, new_method=None):
+    fig, ax = plt.subplots()
+
+    df = split_parameters(df)
+    df["flops"] = compute_conv_flops(df["image channel"], df["image height"], df["image width"],
+                                     df["output channel"], df["filter height"], df["filter width"],
+                                     df["stride height"], df["stride width"], df["padding top"], df["padding left"],
+                                     df["dilation height"], df["dilation width"], df["groups"])
+    df = df.sort_values(by=["flops"])
+    marker=['o', 'v', '^', '<', '>', 's', 'p', '*', 'X']
+
+    name_translation = {
+            "ZeroCopy_jit": "ZConv",
+            "OneDNN_jit": "OneDNN",
+            "LibTorch_ZeroCopy2D_HWIO_TransformOutput": "Torch_ZConv",
+            "LibTorch": "Torch",
+            "Im2col": "Im2col",
+            "Yaconv": "Yaconv",
+    }
+
+    for idx, method in enumerate(sorted(methods)):
+        if old_method and new_method and method not in (old_method, new_method):
+            continue
+        label_name = name_translation[method] if method in name_translation else method
+        method_means = df[f"mean_time_{method}"]
+        method_iterations = df[f"total_iterations_{method}"]
+
+        # Note that std deviation only sees the means from repeated runs, not the individual runs
+        method_std = df[f"std_time_{method}"]
+
+        # Calculate the 95% confidence interval
+        conf_low, conf_high = st.norm.interval(confidence=0.95, loc=method_means, scale=method_std/np.sqrt(method_iterations))
+        conf = (conf_high - conf_low) / 2
+
+        ax.errorbar(range(df.shape[0]), method_means, yerr=conf, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
+
+    legend = plt.legend(frameon=True, framealpha=1, markerscale=3)
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('black')
+
+    ax.set_ylabel("Execution time (ms)")
+    ax.set_xlabel("Conv2D Layers")
+
+    comparison_name = ""
+    if old_method:
+        comparison_name += f"{old_method}_"
+    else:
+        comparison_name += "all_"
+    comparison_name += "vs_"
+    if new_method:
+        comparison_name += new_method
+    else:
+        comparison_name += "all"
+
+    # save figure
+    plt.savefig(
+        output_dir / f"conv2d_{comparison_name}_execution_times.png",
+        bbox_inches="tight",
+        dpi=300,
+    )
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -415,6 +555,23 @@ if __name__ == "__main__":
     df = df.iloc[:, :num_columns]
 
     methods = [col.replace("mean_time_", "") for col in df.columns if "mean_time" in col]
+
+    if not only_stats:
+        rc('font', **{'family': 'serif', 'serif': ['Libertine']})
+        rc('text', usetex=True)
+        rc('text.latex', preamble="\n".join([
+            r"\usepackage[utf8]{inputenc}",
+            r"\usepackage[T1]{fontenc}",
+            r"\usepackage{libertine}",
+            r"\usepackage{newtxtext,newtxmath}",
+        ]))
+        plt.rcParams.update({
+            "font.size": 16,
+            "legend.fontsize": 16,
+        })
+
+        # Add graph with execution times for all methods
+        graph_execution_times(df, methods, output_dir)
 
     # Check if both methods are present
     if old_method and old_method not in methods:
