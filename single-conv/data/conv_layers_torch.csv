@@ -1,76 +1,76 @@
 conv_parameters,occurrences,models
-1 128 14 14 32 3 3 1 1 1 1 1 1 1 1 1 0 0,104,densenet121 densenet169 densenet201
-1 1024 14 14 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,93,wide_resnet50_2 resnext101_32x8d resnext101_64x4d resnext50_32x4d wide_resnet101_2
-1 256 14 14 256 3 3 1 1 1 1 1 1 1 1 1 0 0,80,resnet101 resnet50 maskrcnn_resnet50_fpn_v2 resnet152 resnet18 resnet34
-1 128 7 7 32 3 3 1 1 1 1 1 1 1 1 1 0 0,80,densenet121 densenet169 densenet201
-1 256 14 14 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,69,resnet152 resnet101 maxvit_t resnet50
-1 1024 14 14 256 1 1 0 0 0 0 1 1 1 1 1 0 0,62,resnet152 resnet101 resnet50
-1 256 65 65 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,58,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 1024 65 65 256 1 1 0 0 0 0 1 1 1 1 1 0 0,54,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 256 65 65 256 3 3 2 2 2 2 1 1 2 2 1 0 0,54,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 256 50 50 256 3 3 1 1 1 1 1 1 1 1 1 0 0,50,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 256 50 50 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,48,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 896 14 14 896 1 1 0 0 0 0 1 1 1 1 1 0 0,44,regnet_x_16gf regnet_y_8gf
-1 1024 50 50 256 1 1 0 0 0 0 1 1 1 1 1 0 0,42,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 2304 1 1 96 1 1 0 0 0 0 1 1 1 1 1 0 1,39,efficientnet_v2_l efficientnet_b7 efficientnet_b3
-1 96 1 1 2304 1 1 0 0 0 0 1 1 1 1 1 0 1,39,efficientnet_v2_l efficientnet_b7 efficientnet_b3
-1 128 28 28 32 3 3 1 1 1 1 1 1 1 1 1 0 0,36,densenet121 densenet169 densenet201
-1 1024 14 14 512 1 1 0 0 0 0 1 1 1 1 1 0 0,36,densenet121 resnet101 resnet50 wide_resnet50_2 resnet152 resnext50_32x4d wide_resnet101_2
+1 128 14 14 32 3 3 1 1 1 1 1 1 1 1 1 0 0,104,densenet121 densenet201 densenet169
+1 1024 14 14 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,93,resnext101_64x4d resnext50_32x4d wide_resnet50_2 resnext101_32x8d wide_resnet101_2
+1 256 14 14 256 3 3 1 1 1 1 1 1 1 1 1 0 0,80,resnet34 resnet101 resnet18 resnet152 resnet50 maskrcnn_resnet50_fpn_v2
+1 128 7 7 32 3 3 1 1 1 1 1 1 1 1 1 0 0,80,densenet121 densenet201 densenet169
+1 256 14 14 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,69,resnet152 resnet50 maxvit_t resnet101
+1 1024 14 14 256 1 1 0 0 0 0 1 1 1 1 1 0 0,62,resnet152 resnet50 resnet101
+1 256 65 65 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,58,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 1024 65 65 256 1 1 0 0 0 0 1 1 1 1 1 0 0,54,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 256 65 65 256 3 3 2 2 2 2 1 1 2 2 1 0 0,54,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 256 50 50 256 3 3 1 1 1 1 1 1 1 1 1 0 0,50,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 256 50 50 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,48,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 896 14 14 896 1 1 0 0 0 0 1 1 1 1 1 0 0,44,regnet_y_8gf regnet_x_16gf
+1 1024 50 50 256 1 1 0 0 0 0 1 1 1 1 1 0 0,42,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 2304 1 1 96 1 1 0 0 0 0 1 1 1 1 1 0 1,39,efficientnet_b7 efficientnet_b3 efficientnet_v2_l
+1 96 1 1 2304 1 1 0 0 0 0 1 1 1 1 1 0 1,39,efficientnet_b7 efficientnet_b3 efficientnet_v2_l
+1 128 28 28 32 3 3 1 1 1 1 1 1 1 1 1 0 0,36,densenet121 densenet201 densenet169
+1 1024 14 14 512 1 1 0 0 0 0 1 1 1 1 1 0 0,36,resnet101 resnext50_32x4d wide_resnet50_2 resnet152 resnet50 densenet121 wide_resnet101_2
 1 192 14 14 48 3 3 1 1 1 1 1 1 1 1 1 0 0,36,densenet161
 1 384 14 14 384 7 7 3 3 3 3 1 1 1 1 384 0 1,36,convnext_small convnext_tiny
-1 512 14 14 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,35,wide_resnet50_2 resnext50_32x4d wide_resnet101_2
-1 256 25 25 256 3 3 1 1 1 1 1 1 1 1 1 0 1,33,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn fasterrcnn_mobilenet_v3_large_fpn maskrcnn_resnet50_fpn
+1 512 14 14 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,35,wide_resnet50_2 wide_resnet101_2 resnext50_32x4d
+1 256 25 25 256 3 3 1 1 1 1 1 1 1 1 1 0 1,33,fasterrcnn_mobilenet_v3_large_fpn keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 336 14 14 336 1 1 0 0 0 0 1 1 1 1 1 0 0,33,regnet_y_1_6gf
 1 2904 24 24 2904 1 1 0 0 0 0 1 1 1 1 1 0 0,33,regnet_y_128gf
-1 64 200 200 256 1 1 0 0 0 0 1 1 1 1 1 0 0,32,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 128 100 100 512 1 1 0 0 0 0 1 1 1 1 1 0 0,32,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
+1 64 200 200 256 1 1 0 0 0 0 1 1 1 1 1 0 0,32,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 128 100 100 512 1 1 0 0 0 0 1 1 1 1 1 0 0,32,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 432 14 14 432 1 1 0 0 0 0 1 1 1 1 1 0 0,29,regnet_x_3_2gf
 1 720 14 14 720 1 1 0 0 0 0 1 1 1 1 1 0 0,29,regnet_x_8gf
-1 256 50 50 256 3 3 1 1 1 1 1 1 1 1 1 0 1,29,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 256 100 100 256 3 3 1 1 1 1 1 1 1 1 1 0 1,29,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 512 14 14 512 3 3 1 1 1 1 1 1 1 1 1 0 1,29,vgg16 vgg19 vgg13_bn vgg16_bn keypointrcnn_resnet50_fpn vgg13 vgg11 vgg11_bn vgg19_bn
-1 56 1 1 1344 1 1 0 0 0 0 1 1 1 1 1 0 1,29,efficientnet_v2_l efficientnet_b7
-1 1344 1 1 56 1 1 0 0 0 0 1 1 1 1 1 0 1,29,efficientnet_v2_l efficientnet_b7
-1 512 28 28 512 1 1 0 0 0 0 1 1 1 1 1 0 0,28,regnet_x_16gf wide_resnet50_2 resnext101_32x8d resnext101_64x4d resnext50_32x4d wide_resnet101_2
+1 256 50 50 256 3 3 1 1 1 1 1 1 1 1 1 0 1,29,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 256 100 100 256 3 3 1 1 1 1 1 1 1 1 1 0 1,29,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 512 14 14 512 3 3 1 1 1 1 1 1 1 1 1 0 1,29,vgg13 vgg13_bn vgg11_bn vgg19_bn vgg11 keypointrcnn_resnet50_fpn vgg16_bn vgg16 vgg19
+1 56 1 1 1344 1 1 0 0 0 0 1 1 1 1 1 0 1,29,efficientnet_b7 efficientnet_v2_l
+1 1344 1 1 56 1 1 0 0 0 0 1 1 1 1 1 0 1,29,efficientnet_b7 efficientnet_v2_l
+1 512 28 28 512 1 1 0 0 0 0 1 1 1 1 1 0 0,28,regnet_x_16gf resnext101_64x4d resnext50_32x4d wide_resnet50_2 resnext101_32x8d wide_resnet101_2
 1 512 14 14 512 7 7 3 3 3 3 1 1 1 1 512 0 1,27,convnext_base
 1 768 14 14 768 7 7 3 3 3 3 1 1 1 1 768 0 1,27,convnext_large
 1 512 14 14 512 3 3 1 1 1 1 1 1 1 1 1 0 0,27,wide_resnet50_2 wide_resnet101_2
 1 304 15 15 1824 1 1 0 0 0 0 1 1 1 1 1 0 0,27,efficientnet_v2_m efficientnet_b5
 1 1824 1 1 76 1 1 0 0 0 0 1 1 1 1 1 0 1,27,efficientnet_v2_m efficientnet_b5
 1 76 1 1 1824 1 1 0 0 0 0 1 1 1 1 1 0 1,27,efficientnet_v2_m efficientnet_b5
-1 40 1 1 960 1 1 0 0 0 0 1 1 1 1 1 0 1,26,efficientnet_v2_s efficientnet_b4 efficientnet_b7 efficientnet_v2_m
-1 960 1 1 40 1 1 0 0 0 0 1 1 1 1 1 0 1,26,efficientnet_v2_s efficientnet_b4 efficientnet_b7 efficientnet_v2_m
-1 256 13 13 256 3 3 1 1 1 1 1 1 1 1 1 0 1,25,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn alexnet fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn fasterrcnn_mobilenet_v3_large_fpn maskrcnn_resnet50_fpn
+1 40 1 1 960 1 1 0 0 0 0 1 1 1 1 1 0 1,26,efficientnet_b7 efficientnet_b4 efficientnet_v2_m efficientnet_v2_s
+1 960 1 1 40 1 1 0 0 0 0 1 1 1 1 1 0 1,26,efficientnet_b7 efficientnet_b4 efficientnet_v2_m efficientnet_v2_s
+1 256 13 13 256 3 3 1 1 1 1 1 1 1 1 1 0 1,25,alexnet fasterrcnn_mobilenet_v3_large_fpn keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn maskrcnn_resnet50_fpn_v2
 1 2304 15 15 2304 3 3 1 1 1 1 1 1 1 1 2304 0 0,25,efficientnet_v2_l
 1 384 15 15 2304 1 1 0 0 0 0 1 1 1 1 1 0 0,25,efficientnet_v2_l
 1 1824 15 15 304 1 1 0 0 0 0 1 1 1 1 1 0 0,25,efficientnet_v2_m efficientnet_b5
 1 1344 14 14 1344 1 1 0 0 0 0 1 1 1 1 1 0 0,25,regnet_x_32gf
 1 576 14 14 576 1 1 0 0 0 0 1 1 1 1 1 0 0,25,regnet_y_3_2gf
-1 512 100 100 128 1 1 0 0 0 0 1 1 1 1 1 0 0,24,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 128 100 100 128 3 3 1 1 1 1 1 1 1 1 1 0 0,24,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 64 200 200 64 3 3 1 1 1 1 1 1 1 1 1 0 0,24,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
+1 512 100 100 128 1 1 0 0 0 0 1 1 1 1 1 0 0,24,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 128 100 100 128 3 3 1 1 1 1 1 1 1 1 1 0 0,24,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 64 200 200 64 3 3 1 1 1 1 1 1 1 1 1 0 0,24,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 192 7 7 48 3 3 1 1 1 1 1 1 1 1 1 0 0,24,densenet161
 1 2304 15 15 384 1 1 0 0 0 0 1 1 1 1 1 0 0,24,efficientnet_v2_l
-1 512 25 25 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,24,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
+1 512 25 25 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,24,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 400 7 7 400 1 1 0 0 0 0 1 1 1 1 1 0 0,23,regnet_x_400mf
-1 128 28 28 128 3 3 1 1 1 1 1 1 1 1 1 0 0,23,resnet101 resnet50 resnet152 resnet18 resnet34
+1 128 28 28 128 3 3 1 1 1 1 1 1 1 1 1 0 0,23,resnet34 resnet18 resnet152 resnet50 resnet101
 1 1392 14 14 1392 1 1 0 0 0 0 1 1 1 1 1 0 0,23,regnet_y_32gf
 1 1024 14 14 1024 3 3 1 1 1 1 1 1 1 1 32 0 0,22,resnext101_32x8d
 1 1024 14 14 1024 3 3 1 1 1 1 1 1 1 1 64 0 0,22,resnext101_64x4d
 1 1232 14 14 1232 1 1 0 0 0 0 1 1 1 1 1 0 0,21,regnet_y_16gf
 1 1056 1 1 44 1 1 0 0 0 0 1 1 1 1 1 0 1,21,efficientnet_v2_m efficientnet_b5
 1 44 1 1 1056 1 1 0 0 0 0 1 1 1 1 1 0 1,21,efficientnet_v2_m efficientnet_b5
-1 64 56 56 256 1 1 0 0 0 0 1 1 1 1 1 0 0,20,resnet101 resnet50 wide_resnet50_2 resnet152 resnext101_32x8d resnext101_64x4d resnext50_32x4d maxvit_t wide_resnet101_2
+1 64 56 56 256 1 1 0 0 0 0 1 1 1 1 1 0 0,20,resnext101_64x4d resnext50_32x4d wide_resnet50_2 resnext101_32x8d resnet152 resnet50 maxvit_t resnet101 wide_resnet101_2
 1 224 30 30 1344 1 1 0 0 0 0 1 1 1 1 1 0 0,19,efficientnet_v2_l
 1 1824 15 15 1824 3 3 1 1 1 1 1 1 1 1 1824 0 0,19,efficientnet_v2_m efficientnet_b5
 1 408 14 14 408 1 1 0 0 0 0 1 1 1 1 1 0 0,19,regnet_x_1_6gf
-1 64 56 56 64 3 3 1 1 1 1 1 1 1 1 1 0 0,19,resnet101 resnet50 resnet152 resnet18 resnet34
+1 64 56 56 64 3 3 1 1 1 1 1 1 1 1 1 0 0,19,resnet34 resnet18 resnet152 resnet50 resnet101
 1 1344 30 30 224 1 1 0 0 0 0 1 1 1 1 1 0 0,18,efficientnet_v2_l
 1 1344 30 30 1344 3 3 1 1 1 1 1 1 1 1 1344 0 0,18,efficientnet_v2_l
-1 128 56 56 32 3 3 1 1 1 1 1 1 1 1 1 0 0,18,densenet121 densenet169 densenet201
-1 3 224 224 32 3 3 1 1 1 1 2 2 1 1 1 0 0,17,regnet_x_16gf regnet_y_16gf regnet_x_400mf regnet_y_3_2gf regnet_y_8gf regnet_x_32gf regnet_y_1_6gf regnet_x_800mf regnet_x_8gf regnet_x_3_2gf regnet_y_800mf regnet_x_1_6gf mnasnet1_0 regnet_y_32gf mobilenet_v2 regnet_y_400mf efficientnet_b0
-1 128 28 28 512 1 1 0 0 0 0 1 1 1 1 1 0 0,17,resnet152 resnet101 maxvit_t resnet50
-1 512 25 25 512 3 3 1 1 1 1 1 1 1 1 1 0 0,16,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
+1 128 56 56 32 3 3 1 1 1 1 1 1 1 1 1 0 0,18,densenet121 densenet201 densenet169
+1 3 224 224 32 3 3 1 1 1 1 2 2 1 1 1 0 0,17,mobilenet_v2 regnet_x_32gf regnet_x_16gf regnet_x_3_2gf regnet_x_8gf regnet_y_16gf regnet_y_1_6gf regnet_x_800mf regnet_x_400mf regnet_y_32gf regnet_y_3_2gf regnet_y_800mf regnet_x_1_6gf regnet_y_8gf regnet_y_400mf efficientnet_b0 mnasnet1_0
+1 128 28 28 512 1 1 0 0 0 0 1 1 1 1 1 0 0,17,resnet152 resnet50 maxvit_t resnet101
+1 512 25 25 512 3 3 1 1 1 1 1 1 1 1 1 0 0,16,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 336 14 14 336 3 3 1 1 1 1 1 1 1 1 14 0 0,16,regnet_y_1_6gf
 1 84 1 1 336 1 1 0 0 0 0 1 1 1 1 1 0 1,16,regnet_y_1_6gf
 1 336 1 1 84 1 1 0 0 0 0 1 1 1 1 1 0 1,16,regnet_y_1_6gf
@@ -78,69 +78,69 @@ conv_parameters,occurrences,models
 1 2904 24 24 2904 3 3 1 1 1 1 1 1 1 1 11 0 0,16,regnet_y_128gf
 1 48 14 14 48 1 1 0 0 0 0 1 1 1 1 1 0 0,16,shufflenet_v2_x0_5
 1 726 1 1 2904 1 1 0 0 0 0 1 1 1 1 1 0 1,16,regnet_y_128gf
-1 64 130 130 256 1 1 0 0 0 0 1 1 1 1 1 0 0,16,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 256 56 56 256 1 1 0 0 0 0 1 1 1 1 1 0 0,16,regnet_x_16gf wide_resnet50_2 resnext101_32x8d resnext101_64x4d resnext50_32x4d wide_resnet101_2
-1 128 65 65 512 1 1 0 0 0 0 1 1 1 1 1 0 0,16,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 64 130 130 256 1 1 0 0 0 0 1 1 1 1 1 0 0,16,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 256 56 56 256 1 1 0 0 0 0 1 1 1 1 1 0 0,16,regnet_x_16gf resnext101_64x4d resnext50_32x4d wide_resnet50_2 resnext101_32x8d wide_resnet101_2
+1 128 65 65 512 1 1 0 0 0 0 1 1 1 1 1 0 0,16,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 244 14 14 244 1 1 0 0 0 0 1 1 1 1 1 0 0,16,shufflenet_v2_x2_0
 1 116 14 14 116 1 1 0 0 0 0 1 1 1 1 1 0 0,16,shufflenet_v2_x1_0
 1 176 14 14 176 1 1 0 0 0 0 1 1 1 1 1 0 0,16,shufflenet_v2_x1_5
-1 10 1 1 240 1 1 0 0 0 0 1 1 1 1 1 0 1,16,efficientnet_b5 efficientnet_b6 efficientnet_b1 efficientnet_b0
-1 240 1 1 10 1 1 0 0 0 0 1 1 1 1 1 0 1,16,efficientnet_b5 efficientnet_b6 efficientnet_b1 efficientnet_b0
-1 2048 25 25 512 1 1 0 0 0 0 1 1 1 1 1 0 0,16,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
+1 10 1 1 240 1 1 0 0 0 0 1 1 1 1 1 0 1,16,efficientnet_b6 efficientnet_b1 efficientnet_b0 efficientnet_b5
+1 240 1 1 10 1 1 0 0 0 0 1 1 1 1 1 0 1,16,efficientnet_b6 efficientnet_b1 efficientnet_b0 efficientnet_b5
+1 2048 25 25 512 1 1 0 0 0 0 1 1 1 1 1 0 0,16,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 256 7 7 256 3 3 1 1 1 1 1 1 1 1 1 0 1,16,retinanet_resnet50_fpn fcos_resnet50_fpn
-1 256 200 200 64 1 1 0 0 0 0 1 1 1 1 1 0 0,16,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 256 7 7 256 3 3 1 1 1 1 1 1 1 1 1 0 0,16,retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
-1 512 28 28 256 1 1 0 0 0 0 1 1 1 1 1 0 0,15,densenet121 resnet101 resnet50 wide_resnet50_2 densenet201 resnet152 densenet169 resnext50_32x4d wide_resnet101_2
-1 160 24 24 960 1 1 0 0 0 0 1 1 1 1 1 0 0,15,efficientnet_v2_s efficientnet_b4
+1 256 200 200 64 1 1 0 0 0 0 1 1 1 1 1 0 0,16,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 256 7 7 256 3 3 1 1 1 1 1 1 1 1 1 0 0,16,fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 512 28 28 256 1 1 0 0 0 0 1 1 1 1 1 0 0,15,resnet101 resnext50_32x4d wide_resnet50_2 densenet201 resnet152 resnet50 densenet121 wide_resnet101_2 densenet169
+1 160 24 24 960 1 1 0 0 0 0 1 1 1 1 1 0 0,15,efficientnet_b4 efficientnet_v2_s
 1 320 14 14 320 1 1 0 0 0 0 1 1 1 1 1 0 0,15,regnet_y_800mf
 1 256 12 12 1536 1 1 0 0 0 0 1 1 1 1 1 0 0,14,efficientnet_v2_s
 1 176 30 30 1056 1 1 0 0 0 0 1 1 1 1 1 0 0,14,efficientnet_v2_m
 1 20 1 1 480 1 1 0 0 0 0 1 1 1 1 1 0 1,14,efficientnet_b7 efficientnet_b1 efficientnet_b0
-1 144 1 1 576 1 1 0 0 0 0 1 1 1 1 1 0 1,14,mobilenet_v3_small regnet_y_3_2gf
-1 576 1 1 144 1 1 0 0 0 0 1 1 1 1 1 0 1,14,mobilenet_v3_small regnet_y_3_2gf
+1 144 1 1 576 1 1 0 0 0 0 1 1 1 1 1 0 1,14,regnet_y_3_2gf mobilenet_v3_small
+1 576 1 1 144 1 1 0 0 0 0 1 1 1 1 1 0 1,14,regnet_y_3_2gf mobilenet_v3_small
 1 1536 12 12 1536 3 3 1 1 1 1 1 1 1 1 1536 0 0,14,efficientnet_v2_s
-1 512 7 7 512 3 3 1 1 1 1 1 1 1 1 1 0 0,14,resnet101 resnet50 resnet152 resnet18 resnet34
+1 512 7 7 512 3 3 1 1 1 1 1 1 1 1 1 0 0,14,resnet34 resnet18 resnet152 resnet50 resnet101
 1 1536 1 1 64 1 1 0 0 0 0 1 1 1 1 1 0 1,14,efficientnet_v2_s
 1 1536 12 12 256 1 1 0 0 0 0 1 1 1 1 1 0 0,14,efficientnet_v2_s
 1 720 14 14 720 3 3 1 1 1 1 1 1 1 1 6 0 0,14,regnet_x_8gf
 1 432 14 14 432 3 3 1 1 1 1 1 1 1 1 9 0 0,14,regnet_x_3_2gf
-1 3 224 224 64 7 7 3 3 3 3 2 2 1 1 1 0 0,14,densenet121 resnet101 resnet50 wide_resnet50_2 densenet201 resnet152 densenet169 googlenet resnet18 resnext101_32x8d resnext101_64x4d resnext50_32x4d resnet34 wide_resnet101_2
+1 3 224 224 64 7 7 3 3 3 3 2 2 1 1 1 0 0,14,resnet34 resnet101 resnext101_64x4d resnext50_32x4d resnet18 wide_resnet50_2 densenet201 wide_resnet101_2 resnext101_32x8d resnet152 resnet50 densenet121 googlenet densenet169
 1 64 1 1 1536 1 1 0 0 0 0 1 1 1 1 1 0 1,14,efficientnet_v2_s
-1 256 56 56 256 3 3 1 1 1 1 1 1 1 1 1 0 1,14,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg11 vgg11_bn vgg19_bn
+1 256 56 56 256 3 3 1 1 1 1 1 1 1 1 1 0 1,14,vgg13 vgg13_bn vgg11_bn vgg19_bn vgg11 vgg16_bn vgg16 vgg19
 1 480 1 1 20 1 1 0 0 0 0 1 1 1 1 1 0 1,14,efficientnet_b7 efficientnet_b1 efficientnet_b0
-1 512 28 28 512 3 3 1 1 1 1 1 1 1 1 1 0 1,14,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg11 vgg11_bn vgg19_bn
+1 512 28 28 512 3 3 1 1 1 1 1 1 1 1 1 0 1,14,vgg13 vgg13_bn vgg11_bn vgg19_bn vgg11 vgg16_bn vgg16 vgg19
 1 448 28 28 448 1 1 0 0 0 0 1 1 1 1 1 0 0,14,regnet_y_8gf regnet_y_16gf
 1 288 14 14 288 1 1 0 0 0 0 1 1 1 1 1 0 0,13,regnet_x_800mf
-1 960 24 24 160 1 1 0 0 0 0 1 1 1 1 1 0 0,13,efficientnet_v2_s efficientnet_b4
+1 960 24 24 160 1 1 0 0 0 0 1 1 1 1 1 0 0,13,efficientnet_b4 efficientnet_v2_s
 1 672 28 28 672 1 1 0 0 0 0 1 1 1 1 1 0 0,13,regnet_x_32gf
 1 160 14 14 160 1 1 0 0 0 0 1 1 1 1 1 0 0,13,regnet_x_400mf
-1 28 1 1 672 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b4 efficientnet_b1 efficientnet_b0
+1 28 1 1 672 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b1 efficientnet_b4 efficientnet_b0
 1 1056 30 30 1056 3 3 1 1 1 1 1 1 1 1 1056 0 0,13,efficientnet_v2_m
-1 672 1 1 28 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b4 efficientnet_b1 efficientnet_b0
+1 672 1 1 28 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b1 efficientnet_b4 efficientnet_b0
 1 384 19 19 2304 1 1 0 0 0 0 1 1 1 1 1 0 0,13,efficientnet_b7
 1 1056 30 30 176 1 1 0 0 0 0 1 1 1 1 1 0 0,13,efficientnet_v2_m
-1 120 1 1 32 1 1 0 0 0 0 1 1 1 1 1 0 1,13,mobilenet_v3_small ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
-1 512 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,13,resnet152 resnet101 resnet50
-1 288 1 1 12 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b2 efficientnet_b7 efficientnet_b3
-1 12 1 1 288 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b2 efficientnet_b7 efficientnet_b3
+1 120 1 1 32 1 1 0 0 0 0 1 1 1 1 1 0 1,13,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large mobilenet_v3_small fasterrcnn_mobilenet_v3_large_320_fpn
+1 512 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,13,resnet152 resnet50 resnet101
+1 288 1 1 12 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b7 efficientnet_b3 efficientnet_b2
+1 12 1 1 288 1 1 0 0 0 0 1 1 1 1 1 0 1,13,efficientnet_b7 efficientnet_b3 efficientnet_b2
 1 1056 48 48 1056 1 1 0 0 0 0 1 1 1 1 1 0 0,13,regnet_y_128gf
-1 32 1 1 120 1 1 0 0 0 0 1 1 1 1 1 0 1,13,mobilenet_v3_small ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
-1 192 28 28 192 1 1 0 0 0 0 1 1 1 1 1 0 0,12,regnet_x_3_2gf densenet161
+1 32 1 1 120 1 1 0 0 0 0 1 1 1 1 1 0 1,13,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large mobilenet_v3_small fasterrcnn_mobilenet_v3_large_320_fpn
+1 192 28 28 192 1 1 0 0 0 0 1 1 1 1 1 0 0,12,densenet161 regnet_x_3_2gf
 1 896 14 14 896 3 3 1 1 1 1 1 1 1 1 7 0 0,12,regnet_x_16gf
-1 168 1 1 672 1 1 0 0 0 0 1 1 1 1 1 0 1,12,ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
-1 672 1 1 168 1 1 0 0 0 0 1 1 1 1 1 0 1,12,ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
+1 168 1 1 672 1 1 0 0 0 0 1 1 1 1 1 0 1,12,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 672 1 1 168 1 1 0 0 0 0 1 1 1 1 1 0 1,12,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 1344 14 14 1344 3 3 1 1 1 1 1 1 1 1 8 0 0,12,regnet_x_32gf
-1 256 28 28 512 1 1 0 0 0 0 1 1 1 1 1 0 0,12,wide_resnet50_2 resnext50_32x4d wide_resnet101_2
+1 256 28 28 512 1 1 0 0 0 0 1 1 1 1 1 0 0,12,wide_resnet50_2 wide_resnet101_2 resnext50_32x4d
 1 768 17 17 192 1 1 0 0 0 0 1 1 1 1 1 0 0,12,inception_v3
-1 512 65 65 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 512 65 65 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 576 14 14 576 3 3 1 1 1 1 1 1 1 1 24 0 0,12,regnet_y_3_2gf
-1 128 65 65 128 3 3 1 1 1 1 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 512 65 65 128 1 1 0 0 0 0 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 128 65 65 128 3 3 1 1 1 1 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 512 65 65 128 1 1 0 0 0 0 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 192 28 28 48 3 3 1 1 1 1 1 1 1 1 1 0 0,12,densenet161
 1 2304 19 19 2304 5 5 2 2 2 2 1 1 1 1 2304 0 0,12,efficientnet_b7
 1 2304 19 19 384 1 1 0 0 0 0 1 1 1 1 1 0 0,12,efficientnet_b7
-1 256 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,12,densenet121 resnet101 resnet50 wide_resnet50_2 densenet201 resnet152 densenet169 resnext50_32x4d wide_resnet101_2
-1 64 130 130 64 3 3 1 1 1 1 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 256 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,12,resnet101 resnext50_32x4d wide_resnet50_2 densenet201 resnet152 resnet50 densenet121 wide_resnet101_2 densenet169
+1 64 130 130 64 3 3 1 1 1 1 1 1 1 1 1 0 0,12,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 1392 14 14 1392 3 3 1 1 1 1 1 1 1 1 6 0 0,11,regnet_y_32gf
 1 120 28 28 120 1 1 0 0 0 0 1 1 1 1 1 0 0,11,regnet_y_1_6gf
 1 348 1 1 1392 1 1 0 0 0 0 1 1 1 1 1 0 1,11,regnet_y_32gf
@@ -149,27 +149,27 @@ conv_parameters,occurrences,models
 1 2064 1 1 86 1 1 0 0 0 0 1 1 1 1 1 0 1,11,efficientnet_b6
 1 344 17 17 2064 1 1 0 0 0 0 1 1 1 1 1 0 0,11,efficientnet_b6
 1 440 7 7 440 1 1 0 0 0 0 1 1 1 1 1 0 0,11,regnet_y_400mf
-1 144 1 1 6 1 1 0 0 0 0 1 1 1 1 1 0 1,11,efficientnet_b4 efficientnet_b5 efficientnet_b1 efficientnet_b3 efficientnet_b2 efficientnet_b0
-1 6 1 1 144 1 1 0 0 0 0 1 1 1 1 1 0 1,11,efficientnet_b4 efficientnet_b5 efficientnet_b1 efficientnet_b3 efficientnet_b2 efficientnet_b0
+1 144 1 1 6 1 1 0 0 0 0 1 1 1 1 1 0 1,11,efficientnet_b1 efficientnet_b3 efficientnet_b4 efficientnet_b2 efficientnet_b0 efficientnet_b5
+1 6 1 1 144 1 1 0 0 0 0 1 1 1 1 1 0 1,11,efficientnet_b1 efficientnet_b3 efficientnet_b4 efficientnet_b2 efficientnet_b0 efficientnet_b5
 1 208 14 14 208 1 1 0 0 0 0 1 1 1 1 1 0 0,11,regnet_y_400mf
 1 86 1 1 2064 1 1 0 0 0 0 1 1 1 1 1 0 1,11,efficientnet_b6
 1 1392 1 1 348 1 1 0 0 0 0 1 1 1 1 1 0 1,11,regnet_y_32gf
-1 256 100 100 256 3 3 1 1 1 1 1 1 1 1 1 0 0,10,retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
-1 256 25 25 256 3 3 1 1 1 1 1 1 1 1 1 0 0,10,retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 256 100 100 256 3 3 1 1 1 1 1 1 1 1 1 0 0,10,fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 256 25 25 256 3 3 1 1 1 1 1 1 1 1 1 0 0,10,fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 224 38 38 1344 1 1 0 0 0 0 1 1 1 1 1 0 0,10,efficientnet_b7
 1 2064 17 17 344 1 1 0 0 0 0 1 1 1 1 1 0 0,10,efficientnet_b6
 1 160 38 38 960 1 1 0 0 0 0 1 1 1 1 1 0 0,10,efficientnet_b7
 1 2064 17 17 2064 5 5 2 2 2 2 1 1 1 1 2064 0 0,10,efficientnet_b6
-1 512 7 7 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,10,resnet152 resnet101 maxvit_t resnet50
+1 512 7 7 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,10,resnet152 resnet50 maxvit_t resnet101
 1 48 1 1 1152 1 1 0 0 0 0 1 1 1 1 1 0 1,10,efficientnet_v2_l efficientnet_b1 efficientnet_b0
 1 1152 1 1 48 1 1 0 0 0 0 1 1 1 1 1 0 1,10,efficientnet_v2_l efficientnet_b1 efficientnet_b0
 1 1232 14 14 1232 3 3 1 1 1 1 1 1 1 1 11 0 0,10,regnet_y_16gf
 1 1232 1 1 308 1 1 0 0 0 0 1 1 1 1 1 0 1,10,regnet_y_16gf
-1 240 1 1 960 1 1 0 0 0 0 1 1 1 1 1 0 1,10,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
+1 240 1 1 960 1 1 0 0 0 0 1 1 1 1 1 0 1,10,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 308 1 1 1232 1 1 0 0 0 0 1 1 1 1 1 0 1,10,regnet_y_16gf
-1 512 100 100 256 1 1 0 0 0 0 1 1 1 1 1 0 0,10,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 960 1 1 240 1 1 0 0 0 0 1 1 1 1 1 0 1,10,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
-1 256 200 200 256 3 3 1 1 1 1 1 1 1 1 1 0 1,10,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
+1 512 100 100 256 1 1 0 0 0 0 1 1 1 1 1 0 0,10,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 960 1 1 240 1 1 0 0 0 0 1 1 1 1 1 0 1,10,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 256 200 200 256 3 3 1 1 1 1 1 1 1 1 1 0 1,10,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
 1 224 1 1 896 1 1 0 0 0 0 1 1 1 1 1 0 1,9,regnet_y_8gf
 1 896 1 1 224 1 1 0 0 0 0 1 1 1 1 1 0 1,9,regnet_y_8gf
 1 896 14 14 896 3 3 1 1 1 1 1 1 1 1 16 0 0,9,regnet_y_8gf
@@ -183,62 +183,62 @@ conv_parameters,occurrences,models
 1 768 30 30 768 3 3 1 1 1 1 1 1 1 1 768 0 0,9,efficientnet_v2_l
 1 408 14 14 408 3 3 1 1 1 1 1 1 1 1 17 0 0,9,regnet_x_1_6gf
 1 672 7 7 672 1 1 0 0 0 0 1 1 1 1 1 0 0,9,regnet_x_800mf
-1 256 56 56 512 1 1 0 0 0 0 2 2 1 1 1 0 0,9,regnet_x_16gf resnet101 resnet50 wide_resnet50_2 resnet152 resnext101_32x8d resnext101_64x4d resnext50_32x4d wide_resnet101_2
-1 128 56 56 256 1 1 0 0 0 0 1 1 1 1 1 0 0,9,wide_resnet50_2 resnext50_32x4d wide_resnet101_2
+1 256 56 56 512 1 1 0 0 0 0 2 2 1 1 1 0 0,9,regnet_x_16gf resnext101_64x4d resnext50_32x4d wide_resnet50_2 resnext101_32x8d resnet152 resnet50 resnet101 wide_resnet101_2
+1 128 56 56 256 1 1 0 0 0 0 1 1 1 1 1 0 0,9,wide_resnet50_2 wide_resnet101_2 resnext50_32x4d
 1 240 28 28 240 1 1 0 0 0 0 1 1 1 1 1 0 0,9,regnet_x_8gf
 1 192 1 1 8 1 1 0 0 0 0 1 1 1 1 1 0 1,9,efficientnet_b6 efficientnet_b4 efficientnet_b7 efficientnet_b3
-1 1024 7 7 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,9,wide_resnet50_2 resnext50_32x4d wide_resnet101_2
+1 1024 7 7 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,9,wide_resnet50_2 wide_resnet101_2 resnext50_32x4d
 1 768 1 1 48 1 1 0 0 0 0 1 1 1 1 1 0 1,9,efficientnet_v2_l
-1 160 1 1 3840 1 1 0 0 0 0 1 1 1 1 1 0 1,9,efficientnet_v2_l efficientnet_b7
+1 160 1 1 3840 1 1 0 0 0 0 1 1 1 1 1 0 1,9,efficientnet_b7 efficientnet_v2_l
 1 1344 38 38 224 1 1 0 0 0 0 1 1 1 1 1 0 0,9,efficientnet_b7
-1 3840 1 1 160 1 1 0 0 0 0 1 1 1 1 1 0 1,9,efficientnet_v2_l efficientnet_b7
+1 3840 1 1 160 1 1 0 0 0 0 1 1 1 1 1 0 1,9,efficientnet_b7 efficientnet_v2_l
 1 1344 38 38 1344 5 5 2 2 2 2 1 1 1 1 1344 0 0,9,efficientnet_b7
 1 960 38 38 160 1 1 0 0 0 0 1 1 1 1 1 0 0,9,efficientnet_b7
 1 36 1 1 864 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b6
-1 256 200 200 128 1 1 0 0 0 0 1 1 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 192 7 7 1152 1 1 0 0 0 0 1 1 1 1 1 0 0,8,mnasnet1_0 efficientnet_b0
+1 256 200 200 128 1 1 0 0 0 0 1 1 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 192 7 7 1152 1 1 0 0 0 0 1 1 1 1 1 0 0,8,efficientnet_b0 mnasnet1_0
 1 144 33 33 864 1 1 0 0 0 0 1 1 1 1 1 0 0,8,efficientnet_b6
 1 200 33 33 1200 1 1 0 0 0 0 1 1 1 1 1 0 0,8,efficientnet_b6
 1 864 1 1 36 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b6
-1 512 65 65 512 3 3 4 4 4 4 1 1 4 4 1 0 0,8,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 2048 65 65 512 1 1 0 0 0 0 1 1 1 1 1 0 0,8,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 512 65 65 512 3 3 4 4 4 4 1 1 4 4 1 0 0,8,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 2048 65 65 512 1 1 0 0 0 0 1 1 1 1 1 0 0,8,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 24 56 56 72 1 1 0 0 0 0 1 1 1 1 1 0 0,8,mnasnet0_75 mobilenet_v3_large mnasnet1_0
-1 1024 50 50 2048 1 1 0 0 0 0 2 2 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 512 50 50 512 3 3 1 1 1 1 2 2 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 32 1 1 8 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b6 efficientnet_b7 efficientnet_b1 efficientnet_b2 efficientnet_b0
-1 8 1 1 32 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b6 efficientnet_b7 efficientnet_b1 efficientnet_b2 efficientnet_b0
-1 64 200 200 64 1 1 0 0 0 0 1 1 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 3 224 224 64 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg11 vgg11_bn vgg19_bn
-1 64 112 112 128 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg11 vgg11_bn vgg19_bn
-1 256 28 28 512 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg11 vgg11_bn vgg19_bn
-1 128 56 56 256 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg11 vgg11_bn vgg19_bn
-1 1024 50 50 512 1 1 0 0 0 0 1 1 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 512 100 100 1024 1 1 0 0 0 0 2 2 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 256 200 200 512 1 1 0 0 0 0 2 2 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 128 200 200 128 3 3 1 1 1 1 2 2 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 1024 14 14 2048 1 1 0 0 0 0 2 2 1 1 1 0 0,8,resnet101 resnet50 wide_resnet50_2 resnet152 resnext101_32x8d resnext101_64x4d resnext50_32x4d wide_resnet101_2
-1 512 28 28 1024 1 1 0 0 0 0 2 2 1 1 1 0 0,8,resnet101 resnet50 wide_resnet50_2 resnet152 resnext101_32x8d resnext101_64x4d resnext50_32x4d wide_resnet101_2
+1 1024 50 50 2048 1 1 0 0 0 0 2 2 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 512 50 50 512 3 3 1 1 1 1 2 2 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 32 1 1 8 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b1 efficientnet_b7 efficientnet_b2 efficientnet_b6 efficientnet_b0
+1 8 1 1 32 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b1 efficientnet_b7 efficientnet_b2 efficientnet_b6 efficientnet_b0
+1 64 200 200 64 1 1 0 0 0 0 1 1 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 3 224 224 64 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg13 vgg13_bn vgg11_bn vgg19_bn vgg11 vgg16_bn vgg16 vgg19
+1 64 112 112 128 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg13 vgg13_bn vgg11_bn vgg19_bn vgg11 vgg16_bn vgg16 vgg19
+1 256 28 28 512 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg13 vgg13_bn vgg11_bn vgg19_bn vgg11 vgg16_bn vgg16 vgg19
+1 128 56 56 256 3 3 1 1 1 1 1 1 1 1 1 0 1,8,vgg13 vgg13_bn vgg11_bn vgg19_bn vgg11 vgg16_bn vgg16 vgg19
+1 1024 50 50 512 1 1 0 0 0 0 1 1 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 512 100 100 1024 1 1 0 0 0 0 2 2 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 256 200 200 512 1 1 0 0 0 0 2 2 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 128 200 200 128 3 3 1 1 1 1 2 2 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 1024 14 14 2048 1 1 0 0 0 0 2 2 1 1 1 0 0,8,resnext101_64x4d resnext50_32x4d wide_resnet50_2 resnext101_32x8d resnet152 resnet50 resnet101 wide_resnet101_2
+1 512 28 28 1024 1 1 0 0 0 0 2 2 1 1 1 0 0,8,resnext101_64x4d resnext50_32x4d wide_resnet50_2 resnext101_32x8d resnet152 resnet50 resnet101 wide_resnet101_2
 1 68 1 1 1632 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b4
-1 256 100 100 256 3 3 1 1 1 1 2 2 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
+1 256 100 100 256 3 3 1 1 1 1 2 2 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 1632 1 1 68 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b4
 1 960 24 24 960 3 3 1 1 1 1 1 1 1 1 960 0 0,8,efficientnet_v2_s
 1 768 1 1 32 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_v2_s efficientnet_b5
-1 480 1 1 120 1 1 0 0 0 0 1 1 1 1 1 0 1,8,ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
+1 480 1 1 120 1 1 0 0 0 0 1 1 1 1 1 0 1,8,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 488 7 7 488 1 1 0 0 0 0 1 1 1 1 1 0 0,8,shufflenet_v2_x2_0
 1 1200 1 1 50 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b6
 1 50 1 1 1200 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_b6
 1 272 12 12 1632 1 1 0 0 0 0 1 1 1 1 1 0 0,8,efficientnet_b4
 1 32 1 1 768 1 1 0 0 0 0 1 1 1 1 1 0 1,8,efficientnet_v2_s efficientnet_b5
-1 256 130 130 64 1 1 0 0 0 0 1 1 1 1 1 0 0,8,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 3 800 800 64 7 7 3 3 3 3 2 2 1 1 1 0 0,8,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 128 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,8,densenet121 densenet169 regnet_x_800mf densenet201
+1 256 130 130 64 1 1 0 0 0 0 1 1 1 1 1 0 0,8,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 3 800 800 64 7 7 3 3 3 3 2 2 1 1 1 0 0,8,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
+1 128 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,8,regnet_x_800mf densenet121 densenet201 densenet169
 1 232 7 7 232 1 1 0 0 0 0 1 1 1 1 1 0 0,8,shufflenet_v2_x1_0
 1 96 7 7 96 1 1 0 0 0 0 1 1 1 1 1 0 0,8,shufflenet_v2_x0_5
 1 256 13 13 256 3 3 1 1 1 1 1 1 1 1 1 0 0,8,retinanet_resnet50_fpn_v2
 1 24 28 28 24 1 1 0 0 0 0 1 1 1 1 1 0 0,8,shufflenet_v2_x0_5
 1 352 7 7 352 1 1 0 0 0 0 1 1 1 1 1 0 0,8,shufflenet_v2_x1_5
 1 1824 15 15 1824 5 5 2 2 2 2 1 1 1 1 1824 0 0,8,efficientnet_b5
-1 120 1 1 480 1 1 0 0 0 0 1 1 1 1 1 0 1,8,ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
+1 120 1 1 480 1 1 0 0 0 0 1 1 1 1 1 0 1,8,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 320 1 1 80 1 1 0 0 0 0 1 1 1 1 1 0 1,7,regnet_y_800mf
 1 64 14 14 384 1 1 0 0 0 0 1 1 1 1 1 0 0,7,mnasnet0_75 mobilenet_v2
 1 80 75 75 480 1 1 0 0 0 0 1 1 1 1 1 0 0,7,efficientnet_b7
@@ -251,19 +251,19 @@ conv_parameters,occurrences,models
 1 96 7 7 576 1 1 0 0 0 0 1 1 1 1 1 0 0,7,mnasnet0_5 mobilenet_v3_small
 1 80 1 1 320 1 1 0 0 0 0 1 1 1 1 1 0 1,7,regnet_y_800mf
 1 320 14 14 320 3 3 1 1 1 1 1 1 1 1 20 0 0,7,regnet_y_800mf
-1 80 14 14 480 1 1 0 0 0 0 1 1 1 1 1 0 0,7,mobilenet_v3_large mnasnet1_0 efficientnet_b0
+1 80 14 14 480 1 1 0 0 0 0 1 1 1 1 1 0 0,7,mobilenet_v3_large efficientnet_b0 mnasnet1_0
 1 88 28 28 88 1 1 0 0 0 0 1 1 1 1 1 0 0,7,shufflenet_v2_x1_5
-1 512 1 1 32 1 1 0 0 0 0 1 1 1 1 1 0 1,7,efficientnet_v2_s maxvit_t
-1 32 1 1 512 1 1 0 0 0 0 1 1 1 1 1 0 1,7,efficientnet_v2_s maxvit_t
+1 512 1 1 32 1 1 0 0 0 0 1 1 1 1 1 0 1,7,maxvit_t efficientnet_v2_s
+1 32 1 1 512 1 1 0 0 0 0 1 1 1 1 1 0 1,7,maxvit_t efficientnet_v2_s
 1 122 28 28 122 1 1 0 0 0 0 1 1 1 1 1 0 0,7,shufflenet_v2_x2_0
 1 48 14 14 48 3 3 1 1 1 1 1 1 1 1 48 0 0,7,shufflenet_v2_x0_5
-1 64 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,7,densenet121 wide_resnet50_2 densenet201 densenet169 regnet_x_800mf resnext50_32x4d wide_resnet101_2
+1 64 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,7,regnet_x_800mf resnext50_32x4d wide_resnet50_2 densenet201 densenet121 wide_resnet101_2 densenet169
 1 116 14 14 116 3 3 1 1 1 1 1 1 1 1 116 0 0,7,shufflenet_v2_x1_0
 1 168 28 28 168 1 1 0 0 0 0 1 1 1 1 1 0 0,7,regnet_x_1_6gf
 1 176 29 29 1056 1 1 0 0 0 0 1 1 1 1 1 0 0,7,efficientnet_b5
 1 1632 12 12 1632 5 5 2 2 2 2 1 1 1 1 1632 0 0,7,efficientnet_b4
 1 128 29 29 768 1 1 0 0 0 0 1 1 1 1 1 0 0,7,efficientnet_b5
-1 1152 7 7 192 1 1 0 0 0 0 1 1 1 1 1 0 0,7,mnasnet1_0 densenet161 efficientnet_b0
+1 1152 7 7 192 1 1 0 0 0 0 1 1 1 1 1 0 0,7,densenet161 efficientnet_b0 mnasnet1_0
 1 1632 12 12 272 1 1 0 0 0 0 1 1 1 1 1 0 0,7,efficientnet_b4
 1 58 28 28 58 1 1 0 0 0 0 1 1 1 1 1 0 0,7,shufflenet_v2_x1_0
 1 1200 33 33 1200 5 5 2 2 2 2 1 1 1 1 1200 0 0,7,efficientnet_b6
@@ -274,7 +274,7 @@ conv_parameters,occurrences,models
 1 3072 15 15 512 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_v2_m efficientnet_b5
 1 192 28 28 192 7 7 3 3 3 3 1 1 1 1 192 0 1,6,convnext_small convnext_tiny
 1 40 132 132 240 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_b6
-1 160 7 7 960 1 1 0 0 0 0 1 1 1 1 1 0 0,6,mobilenet_v3_large mobilenet_v2
+1 160 7 7 960 1 1 0 0 0 0 1 1 1 1 1 0 0,6,mobilenet_v2 mobilenet_v3_large
 1 72 66 66 432 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_b6
 1 64 120 120 256 3 3 1 1 1 1 1 1 1 1 1 0 0,6,efficientnet_v2_l
 1 384 60 60 96 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_v2_l
@@ -287,9 +287,9 @@ conv_parameters,occurrences,models
 1 480 75 75 480 5 5 2 2 2 2 1 1 1 1 480 0 0,6,efficientnet_b7
 1 96 60 60 384 3 3 1 1 1 1 1 1 1 1 1 0 0,6,efficientnet_v2_l
 1 640 30 30 640 3 3 1 1 1 1 1 1 1 1 640 0 0,6,efficientnet_v2_m
-1 2048 25 25 256 1 1 0 0 0 0 1 1 1 1 1 0 1,6,fasterrcnn_resnet50_fpn keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 1024 50 50 256 1 1 0 0 0 0 1 1 1 1 1 0 1,6,fasterrcnn_resnet50_fpn keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
-1 512 100 100 256 1 1 0 0 0 0 1 1 1 1 1 0 1,6,fasterrcnn_resnet50_fpn keypointrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2 retinanet_resnet50_fpn maskrcnn_resnet50_fpn
+1 2048 25 25 256 1 1 0 0 0 0 1 1 1 1 1 0 1,6,keypointrcnn_resnet50_fpn retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2
+1 1024 50 50 256 1 1 0 0 0 0 1 1 1 1 1 0 1,6,keypointrcnn_resnet50_fpn retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2
+1 512 100 100 256 1 1 0 0 0 0 1 1 1 1 1 0 1,6,keypointrcnn_resnet50_fpn retinanet_resnet50_fpn maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn fcos_resnet50_fpn retinanet_resnet50_fpn_v2
 1 640 30 30 160 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_v2_m
 1 640 1 1 40 1 1 0 0 0 0 1 1 1 1 1 0 1,6,efficientnet_v2_m
 1 40 1 1 640 1 1 0 0 0 0 1 1 1 1 1 0 1,6,efficientnet_v2_m
@@ -299,43 +299,43 @@ conv_parameters,occurrences,models
 1 256 120 120 64 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_v2_l
 1 768 29 29 128 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_b5
 1 768 29 29 768 3 3 1 1 1 1 1 1 1 1 768 0 0,6,efficientnet_b5
-1 2048 7 7 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,6,wide_resnet50_2 resnext50_32x4d wide_resnet101_2
+1 2048 7 7 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,6,wide_resnet50_2 wide_resnet101_2 resnext50_32x4d
 1 288 14 14 288 3 3 1 1 1 1 1 1 1 1 18 0 0,6,regnet_x_800mf
 1 160 14 14 160 3 3 1 1 1 1 1 1 1 1 10 0 0,6,regnet_x_400mf
 1 112 24 24 672 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_b4
-1 72 56 56 72 1 1 0 0 0 0 1 1 1 1 1 0 0,6,regnet_x_1_6gf regnet_y_3_2gf
-1 24 1 1 72 1 1 0 0 0 0 1 1 1 1 1 0 1,6,ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
+1 72 56 56 72 1 1 0 0 0 0 1 1 1 1 1 0 0,6,regnet_y_3_2gf regnet_x_1_6gf
+1 24 1 1 72 1 1 0 0 0 0 1 1 1 1 1 0 1,6,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 672 28 28 672 3 3 1 1 1 1 1 1 1 1 4 0 0,6,regnet_x_32gf
-1 160 33 33 960 1 1 0 0 0 0 1 1 1 1 1 0 0,6,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 72 1 1 24 1 1 0 0 0 0 1 1 1 1 1 0 1,6,ssdlite320_mobilenet_v3_large deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn fasterrcnn_mobilenet_v3_large_fpn mobilenet_v3_large lraspp_mobilenet_v3_large
+1 160 33 33 960 1 1 0 0 0 0 1 1 1 1 1 0 0,6,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 72 1 1 24 1 1 0 0 0 0 1 1 1 1 1 0 1,6,deeplabv3_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_fpn lraspp_mobilenet_v3_large mobilenet_v3_large ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 1056 29 29 1056 5 5 2 2 2 2 1 1 1 1 1056 0 0,6,efficientnet_b5
 1 512 15 15 3072 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_v2_m efficientnet_b5
-1 256 65 65 21 1 1 0 0 0 0 1 1 1 1 1 0 1,6,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 256 65 65 21 1 1 0 0 0 0 1 1 1 1 1 0 1,6,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 1056 29 29 176 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_b5
 1 264 1 1 1056 1 1 0 0 0 0 1 1 1 1 1 0 1,6,regnet_y_128gf
 1 232 10 10 1392 1 1 0 0 0 0 1 1 1 1 1 0 0,6,efficientnet_b3
 1 58 1 1 1392 1 1 0 0 0 0 1 1 1 1 1 0 1,6,efficientnet_b3
 1 448 1 1 112 1 1 0 0 0 0 1 1 1 1 1 0 1,6,regnet_y_8gf regnet_y_16gf
-1 256 65 65 256 3 3 1 1 1 1 1 1 1 1 1 0 0,6,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 64 56 56 64 1 1 0 0 0 0 1 1 1 1 1 0 0,6,resnet101 resnet50 resnet152 googlenet regnet_x_800mf regnet_y_800mf
-1 2048 7 7 512 1 1 0 0 0 0 1 1 1 1 1 0 0,6,resnet152 resnet101 resnet50
+1 256 65 65 256 3 3 1 1 1 1 1 1 1 1 1 0 0,6,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 64 56 56 64 1 1 0 0 0 0 1 1 1 1 1 0 0,6,regnet_y_800mf regnet_x_800mf resnet152 resnet50 resnet101 googlenet
+1 2048 7 7 512 1 1 0 0 0 0 1 1 1 1 1 0 0,6,resnet152 resnet50 resnet101
 1 1392 1 1 58 1 1 0 0 0 0 1 1 1 1 1 0 1,6,efficientnet_b3
 1 224 56 56 224 1 1 0 0 0 0 1 1 1 1 1 0 0,6,regnet_y_8gf regnet_y_16gf
 1 1056 1 1 264 1 1 0 0 0 0 1 1 1 1 1 0 1,6,regnet_y_128gf
 1 112 1 1 448 1 1 0 0 0 0 1 1 1 1 1 0 1,6,regnet_y_8gf regnet_y_16gf
 1 1056 48 48 1056 3 3 1 1 1 1 1 1 1 1 4 0 0,6,regnet_y_128gf
-1 256 56 56 64 1 1 0 0 0 0 1 1 1 1 1 0 0,6,resnet152 resnet101 resnet50
-1 1152 7 7 1152 5 5 2 2 2 2 1 1 1 1 1152 0 0,6,mnasnet1_0 efficientnet_b0
-1 128 112 112 128 3 3 1 1 1 1 1 1 1 1 1 0 1,6,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg19_bn
-1 64 224 224 64 3 3 1 1 1 1 1 1 1 1 1 0 1,6,vgg16 vgg19 vgg13_bn vgg16_bn vgg13 vgg19_bn
+1 256 56 56 64 1 1 0 0 0 0 1 1 1 1 1 0 0,6,resnet152 resnet50 resnet101
+1 1152 7 7 1152 5 5 2 2 2 2 1 1 1 1 1152 0 0,6,efficientnet_b0 mnasnet1_0
+1 128 112 112 128 3 3 1 1 1 1 1 1 1 1 1 0 1,6,vgg13 vgg13_bn vgg19_bn vgg16_bn vgg16 vgg19
+1 64 224 224 64 3 3 1 1 1 1 1 1 1 1 1 0 1,6,vgg13 vgg13_bn vgg19_bn vgg16_bn vgg16 vgg19
 1 96 56 56 96 7 7 3 3 3 3 1 1 1 1 96 0 1,6,convnext_small convnext_tiny
 1 768 7 7 768 7 7 3 3 3 3 1 1 1 1 768 0 1,6,convnext_small convnext_tiny
 1 256 28 28 256 3 3 1 1 1 1 1 1 1 1 1 0 0,6,wide_resnet50_2 wide_resnet101_2
 1 128 56 56 128 3 3 1 1 1 1 1 1 1 1 1 0 0,6,wide_resnet50_2 wide_resnet101_2
 1 240 132 132 40 1 1 0 0 0 0 1 1 1 1 1 0 0,5,efficientnet_b6
 1 432 66 66 432 5 5 2 2 2 2 1 1 1 1 432 0 0,5,efficientnet_b6
-1 256 200 200 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 256 200 200 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
+1 256 200 200 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 256 200 200 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
 1 440 7 7 440 3 3 1 1 1 1 1 1 1 1 55 0 0,5,regnet_y_400mf
 1 440 1 1 110 1 1 0 0 0 0 1 1 1 1 1 0 1,5,regnet_y_400mf
 1 144 28 28 144 1 1 0 0 0 0 1 1 1 1 1 0 0,5,regnet_y_800mf
@@ -344,12 +344,12 @@ conv_parameters,occurrences,models
 1 512 28 28 512 3 3 1 1 1 1 1 1 1 1 4 0 0,5,regnet_x_16gf
 1 240 132 132 240 3 3 1 1 1 1 1 1 1 1 240 0 0,5,efficientnet_b6
 1 96 14 14 576 1 1 0 0 0 0 1 1 1 1 1 0 0,5,mobilenet_v2 mnasnet1_0
-1 24 56 56 24 3 3 1 1 1 1 2 2 1 1 24 0 0,5,shufflenet_v2_x2_0 shufflenet_v2_x1_0 shufflenet_v2_x0_5 shufflenet_v2_x1_5
+1 24 56 56 24 3 3 1 1 1 1 2 2 1 1 24 0 0,5,shufflenet_v2_x2_0 shufflenet_v2_x1_0 shufflenet_v2_x1_5 shufflenet_v2_x0_5
 1 384 14 14 64 1 1 0 0 0 0 1 1 1 1 1 0 0,5,mnasnet0_75 mobilenet_v2
 1 384 14 14 384 3 3 1 1 1 1 1 1 1 1 384 0 0,5,mnasnet0_75 mobilenet_v2
 1 72 56 56 72 3 3 1 1 1 1 1 1 1 1 72 0 0,5,mnasnet0_75 mobilenet_v3_large mnasnet1_0
 1 72 56 56 24 1 1 0 0 0 0 1 1 1 1 1 0 0,5,mnasnet0_75 mobilenet_v3_large mnasnet1_0
-1 512 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,5,densenet121 densenet169 googlenet densenet201
+1 512 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,5,googlenet densenet121 densenet201 densenet169
 1 110 1 1 440 1 1 0 0 0 0 1 1 1 1 1 0 1,5,regnet_y_400mf
 1 104 28 28 104 1 1 0 0 0 0 1 1 1 1 1 0 0,5,regnet_y_400mf
 1 208 14 14 208 3 3 1 1 1 1 1 1 1 1 26 0 0,5,regnet_y_400mf
@@ -364,7 +364,7 @@ conv_parameters,occurrences,models
 1 960 24 24 960 5 5 2 2 2 2 1 1 1 1 960 0 0,5,efficientnet_b4
 1 34 1 1 816 1 1 0 0 0 0 1 1 1 1 1 0 1,5,efficientnet_b3
 1 576 7 7 96 1 1 0 0 0 0 1 1 1 1 1 0 0,5,mnasnet0_5 mobilenet_v3_small
-1 3 224 224 24 3 3 1 1 1 1 2 2 1 1 1 0 0,5,shufflenet_v2_x1_0 shufflenet_v2_x0_5 mnasnet0_75 shufflenet_v2_x1_5 shufflenet_v2_x2_0
+1 3 224 224 24 3 3 1 1 1 1 2 2 1 1 1 0 0,5,shufflenet_v2_x0_5 shufflenet_v2_x1_0 shufflenet_v2_x2_0 mnasnet0_75 shufflenet_v2_x1_5
 1 192 8 8 1152 1 1 0 0 0 0 1 1 1 1 1 0 0,5,efficientnet_b1
 1 40 14 14 240 1 1 0 0 0 0 1 1 1 1 1 0 0,5,mnasnet0_5 mobilenet_v3_small
 1 1024 1 1 64 1 1 0 0 0 0 1 1 1 1 1 0 1,5,maxvit_t
@@ -382,58 +382,58 @@ conv_parameters,occurrences,models
 1 128 24 24 512 1 1 0 0 0 0 1 1 1 1 1 0 0,5,efficientnet_v2_s
 1 512 24 24 512 3 3 1 1 1 1 1 1 1 1 512 0 0,5,efficientnet_v2_s
 1 512 24 24 128 1 1 0 0 0 0 1 1 1 1 1 0 0,5,efficientnet_v2_s
-1 256 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,5,densenet121 densenet169 googlenet densenet201
+1 256 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,5,googlenet densenet121 densenet201 densenet169
 1 120 1 1 30 1 1 0 0 0 0 1 1 1 1 1 0 1,5,regnet_y_1_6gf
 1 120 28 28 120 3 3 1 1 1 1 1 1 1 1 5 0 0,5,regnet_y_1_6gf
 1 52 1 1 1248 1 1 0 0 0 0 1 1 1 1 1 0 1,5,efficientnet_b2
 1 30 1 1 120 1 1 0 0 0 0 1 1 1 1 1 0 1,5,regnet_y_1_6gf
-1 256 100 100 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 256 13 13 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 256 13 13 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
+1 256 100 100 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 256 13 13 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 256 13 13 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
 1 432 66 66 72 1 1 0 0 0 0 1 1 1 1 1 0 0,5,efficientnet_b6
 1 52 1 1 208 1 1 0 0 0 0 1 1 1 1 1 0 1,5,regnet_y_400mf
 1 112 14 14 672 1 1 0 0 0 0 1 1 1 1 1 0 0,5,mobilenet_v3_large efficientnet_b0
-1 256 100 100 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 256 50 50 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 256 50 50 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 256 25 25 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 256 25 25 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2 keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 120 65 65 40 1 1 0 0 0 0 1 1 1 1 1 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 120 65 65 120 5 5 2 2 2 2 1 1 1 1 120 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 24 130 130 72 1 1 0 0 0 0 1 1 1 1 1 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 256 100 100 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 256 50 50 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 256 50 50 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 256 25 25 3 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 256 25 25 12 1 1 0 0 0 0 1 1 1 1 1 0 1,5,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn_v2
+1 120 65 65 40 1 1 0 0 0 0 1 1 1 1 1 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 120 65 65 120 5 5 2 2 2 2 1 1 1 1 120 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 24 130 130 72 1 1 0 0 0 0 1 1 1 1 1 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 24 56 56 144 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mobilenet_v2 efficientnet_b0
 1 192 17 17 192 1 7 3 3 0 0 1 1 1 1 1 0 0,4,inception_v3
-1 768 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,4,densenet121 mnasnet1_3 densenet169 densenet201
-1 480 14 14 80 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mnasnet1_0 efficientnet_b0
-1 88 28 28 88 3 3 1 1 1 1 1 1 1 1 88 0 0,4,mobilenet_v3_small shufflenet_v2_x1_5
+1 768 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mnasnet1_3 densenet121 densenet201 densenet169
+1 480 14 14 80 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b0 mnasnet1_0
+1 88 28 28 88 3 3 1 1 1 1 1 1 1 1 88 0 0,4,shufflenet_v2_x1_5 mobilenet_v3_small
 1 192 17 17 192 7 1 0 0 3 3 1 1 1 1 1 0 0,4,inception_v3
-1 960 7 7 160 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mobilenet_v3_large mobilenet_v2
-1 24 80 80 72 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 672 20 20 672 3 3 1 1 1 1 1 1 1 1 672 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 960 7 7 160 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mobilenet_v2 mobilenet_v3_large
+1 24 80 80 72 1 1 0 0 0 0 1 1 1 1 1 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 672 20 20 672 3 3 1 1 1 1 1 1 1 1 672 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 528 1 1 22 1 1 0 0 0 0 1 1 1 1 1 0 1,4,efficientnet_b2
 1 22 1 1 528 1 1 0 0 0 0 1 1 1 1 1 0 1,4,efficientnet_b2
 1 1248 9 9 208 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b2
 1 120 18 18 720 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b2
 1 720 1 1 30 1 1 0 0 0 0 1 1 1 1 1 0 1,4,efficientnet_b2
 1 30 1 1 720 1 1 0 0 0 0 1 1 1 1 1 0 1,4,efficientnet_b2
-1 184 20 20 80 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 184 20 20 80 1 1 0 0 0 0 1 1 1 1 1 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 256 14 14 256 3 3 1 1 1 1 1 1 1 1 1 0 1,4,maskrcnn_resnet50_fpn
 1 768 17 17 160 1 1 0 0 0 0 1 1 1 1 1 0 0,4,inception_v3
 1 160 17 17 160 1 7 3 3 0 0 1 1 1 1 1 0 0,4,inception_v3
 1 160 17 17 160 7 1 0 0 3 3 1 1 1 1 1 0 0,4,inception_v3
-1 40 40 40 120 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 40 40 40 120 1 1 0 0 0 0 1 1 1 1 1 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 6 1 1 24 1 1 0 0 0 0 1 1 1 1 1 0 1,4,efficientnet_b4 efficientnet_b3 efficientnet_b5
-1 120 40 40 120 5 5 2 2 2 2 1 1 1 1 120 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 112 20 20 672 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 80 20 20 184 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 120 40 40 40 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 184 20 20 184 3 3 1 1 1 1 1 1 1 1 184 0 0,4,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 120 40 40 120 5 5 2 2 2 2 1 1 1 1 120 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 112 20 20 672 1 1 0 0 0 0 1 1 1 1 1 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 80 20 20 184 1 1 0 0 0 0 1 1 1 1 1 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 120 40 40 40 1 1 0 0 0 0 1 1 1 1 1 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 184 20 20 184 3 3 1 1 1 1 1 1 1 1 184 0 0,4,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 48 56 56 48 1 1 0 0 0 0 1 1 1 1 1 0 0,4,regnet_y_1_6gf regnet_y_400mf
 1 256 10 10 256 3 3 1 1 1 1 1 1 1 1 1 0 1,4,fasterrcnn_mobilenet_v3_large_320_fpn
 1 672 7 7 672 3 3 1 1 1 1 1 1 1 1 42 0 0,4,regnet_x_800mf
 1 48 120 120 192 3 3 1 1 1 1 1 1 1 1 1 0 0,4,efficientnet_v2_m
 1 288 35 35 64 1 1 0 0 0 0 1 1 1 1 1 0 0,4,inception_v3
-1 1024 65 65 256 3 3 1 1 1 1 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 1024 65 65 256 3 3 1 1 1 1 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 112 15 15 672 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b1
 1 1152 8 8 1152 5 5 2 2 2 2 1 1 1 1 1152 0 0,4,efficientnet_b1
 1 1152 8 8 192 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b1
@@ -443,53 +443,53 @@ conv_parameters,occurrences,models
 1 576 19 19 96 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b3
 1 696 1 1 174 1 1 0 0 0 0 1 1 1 1 1 0 1,4,regnet_y_32gf
 1 696 28 28 696 3 3 1 1 1 1 1 1 1 1 3 0 0,4,regnet_y_32gf
-1 256 130 130 128 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 128 130 130 128 3 3 1 1 1 1 2 2 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 256 130 130 128 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 128 130 130 128 3 3 1 1 1 1 2 2 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 174 1 1 696 1 1 0 0 0 0 1 1 1 1 1 0 1,4,regnet_y_32gf
 1 384 8 8 384 3 1 0 0 1 1 1 1 1 1 1 0 0,4,inception_v3
 1 384 8 8 384 1 3 1 1 0 0 1 1 1 1 1 0 0,4,inception_v3
 1 64 35 35 96 3 3 1 1 1 1 1 1 1 1 1 0 0,4,inception_v3
-1 1024 65 65 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 1024 65 65 2048 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 1024 14 14 1024 3 3 1 1 1 1 1 1 1 1 1024 0 0,4,maxvit_t
 1 88 18 18 528 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b2
 1 24 1 1 6 1 1 0 0 0 0 1 1 1 1 1 0 1,4,efficientnet_b4 efficientnet_b3 efficientnet_b5
 1 216 28 28 216 3 3 1 1 1 1 1 1 1 1 9 0 0,4,regnet_y_3_2gf
-1 184 33 33 184 3 3 1 1 1 1 1 1 1 1 184 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 112 33 33 672 1 1 0 0 0 0 1 1 1 1 1 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 3 520 520 64 7 7 3 3 3 3 2 2 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 40 65 65 120 1 1 0 0 0 0 1 1 1 1 1 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 512 65 65 512 3 3 2 2 2 2 1 1 2 2 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 64 130 130 64 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 184 33 33 80 1 1 0 0 0 0 1 1 1 1 1 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 960 33 33 160 1 1 0 0 0 0 1 1 1 1 1 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 184 33 33 184 3 3 1 1 1 1 1 1 1 1 184 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 112 33 33 672 1 1 0 0 0 0 1 1 1 1 1 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 3 520 520 64 7 7 3 3 3 3 2 2 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 40 65 65 120 1 1 0 0 0 0 1 1 1 1 1 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 512 65 65 512 3 3 2 2 2 2 1 1 2 2 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 64 130 130 64 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 184 33 33 80 1 1 0 0 0 0 1 1 1 1 1 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 960 33 33 160 1 1 0 0 0 0 1 1 1 1 1 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 54 1 1 216 1 1 0 0 0 0 1 1 1 1 1 0 1,4,regnet_y_3_2gf
-1 256 130 130 512 1 1 0 0 0 0 2 2 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 256 130 130 512 1 1 0 0 0 0 2 2 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 216 1 1 54 1 1 0 0 0 0 1 1 1 1 1 0 1,4,regnet_y_3_2gf
 1 80 15 15 480 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b1
-1 512 65 65 256 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 1024 65 65 512 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
-1 512 65 65 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 fcn_resnet50 deeplabv3_resnet50
+1 512 65 65 256 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 1024 65 65 512 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
+1 512 65 65 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,4,fcn_resnet101 deeplabv3_resnet101 deeplabv3_resnet50 fcn_resnet50
 1 384 57 57 384 5 5 2 2 2 2 1 1 1 1 384 0 0,4,efficientnet_b5
 1 192 120 120 48 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_v2_m
 1 240 14 14 240 5 5 2 2 2 2 1 1 1 1 240 0 0,4,mnasnet0_5 mobilenet_v3_small
 1 32 28 28 192 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mnasnet0_75 mobilenet_v2
-1 80 33 33 184 1 1 0 0 0 0 1 1 1 1 1 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 80 33 33 184 1 1 0 0 0 0 1 1 1 1 1 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 384 57 57 64 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b5
 1 32 240 240 32 3 3 1 1 1 1 1 1 1 1 1 0 0,4,efficientnet_v2_l
-1 832 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,4,densenet121 densenet169 googlenet
+1 832 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,4,densenet121 googlenet densenet169
 1 40 28 28 120 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mobilenet_v3_large mnasnet1_0
 1 248 7 7 1488 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mnasnet1_3
 1 1024 7 7 1024 3 3 1 1 1 1 1 1 1 1 1 0 0,4,wide_resnet50_2 wide_resnet101_2
 1 3 224 224 96 4 4 0 0 0 0 4 4 1 1 1 0 1,4,convnext_small swin_t swin_s convnext_tiny
 1 120 28 28 40 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mobilenet_v3_large mnasnet1_0
 1 120 28 28 120 5 5 2 2 2 2 1 1 1 1 120 0 0,4,mobilenet_v3_large mnasnet1_0
-1 480 14 14 480 3 3 1 1 1 1 1 1 1 1 480 0 0,4,mobilenet_v3_large mnasnet1_0 efficientnet_b0
-1 40 28 28 240 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mobilenet_v3_large mnasnet1_0 efficientnet_b0
+1 480 14 14 480 3 3 1 1 1 1 1 1 1 1 480 0 0,4,mobilenet_v3_large efficientnet_b0 mnasnet1_0
+1 40 28 28 240 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mobilenet_v3_large efficientnet_b0 mnasnet1_0
 1 144 7 7 864 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mnasnet0_75
 1 240 14 14 40 1 1 0 0 0 0 1 1 1 1 1 0 0,4,mnasnet0_5 mobilenet_v3_small
 1 320 60 60 80 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_v2_m
 1 80 60 60 320 3 3 1 1 1 1 1 1 1 1 1 0 0,4,efficientnet_v2_m
-1 960 33 33 960 5 5 4 4 4 4 1 1 2 2 960 0 0,4,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 960 33 33 960 5 5 4 4 4 4 1 1 2 2 960 0 0,4,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 14 1 1 336 1 1 0 0 0 0 1 1 1 1 1 0 1,4,efficientnet_b4
 1 240 114 114 240 3 3 1 1 1 1 1 1 1 1 240 0 0,4,efficientnet_b5
 1 240 114 114 40 1 1 0 0 0 0 1 1 1 1 1 0 0,4,efficientnet_b5
@@ -500,22 +500,22 @@ conv_parameters,occurrences,models
 1 240 28 28 240 3 3 1 1 1 1 1 1 1 1 2 0 0,4,regnet_x_8gf
 1 32 75 75 192 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b3
 1 256 56 56 256 3 3 1 1 1 1 1 1 1 1 32 0 0,3,resnext101_32x8d
-1 3 224 224 16 3 3 1 1 1 1 2 2 1 1 1 0 0,3,mobilenet_v3_small mnasnet0_5 mobilenet_v3_large
-1 992 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 672 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 480 14 14 480 5 5 2 2 2 2 1 1 1 1 480 0 0,3,mnasnet1_0 efficientnet_b0
-1 4 1 1 96 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_b2 efficientnet_b1 efficientnet_b0
+1 3 224 224 16 3 3 1 1 1 1 2 2 1 1 1 0 0,3,mnasnet0_5 mobilenet_v3_large mobilenet_v3_small
+1 992 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 672 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 480 14 14 480 5 5 2 2 2 2 1 1 1 1 480 0 0,3,efficientnet_b0 mnasnet1_0
+1 4 1 1 96 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_b1 efficientnet_b2 efficientnet_b0
 1 512 28 28 512 3 3 1 1 1 1 1 1 1 1 32 0 0,3,resnext101_32x8d
 1 720 18 18 720 5 5 2 2 2 2 1 1 1 1 720 0 0,3,efficientnet_b2
 1 528 18 18 528 3 3 1 1 1 1 1 1 1 1 528 0 0,3,efficientnet_b2
 1 160 10 10 960 1 1 0 0 0 0 1 1 1 1 1 0 0,3,fasterrcnn_mobilenet_v3_large_320_fpn
 1 528 18 18 88 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b2
 1 720 18 18 120 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b2
-1 704 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 736 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 704 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 736 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 960 7 7 960 3 3 1 1 1 1 1 1 1 1 960 0 0,3,mobilenet_v2
-1 928 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 960 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 928 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 960 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 80 10 10 480 1 1 0 0 0 0 1 1 1 1 1 0 0,3,ssdlite320_mobilenet_v3_large
 1 80 56 56 80 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_x_8gf
 1 64 28 28 64 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_x_400mf
@@ -526,86 +526,86 @@ conv_parameters,occurrences,models
 1 480 15 15 80 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b1
 1 256 35 35 64 1 1 0 0 0 0 1 1 1 1 1 0 0,3,inception_v3
 1 24 60 60 144 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b1
-1 16 1 1 256 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_v2_s maxvit_t
-1 256 1 1 16 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_v2_s maxvit_t
+1 16 1 1 256 1 1 0 0 0 0 1 1 1 1 1 0 1,3,maxvit_t efficientnet_v2_s
+1 256 1 1 16 1 1 0 0 0 0 1 1 1 1 1 0 1,3,maxvit_t efficientnet_v2_s
 1 256 48 48 64 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_v2_s
 1 48 38 38 288 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b3
 1 72 28 28 24 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mnasnet0_5 mobilenet_v3_small
-1 128 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 96 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 128 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 96 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 672 15 15 112 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b1
 1 232 56 56 232 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_y_32gf
 1 48 35 35 64 5 5 2 2 2 2 1 1 1 1 1 0 0,3,inception_v3
 1 672 15 15 672 5 5 2 2 2 2 1 1 1 1 672 0 0,3,efficientnet_b1
 1 888 7 7 888 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_y_1_6gf
-1 128 56 56 128 3 3 1 1 1 1 2 2 1 1 1 0 0,3,resnet152 resnet101 resnet50
+1 128 56 56 128 3 3 1 1 1 1 2 2 1 1 1 0 0,3,resnet152 resnet50 resnet101
 1 24 72 72 144 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b2
 1 48 36 36 288 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b2
-1 32 112 112 32 3 3 1 1 1 1 1 1 1 1 32 0 0,3,mobilenet_v2 mnasnet1_0 efficientnet_b0
-1 32 112 112 16 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v2 mnasnet1_0 efficientnet_b0
-1 352 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 320 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 288 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 224 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 192 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 160 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 32 112 112 32 3 3 1 1 1 1 1 1 1 1 32 0 0,3,mobilenet_v2 efficientnet_b0 mnasnet1_0
+1 32 112 112 16 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v2 efficientnet_b0 mnasnet1_0
+1 352 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 320 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 288 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 224 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 192 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 160 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 192 96 96 48 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_v2_s
-1 320 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 320 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 64 48 48 256 3 3 1 1 1 1 1 1 1 1 1 0 0,3,efficientnet_v2_s
 1 96 35 35 96 3 3 1 1 1 1 1 1 1 1 1 0 0,3,inception_v3
-1 416 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 384 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 448 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 288 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 416 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 384 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 448 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 288 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 448 28 28 448 3 3 1 1 1 1 1 1 1 1 4 0 0,3,regnet_y_16gf
 1 32 300 300 32 3 3 1 1 1 1 1 1 1 1 32 0 0,3,efficientnet_b7
-1 96 1 1 4 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_b2 efficientnet_b1 efficientnet_b0
+1 96 1 1 4 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_b1 efficientnet_b2 efficientnet_b0
 1 672 14 14 112 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v3_large efficientnet_b0
 1 96 56 56 96 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_x_3_2gf
-1 64 56 56 128 1 1 0 0 0 0 2 2 1 1 1 0 0,3,resnet18 resnet34 regnet_x_800mf
+1 64 56 56 128 1 1 0 0 0 0 2 2 1 1 1 0 0,3,resnet18 regnet_x_800mf resnet34
 1 336 56 56 336 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_x_32gf
 1 256 28 28 256 3 3 1 1 1 1 1 1 1 1 32 0 0,3,resnext50_32x4d
-1 192 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 192 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 1008 7 7 1008 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_x_3_2gf
 1 256 56 56 256 3 3 1 1 1 1 1 1 1 1 64 0 0,3,resnext101_64x4d
 1 912 7 7 912 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_x_1_6gf
-1 800 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 832 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 224 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 800 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 832 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 224 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 192 95 95 32 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b4
 1 528 96 96 528 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_y_128gf
-1 12 1 1 48 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_b4 regnet_y_1_6gf efficientnet_b5
-1 48 1 1 12 1 1 0 0 0 0 1 1 1 1 1 0 1,3,efficientnet_b4 regnet_y_1_6gf efficientnet_b5
+1 12 1 1 48 1 1 0 0 0 0 1 1 1 1 1 0 1,3,regnet_y_1_6gf efficientnet_b4 efficientnet_b5
+1 48 1 1 12 1 1 0 0 0 0 1 1 1 1 1 0 1,3,regnet_y_1_6gf efficientnet_b4 efficientnet_b5
 1 336 48 48 56 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b4
-1 512 14 14 512 3 3 1 1 1 1 2 2 1 1 1 0 0,3,resnet152 resnet101 resnet50
+1 512 14 14 512 3 3 1 1 1 1 2 2 1 1 1 0 0,3,resnet152 resnet50 resnet101
 1 48 14 14 288 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mnasnet0_5 mobilenet_v3_small
 1 128 56 56 128 3 3 1 1 1 1 1 1 1 1 32 0 0,3,resnext50_32x4d
 1 192 95 95 192 3 3 1 1 1 1 1 1 1 1 192 0 0,3,efficientnet_b4
-1 352 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 384 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 416 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 448 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 480 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 544 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 576 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 352 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 384 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 416 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 448 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 480 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 544 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 576 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 160 25 25 960 1 1 0 0 0 0 1 1 1 1 1 0 0,3,fasterrcnn_mobilenet_v3_large_fpn
 1 40 30 30 240 1 1 0 0 0 0 1 1 1 1 1 0 0,3,efficientnet_b1
 1 480 15 15 480 3 3 1 1 1 1 1 1 1 1 480 0 0,3,efficientnet_b1
 1 512 19 19 512 3 3 1 1 1 1 1 1 1 1 1 0 1,3,ssd300_vgg16
 1 336 48 48 336 5 5 2 2 2 2 1 1 1 1 336 0 0,3,efficientnet_b4
-1 608 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 640 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 160 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 608 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 640 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 160 56 56 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 72 56 56 72 5 5 2 2 2 2 2 2 1 1 72 0 0,3,mnasnet0_75 mobilenet_v3_large mnasnet1_0
-1 256 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 256 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 24 28 28 24 3 3 1 1 1 1 1 1 1 1 24 0 0,3,shufflenet_v2_x0_5
-1 480 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 992 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 896 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 864 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 960 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 928 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
-1 896 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet169 densenet201
+1 480 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 992 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 896 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 864 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 960 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 928 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
+1 896 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,3,densenet121 densenet201 densenet169
 1 864 7 7 864 5 5 2 2 2 2 1 1 1 1 864 0 0,3,mnasnet0_75
 1 864 7 7 144 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mnasnet0_75
 1 168 28 28 168 3 3 1 1 1 1 1 1 1 1 7 0 0,3,regnet_x_1_6gf
@@ -621,18 +621,18 @@ conv_parameters,occurrences,models
 1 3840 19 19 3840 3 3 1 1 1 1 1 1 1 1 3840 0 0,3,efficientnet_b7
 1 576 14 14 96 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v2 mnasnet1_0
 1 576 14 14 576 3 3 1 1 1 1 1 1 1 1 576 0 0,3,mobilenet_v2 mnasnet1_0
-1 256 200 200 256 1 1 0 0 0 0 1 1 1 1 1 0 1,3,fasterrcnn_resnet50_fpn keypointrcnn_resnet50_fpn maskrcnn_resnet50_fpn
-1 320 7 7 1280 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v2 mnasnet1_0 efficientnet_b0
+1 256 200 200 256 1 1 0 0 0 0 1 1 1 1 1 0 1,3,keypointrcnn_resnet50_fpn fasterrcnn_resnet50_fpn maskrcnn_resnet50_fpn
+1 320 7 7 1280 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v2 efficientnet_b0 mnasnet1_0
 1 512 14 14 64 1 1 0 0 0 0 1 1 1 1 1 0 0,3,googlenet
 1 352 7 7 352 3 3 1 1 1 1 1 1 1 1 352 0 0,3,shufflenet_v2_x1_5
-1 256 28 28 256 3 3 1 1 1 1 2 2 1 1 1 0 0,3,resnet152 resnet101 resnet50
-1 240 14 14 80 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v3_large mnasnet1_0 efficientnet_b0
+1 256 28 28 256 3 3 1 1 1 1 2 2 1 1 1 0 0,3,resnet152 resnet50 resnet101
+1 240 14 14 80 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v3_large efficientnet_b0 mnasnet1_0
 1 784 7 7 784 1 1 0 0 0 0 1 1 1 1 1 0 0,3,regnet_y_800mf
 1 448 28 28 448 3 3 1 1 1 1 1 1 1 1 8 0 0,3,regnet_y_8gf
-1 32 27 27 128 3 3 1 1 1 1 1 1 1 1 1 0 1,3,squeezenet1_1 squeezenet1_0
-1 32 27 27 128 1 1 0 0 0 0 1 1 1 1 1 0 1,3,squeezenet1_1 squeezenet1_0
-1 64 13 13 256 3 3 1 1 1 1 1 1 1 1 1 0 1,3,squeezenet1_1 squeezenet1_0
-1 64 13 13 256 1 1 0 0 0 0 1 1 1 1 1 0 1,3,squeezenet1_1 squeezenet1_0
+1 32 27 27 128 3 3 1 1 1 1 1 1 1 1 1 0 1,3,squeezenet1_0 squeezenet1_1
+1 32 27 27 128 1 1 0 0 0 0 1 1 1 1 1 0 1,3,squeezenet1_0 squeezenet1_1
+1 64 13 13 256 3 3 1 1 1 1 1 1 1 1 1 0 1,3,squeezenet1_0 squeezenet1_1
+1 64 13 13 256 1 1 0 0 0 0 1 1 1 1 1 0 1,3,squeezenet1_0 squeezenet1_1
 1 1488 7 7 248 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mnasnet1_3
 1 1488 7 7 1488 5 5 2 2 2 2 1 1 1 1 1488 0 0,3,mnasnet1_3
 1 32 56 56 96 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mnasnet1_3
@@ -643,23 +643,23 @@ conv_parameters,occurrences,models
 1 192 56 56 192 7 7 3 3 3 3 1 1 1 1 192 0 1,3,convnext_large
 1 192 28 28 32 1 1 0 0 0 0 1 1 1 1 1 0 0,3,mobilenet_v2 googlenet
 1 1536 7 7 1536 7 7 3 3 3 3 1 1 1 1 1536 0 1,3,convnext_large
-1 256 13 13 256 3 3 1 1 1 1 2 2 1 1 1 0 1,3,retinanet_resnet50_fpn retinanet_resnet50_fpn_v2 fcos_resnet50_fpn
+1 256 13 13 256 3 3 1 1 1 1 2 2 1 1 1 0 1,3,retinanet_resnet50_fpn_v2 retinanet_resnet50_fpn fcos_resnet50_fpn
 1 128 56 56 128 7 7 3 3 3 3 1 1 1 1 128 0 1,3,convnext_base
 1 2048 65 65 512 3 3 1 1 1 1 1 1 1 1 1 0 0,2,fcn_resnet101 fcn_resnet50
 1 256 56 56 256 3 3 1 1 1 1 2 2 1 1 1 0 0,2,wide_resnet50_2 wide_resnet101_2
 1 512 28 28 512 3 3 1 1 1 1 2 2 1 1 1 0 0,2,wide_resnet50_2 wide_resnet101_2
 1 1024 14 14 1024 3 3 1 1 1 1 2 2 1 1 1 0 0,2,wide_resnet50_2 wide_resnet101_2
 1 384 14 14 768 2 2 0 0 0 0 2 2 1 1 1 0 1,2,convnext_small convnext_tiny
-1 3 520 520 16 3 3 1 1 1 1 2 2 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 16 260 260 16 3 3 1 1 1 1 1 1 1 1 16 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 16 260 260 16 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 16 260 260 64 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 3 520 520 16 3 3 1 1 1 1 2 2 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 16 260 260 16 3 3 1 1 1 1 1 1 1 1 16 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 16 260 260 16 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 16 260 260 64 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 144 56 56 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mobilenet_v2 efficientnet_b0
 1 144 56 56 144 3 3 1 1 1 1 1 1 1 1 144 0 0,2,mobilenet_v2 efficientnet_b0
 1 144 28 28 144 3 3 1 1 1 1 1 1 1 1 9 0 0,2,regnet_y_800mf
-1 4 1 1 16 1 1 0 0 0 0 1 1 1 1 1 0 1,2,efficientnet_b2 efficientnet_b1
-1 16 1 1 4 1 1 0 0 0 0 1 1 1 1 1 0 1,2,efficientnet_b2 efficientnet_b1
-1 1152 7 7 320 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mnasnet1_0 efficientnet_b0
+1 4 1 1 16 1 1 0 0 0 0 1 1 1 1 1 0 1,2,efficientnet_b1 efficientnet_b2
+1 16 1 1 4 1 1 0 0 0 0 1 1 1 1 1 0 1,2,efficientnet_b1 efficientnet_b2
+1 1152 7 7 320 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_b0 mnasnet1_0
 1 24 14 14 64 3 3 1 1 1 1 1 1 1 1 1 0 0,2,googlenet
 1 512 14 14 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,googlenet
 1 512 14 14 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,googlenet
@@ -683,7 +683,7 @@ conv_parameters,occurrences,models
 1 704 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet121 densenet169
 1 672 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet121 densenet169
 1 640 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet121 densenet169
-1 96 56 56 192 1 1 0 0 0 0 1 1 1 1 1 0 0,2,regnet_x_3_2gf densenet161
+1 96 56 56 192 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet161 regnet_x_3_2gf
 1 3456 17 17 576 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_b6
 1 144 1 1 3456 1 1 0 0 0 0 1 1 1 1 1 0 1,2,efficientnet_b6
 1 176 28 28 176 3 3 1 1 1 1 2 2 1 1 176 0 0,2,shufflenet_v2_x1_5
@@ -691,21 +691,21 @@ conv_parameters,occurrences,models
 1 488 14 14 488 3 3 1 1 1 1 2 2 1 1 488 0 0,2,shufflenet_v2_x2_0
 1 480 14 14 192 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet161 googlenet
 1 244 28 28 244 3 3 1 1 1 1 2 2 1 1 244 0 0,2,shufflenet_v2_x2_0
-1 512 13 13 1000 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_1 squeezenet1_0
-1 512 13 13 64 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_1 squeezenet1_0
+1 512 13 13 1000 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_0 squeezenet1_1
+1 512 13 13 64 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_0 squeezenet1_1
 1 48 27 27 192 3 3 1 1 1 1 1 1 1 1 1 0 1,2,squeezenet1_0
 1 48 27 27 192 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_0
-1 256 27 27 32 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_1 squeezenet1_0
+1 256 27 27 32 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_0 squeezenet1_1
 1 256 75 75 256 3 3 1 1 1 1 1 1 1 1 1 0 1,2,ssd300_vgg16
 1 72 28 28 40 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mobilenet_v3_large mnasnet1_0
 1 624 14 14 104 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mnasnet1_3
 1 624 14 14 624 5 5 2 2 2 2 1 1 1 1 624 0 0,2,mnasnet1_3
 1 168 28 28 56 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mnasnet1_3
 1 168 28 28 168 5 5 2 2 2 2 1 1 1 1 168 0 0,2,mnasnet1_3
-1 480 33 33 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 480 33 33 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 192 28 28 384 2 2 0 0 0 0 2 2 1 1 1 0 1,2,convnext_small convnext_tiny
 1 96 56 56 192 2 2 0 0 0 0 2 2 1 1 1 0 1,2,convnext_small convnext_tiny
-1 200 33 33 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 200 33 33 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 96 14 14 96 3 3 1 1 1 1 2 2 1 1 96 0 0,2,shufflenet_v2_x0_5
 1 48 28 28 48 3 3 1 1 1 1 2 2 1 1 48 0 0,2,shufflenet_v2_x0_5
 1 16 55 55 64 3 3 1 1 1 1 1 1 1 1 1 0 1,2,squeezenet1_1
@@ -713,9 +713,9 @@ conv_parameters,occurrences,models
 1 32 264 264 32 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_b6
 1 32 264 264 32 3 3 1 1 1 1 1 1 1 1 32 0 0,2,efficientnet_b6
 1 64 1 1 240 1 1 0 0 0 0 1 1 1 1 1 0 1,2,mobilenet_v3_small
-1 672 33 33 160 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 672 33 33 672 5 5 4 4 4 4 1 1 2 2 672 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 672 33 33 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 672 33 33 160 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 672 33 33 672 5 5 4 4 4 4 1 1 2 2 672 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 672 33 33 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 116 28 28 116 3 3 1 1 1 1 2 2 1 1 116 0 0,2,shufflenet_v2_x1_0
 1 352 14 14 352 3 3 1 1 1 1 2 2 1 1 352 0 0,2,shufflenet_v2_x1_5
 1 256 7 7 819 3 3 1 1 1 1 1 1 1 1 1 0 1,2,retinanet_resnet50_fpn retinanet_resnet50_fpn_v2
@@ -733,26 +733,26 @@ conv_parameters,occurrences,models
 1 736 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet121 densenet169
 1 16 54 54 64 3 3 1 1 1 1 1 1 1 1 1 0 1,2,squeezenet1_0
 1 16 54 54 64 1 1 0 0 0 0 1 1 1 1 1 0 1,2,squeezenet1_0
-1 672 33 33 672 3 3 1 1 1 1 1 1 1 1 672 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 672 33 33 672 3 3 1 1 1 1 1 1 1 1 672 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 1024 7 7 1024 3 3 1 1 1 1 1 1 1 1 32 0 0,2,resnext50_32x4d
-1 72 112 112 72 3 3 1 1 1 1 2 2 1 1 3 0 0,2,regnet_x_1_6gf regnet_y_3_2gf
-1 32 112 112 72 1 1 0 0 0 0 1 1 1 1 1 0 0,2,regnet_x_1_6gf regnet_y_3_2gf
-1 32 112 112 72 1 1 0 0 0 0 2 2 1 1 1 0 0,2,regnet_x_1_6gf regnet_y_3_2gf
-1 80 33 33 480 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 72 65 65 40 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 72 112 112 72 3 3 1 1 1 1 2 2 1 1 3 0 0,2,regnet_y_3_2gf regnet_x_1_6gf
+1 32 112 112 72 1 1 0 0 0 0 1 1 1 1 1 0 0,2,regnet_y_3_2gf regnet_x_1_6gf
+1 32 112 112 72 1 1 0 0 0 0 2 2 1 1 1 0 0,2,regnet_y_3_2gf regnet_x_1_6gf
+1 80 33 33 480 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 72 65 65 40 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 32 28 28 96 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mnasnet0_75
 1 256 7 7 36 3 3 1 1 1 1 1 1 1 1 1 0 1,2,retinanet_resnet50_fpn retinanet_resnet50_fpn_v2
 1 256 13 13 36 3 3 1 1 1 1 1 1 1 1 1 0 1,2,retinanet_resnet50_fpn retinanet_resnet50_fpn_v2
 1 232 14 14 232 3 3 1 1 1 1 2 2 1 1 232 0 0,2,shufflenet_v2_x1_0
 1 1824 15 15 512 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_v2_m efficientnet_b5
-1 72 56 56 72 3 3 1 1 1 1 1 1 1 1 3 0 0,2,regnet_x_1_6gf regnet_y_3_2gf
+1 72 56 56 72 3 3 1 1 1 1 1 1 1 1 3 0 0,2,regnet_y_3_2gf regnet_x_1_6gf
 1 24 228 228 24 3 3 1 1 1 1 1 1 1 1 24 0 0,2,efficientnet_b5
 1 256 25 25 36 3 3 1 1 1 1 1 1 1 1 1 0 1,2,retinanet_resnet50_fpn retinanet_resnet50_fpn_v2
 1 256 50 50 36 3 3 1 1 1 1 1 1 1 1 1 0 1,2,retinanet_resnet50_fpn retinanet_resnet50_fpn_v2
 1 256 100 100 36 3 3 1 1 1 1 1 1 1 1 1 0 1,2,retinanet_resnet50_fpn retinanet_resnet50_fpn_v2
-1 64 112 112 64 3 3 1 1 1 1 2 2 1 1 4 0 0,2,regnet_y_800mf regnet_x_800mf
-1 32 112 112 64 1 1 0 0 0 0 1 1 1 1 1 0 0,2,regnet_y_800mf regnet_x_800mf
-1 32 112 112 64 1 1 0 0 0 0 2 2 1 1 1 0 0,2,regnet_y_800mf regnet_x_800mf
+1 64 112 112 64 3 3 1 1 1 1 2 2 1 1 4 0 0,2,regnet_x_800mf regnet_y_800mf
+1 32 112 112 64 1 1 0 0 0 0 1 1 1 1 1 0 0,2,regnet_x_800mf regnet_y_800mf
+1 32 112 112 64 1 1 0 0 0 0 2 2 1 1 1 0 0,2,regnet_x_800mf regnet_y_800mf
 1 1152 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
 1 1120 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
 1 1088 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
@@ -780,11 +780,11 @@ conv_parameters,occurrences,models
 1 576 7 7 160 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mnasnet0_5 mobilenet_v2
 1 2048 7 7 2048 3 3 1 1 1 1 1 1 1 1 64 0 0,2,resnext101_64x4d
 1 480 10 10 480 3 3 1 1 1 1 1 1 1 1 480 0 0,2,ssdlite320_mobilenet_v3_large
-1 480 33 33 480 3 3 1 1 1 1 1 1 1 1 480 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 480 33 33 480 3 3 1 1 1 1 1 1 1 1 480 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 128 28 28 128 3 3 1 1 1 1 1 1 1 1 8 0 0,2,regnet_x_800mf
-1 16 160 160 16 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 16 160 160 16 3 3 1 1 1 1 1 1 1 1 16 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 3 320 320 16 3 3 1 1 1 1 2 2 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 16 160 160 16 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 16 160 160 16 3 3 1 1 1 1 1 1 1 1 16 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 3 320 320 16 3 3 1 1 1 1 2 2 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 2048 65 65 256 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_resnet101 deeplabv3_resnet50
 1 1056 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
 1 1024 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
@@ -812,22 +812,22 @@ conv_parameters,occurrences,models
 1 2048 7 7 512 1 1 0 0 0 0 1 1 1 1 1 0 1,2,maxvit_t
 1 128 1 1 2048 1 1 0 0 0 0 1 1 1 1 1 0 1,2,maxvit_t
 1 2048 1 1 128 1 1 0 0 0 0 1 1 1 1 1 0 1,2,maxvit_t
-1 64 160 160 64 3 3 1 1 1 1 2 2 1 1 64 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 16 160 160 64 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 64 80 80 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 64 160 160 64 3 3 1 1 1 1 2 2 1 1 64 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 16 160 160 64 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 64 80 80 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 960 10 10 160 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn
 1 960 10 10 960 5 5 2 2 2 2 1 1 1 1 960 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn
-1 672 20 20 672 5 5 2 2 2 2 2 2 1 1 672 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 672 20 20 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 480 20 20 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 200 20 20 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 200 20 20 200 3 3 1 1 1 1 1 1 1 1 200 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 80 20 20 200 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 240 20 20 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 240 40 40 240 3 3 1 1 1 1 2 2 1 1 240 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 40 40 40 240 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 72 40 40 40 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 72 80 80 72 5 5 2 2 2 2 2 2 1 1 72 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 672 20 20 672 5 5 2 2 2 2 2 2 1 1 672 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 672 20 20 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 480 20 20 112 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 200 20 20 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 200 20 20 200 3 3 1 1 1 1 1 1 1 1 200 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 80 20 20 200 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 240 20 20 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 240 40 40 240 3 3 1 1 1 1 2 2 1 1 240 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 40 40 40 240 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 72 40 40 40 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 72 80 80 72 5 5 2 2 2 2 2 2 1 1 72 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 16 112 112 16 3 3 1 1 1 1 1 1 1 1 16 0 0,2,mnasnet0_5 mobilenet_v3_large
 1 192 75 75 32 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_b3
 1 32 112 112 48 1 1 0 0 0 0 2 2 1 1 1 0 0,2,regnet_y_1_6gf regnet_y_400mf
@@ -835,17 +835,17 @@ conv_parameters,occurrences,models
 1 8 1 1 48 1 1 0 0 0 0 1 1 1 1 1 0 1,2,regnet_y_1_6gf regnet_y_400mf
 1 48 1 1 8 1 1 0 0 0 0 1 1 1 1 1 0 1,2,regnet_y_1_6gf regnet_y_400mf
 1 512 28 28 1024 1 1 0 0 0 0 1 1 1 1 1 0 0,2,resnext101_64x4d resnext101_32x8d
-1 256 14 14 512 1 1 0 0 0 0 2 2 1 1 1 0 0,2,resnet34 resnet18
-1 256 14 14 512 3 3 1 1 1 1 2 2 1 1 1 0 0,2,resnet34 resnet18
-1 128 28 28 256 1 1 0 0 0 0 2 2 1 1 1 0 0,2,resnet34 resnet18
-1 128 28 28 256 3 3 1 1 1 1 2 2 1 1 1 0 0,2,resnet34 resnet18
-1 64 56 56 128 3 3 1 1 1 1 2 2 1 1 1 0 0,2,resnet34 resnet18
+1 256 14 14 512 1 1 0 0 0 0 2 2 1 1 1 0 0,2,resnet18 resnet34
+1 256 14 14 512 3 3 1 1 1 1 2 2 1 1 1 0 0,2,resnet18 resnet34
+1 128 28 28 256 1 1 0 0 0 0 2 2 1 1 1 0 0,2,resnet18 resnet34
+1 128 28 28 256 3 3 1 1 1 1 2 2 1 1 1 0 0,2,resnet18 resnet34
+1 64 56 56 128 3 3 1 1 1 1 2 2 1 1 1 0 0,2,resnet18 resnet34
 1 24 200 200 72 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_fpn
 1 448 8 8 384 3 3 1 1 1 1 1 1 1 1 1 0 0,2,inception_v3
 1 512 28 28 128 1 1 0 0 0 0 1 1 1 1 1 0 1,2,maxvit_t
 1 256 56 56 64 1 1 0 0 0 0 1 1 1 1 1 0 1,2,maxvit_t
-1 72 80 80 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 72 80 80 72 3 3 1 1 1 1 1 1 1 1 72 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 72 80 80 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 72 80 80 72 3 3 1 1 1 1 1 1 1 1 72 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 144 72 72 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_b2
 1 144 72 72 144 3 3 1 1 1 1 1 1 1 1 144 0 0,2,efficientnet_b2
 1 96 112 112 96 3 3 1 1 1 1 2 2 1 1 96 0 0,2,mobilenet_v2 efficientnet_b0
@@ -855,8 +855,8 @@ conv_parameters,occurrences,models
 1 160 17 17 192 7 1 0 0 3 3 1 1 1 1 1 0 0,2,inception_v3
 1 128 17 17 128 7 1 0 0 3 3 1 1 1 1 1 0 0,2,inception_v3
 1 256 28 28 91 1 1 0 0 0 0 1 1 1 1 1 0 1,2,maskrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn
-1 480 20 20 480 3 3 1 1 1 1 1 1 1 1 480 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
-1 80 20 20 480 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_mobilenet_v3_large_320_fpn ssdlite320_mobilenet_v3_large
+1 480 20 20 480 3 3 1 1 1 1 1 1 1 1 480 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
+1 80 20 20 480 1 1 0 0 0 0 1 1 1 1 1 0 0,2,ssdlite320_mobilenet_v3_large fasterrcnn_mobilenet_v3_large_320_fpn
 1 1024 14 14 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
 1 1632 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
 1 1600 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
@@ -866,7 +866,7 @@ conv_parameters,occurrences,models
 1 1152 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
 1 144 60 60 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_b1
 1 144 60 60 144 3 3 1 1 1 1 1 1 1 1 144 0 0,2,efficientnet_b1
-1 1152 7 7 1152 3 3 1 1 1 1 1 1 1 1 1152 0 0,2,mnasnet1_0 efficientnet_b0
+1 1152 7 7 1152 3 3 1 1 1 1 1 1 1 1 1152 0 0,2,efficientnet_b0 mnasnet1_0
 1 1280 65 65 256 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_resnet101 deeplabv3_resnet50
 1 2048 1 1 256 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_resnet101 deeplabv3_resnet50
 1 2048 65 65 256 3 3 36 36 36 36 1 1 36 36 1 0 0,2,deeplabv3_resnet101 deeplabv3_resnet50
@@ -894,16 +894,16 @@ conv_parameters,occurrences,models
 1 768 17 17 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,inception_v3
 1 1248 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
 1 1216 7 7 128 1 1 0 0 0 0 1 1 1 1 1 0 0,2,densenet201 densenet169
-1 64 260 260 64 3 3 1 1 1 1 2 2 1 1 64 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 64 260 260 64 3 3 1 1 1 1 2 2 1 1 64 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 256 200 200 256 3 3 1 1 1 1 1 1 1 1 1 0 0,2,fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
-1 240 65 65 240 3 3 1 1 1 1 2 2 1 1 240 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 40 65 65 240 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 240 65 65 240 3 3 1 1 1 1 2 2 1 1 240 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 40 65 65 240 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 128 1 1 128 3 3 1 1 1 1 1 1 1 1 128 0 0,2,ssdlite320_mobilenet_v3_large
 1 256 2 2 256 3 3 1 1 1 1 1 1 1 1 256 0 0,2,ssdlite320_mobilenet_v3_large
-1 72 130 130 72 5 5 2 2 2 2 2 2 1 1 72 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 72 130 130 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 72 130 130 72 3 3 1 1 1 1 1 1 1 1 72 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 64 130 130 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 72 130 130 72 5 5 2 2 2 2 2 2 1 1 72 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 72 130 130 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 72 130 130 72 3 3 1 1 1 1 1 1 1 1 72 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 64 130 130 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 96 56 56 24 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mobilenet_v2 efficientnet_b0
 1 672 14 14 672 5 5 2 2 2 2 2 2 1 1 672 0 0,2,mobilenet_v3_large efficientnet_b0
 1 672 14 14 672 5 5 2 2 2 2 1 1 1 1 672 0 0,2,efficientnet_b0
@@ -914,16 +914,16 @@ conv_parameters,occurrences,models
 1 3456 17 17 3456 3 3 1 1 1 1 1 1 1 1 3456 0 0,2,efficientnet_b6
 1 576 17 17 3456 1 1 0 0 0 0 1 1 1 1 1 0 0,2,efficientnet_b6
 1 240 1 1 64 1 1 0 0 0 0 1 1 1 1 1 0 1,2,mobilenet_v3_small
-1 24 28 28 88 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mobilenet_v3_small shufflenet_v2_x1_5
+1 24 28 28 88 1 1 0 0 0 0 1 1 1 1 1 0 0,2,shufflenet_v2_x1_5 mobilenet_v3_small
 1 960 7 7 960 5 5 2 2 2 2 1 1 1 1 960 0 0,2,mobilenet_v3_large
 1 256 200 200 256 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
 1 2048 25 25 256 1 1 0 0 0 0 1 1 1 1 1 0 0,2,fasterrcnn_resnet50_fpn_v2 maskrcnn_resnet50_fpn_v2
-1 200 33 33 200 3 3 1 1 1 1 1 1 1 1 200 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 80 33 33 200 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
-1 240 33 33 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,deeplabv3_mobilenet_v3_large lraspp_mobilenet_v3_large
+1 200 33 33 200 3 3 1 1 1 1 1 1 1 1 200 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 80 33 33 200 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
+1 240 33 33 80 1 1 0 0 0 0 1 1 1 1 1 0 0,2,lraspp_mobilenet_v3_large deeplabv3_mobilenet_v3_large
 1 256 3 3 256 3 3 1 1 1 1 1 1 1 1 256 0 0,2,ssdlite320_mobilenet_v3_large
 1 512 5 5 512 3 3 1 1 1 1 1 1 1 1 512 0 0,2,ssdlite320_mobilenet_v3_large
-1 480 14 14 96 1 1 0 0 0 0 1 1 1 1 1 0 0,2,mnasnet1_0 googlenet
+1 480 14 14 96 1 1 0 0 0 0 1 1 1 1 1 0 0,2,googlenet mnasnet1_0
 1 256 25 25 256 3 3 1 1 1 1 2 2 1 1 1 0 1,2,retinanet_resnet50_fpn fcos_resnet50_fpn
 1 512 65 65 21 1 1 0 0 0 0 1 1 1 1 1 0 1,2,fcn_resnet101 fcn_resnet50
 1 128 56 56 256 2 2 0 0 0 0 2 2 1 1 1 0 1,1,convnext_base
