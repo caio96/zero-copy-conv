@@ -121,7 +121,7 @@ Note:
   - `verify_correctness` calls all convolutions methods converting their output if necessary to verify results. LibTorch's output is used as a reference.
 - `scripts`:
   - `convolution_extraction` extracts convolution layer parameters from multiple models into a csv (adapted from [ConvBench](https://github.com/LucasFernando-aes/ConvBench/))
-  - `filter_csv` allows filtering the csv containing convolution layer parameters and removing redundancies
+  - `filter_csv` allows filtering the csv containing convolution layer parameters and removes parameters that cause errors
   - `benchmark_runner` controls running convolutions from a csv to measure correctness or performance
   - `summarize_correctness` generates csv files that summarize correctness results based on the logs from `benchmark_runner`
   - `summarize_performance` generates a csv file that summarizes performance results based on the logs from `benchmark_runner`
@@ -268,7 +268,7 @@ Scripts gather convolutional layer parameters, run benchmarks, and summarize res
 All scripts can take the `-h` flag to show usage information.
 
 1. Run `convolution_extraction` to generate a csv file containing convolution parameters, or use the csv files provided (`data/conv_layers.csv`)
-2. Run `filter_csv` to reduce redundancies in the csv generated in step 1 and to optionally filter convolution types
+2. Run `filter_csv` to remove parameters that cause errors in the csv generated in step 1 and to optionally filter convolution types
 3. Build this repo
 4. Run `benchmark_runner` with the build dir and the csv from step 2 to test performance or correctness
     - This script will use the `benchmark_*` executables found in the build dir (except the naive one), remove executables if you do not want to execute them

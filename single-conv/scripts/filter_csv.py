@@ -71,7 +71,7 @@ def include_only_in_df(df: pd.DataFrame, conv_type: list):
         )
 
     if "transposed" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 0]])
+        filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
 
     if "depthwise" in conv_type:
         filtered_df = pd.concat([filtered_df, df.loc[(df["image channel"] == df["groups"])]])
@@ -104,36 +104,6 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
         df = df.loc[(df["image channel"] != df["groups"])]
 
     return df.reset_index(drop=True)
-
-
-# Remove convolutions that only differ in "has bias" and padding values
-# keeping the one with the most occurrences (first in the dataframe)
-def reduce_redundacies(df):
-    # All columns except bias and padding
-    group_columns = [
-        "batch size",
-        "image channel",
-        "image height",
-        "image width",
-        "output channel",
-        "filter height",
-        "filter width",
-        "stride height",
-        "stride width",
-        "dilation height",
-        "dilation width",
-        "groups",
-        "is transposed",
-    ]
-
-    # Group by the specified columns and keep the first occurrence
-    df.sort_values(by=["occurrences"], ascending=False, inplace=True)
-    df_reduced = df.groupby(group_columns).agg(
-        conv_parameters=("conv_parameters", "first"),
-        occurrences=("occurrences", "sum"),
-    )
-
-    return df_reduced.reset_index(drop=True)
 
 
 if __name__ == "__main__":
@@ -171,17 +141,11 @@ if __name__ == "__main__":
         ],
         default=None,
     )
-    parser.add_argument(
-        "--reduce-redundancies",
-        action="store_true",
-        help="Keep only one convolution if there are multiple that only differ in padding and bias",
-    )
 
     args = parser.parse_args()
 
     input_csv = Path(args.Input_CSV)
     output_csv = Path(args.Output_CSV)
-    reduce_redundancies = args.reduce_redundancies
     exclude_conv_types = args.exclude_conv_types
     include_only_conv_types = args.include_only_conv_types
 
@@ -210,10 +174,6 @@ if __name__ == "__main__":
 
     if exclude_conv_types:
         df = exclude_from_df(df, exclude_conv_types)
-
-    # Remove redundancies
-    if reduce_redundancies:
-        df = reduce_redundacies(df)
 
     # Remove extra columns from split
     df = df.iloc[:, :num_columns]
