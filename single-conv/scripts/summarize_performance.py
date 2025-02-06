@@ -6,10 +6,12 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib import rc
 import numpy as np
 import pandas as pd
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 from tabulate import tabulate
+import scipy.stats as st
 
 
 def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, only_stats=False):
@@ -183,20 +185,6 @@ def plot_speedup(
         clipped_neg_indices = neg_speedup[neg_speedup < neg_threshold].index.to_series()
         neg_speedup = np.clip(neg_speedup, neg_threshold, 0)
 
-    from matplotlib import rc
-    rc('font', **{'family': 'serif', 'serif': ['Libertine']})
-    rc('text', usetex=True)
-    rc('text.latex', preamble="\n".join([
-        r"\usepackage[utf8]{inputenc}",
-        r"\usepackage[T1]{fontenc}",
-        r"\usepackage{libertine}",
-        r"\usepackage{newtxtext,newtxmath}",
-    ]))
-    plt.rcParams.update({
-        "font.size": 16,
-        "legend.fontsize": 16,
-    })
-
     fig, ax = plt.subplots()
 
     # barplot
@@ -347,8 +335,12 @@ def compare_methods(
         )
         new_method_name = f"Heuristic_{new_method_name}"
 
-    # Save results to csv
     if not only_stats:
+        # Add graph with execution times for comparison
+        methods = [col.replace("mean_time_", "") for col in joined_results.columns if "mean_time" in col]
+        graph_execution_times(joined_results, methods, output_dir, old_method, new_method)
+
+        # Save results to csv
         speedup_results.to_csv(
             output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
@@ -362,6 +354,88 @@ def compare_methods(
         clip_pos,
         clip_neg,
     )
+
+
+# Function to estimate the FLOPs of a convolution
+# Used to sort the convolutions by complexity
+def compute_conv_flops(
+    input_channels, input_height, input_width,
+    output_channels, kernel_height, kernel_width,
+    stride_height=1, stride_width=1, padding_height=0, padding_width=0,
+    dilation_height=1, dilation_width=1, groups=1
+):
+    # Compute output dimensions
+    output_height = ((input_height + 2 * padding_height - (dilation_height * (kernel_height - 1) + 1)) // stride_height) + 1
+    output_width = ((input_width + 2 * padding_width - (dilation_width * (kernel_width - 1) + 1)) // stride_width) + 1
+    # Channels per group
+    input_channels_per_group = input_channels // groups
+    # Compute FLOPs
+    flops = output_channels * output_height * output_width * input_channels_per_group * kernel_height * kernel_width
+    return flops
+
+
+def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None, new_method=None):
+    fig, ax = plt.subplots()
+
+    df = split_parameters(df)
+    df["flops"] = compute_conv_flops(df["image channel"], df["image height"], df["image width"],
+                                     df["output channel"], df["filter height"], df["filter width"],
+                                     df["stride height"], df["stride width"], df["padding top"], df["padding left"],
+                                     df["dilation height"], df["dilation width"], df["groups"])
+    df = df.sort_values(by=["flops"])
+    marker=['o', 'v', '^', '<', '>', 's', 'p', '*', 'X']
+
+    name_translation = {
+            "ZeroCopy_jit": "ZConv",
+            "OneDNN_jit": "OneDNN",
+            "LibTorch_ZeroCopy2D_HWIO_TransformOutput": "Torch_ZConv",
+            "LibTorch": "Torch",
+            "Im2col": "Im2col",
+            "Yaconv": "Yaconv",
+    }
+
+    for idx, method in enumerate(sorted(methods)):
+        if old_method and new_method and method not in (old_method, new_method):
+            continue
+        label_name = name_translation[method] if method in name_translation else method
+        method_means = df[f"mean_time_{method}"]
+        method_iterations = df[f"total_iterations_{method}"]
+
+        # Note that std deviation only sees the means from repeated runs, not the individual runs
+        method_std = df[f"std_time_{method}"]
+
+        # Calculate the 95% confidence interval
+        conf_low, conf_high = st.norm.interval(confidence=0.95, loc=method_means, scale=method_std/np.sqrt(method_iterations))
+        conf = (conf_high - conf_low) / 2
+
+        ax.errorbar(range(df.shape[0]), method_means, yerr=conf, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
+
+    legend = plt.legend(frameon=True, framealpha=1, markerscale=3)
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('black')
+
+    ax.set_ylabel("Execution time (ms)")
+    ax.set_xlabel("Conv2D Layers")
+
+    comparison_name = ""
+    if old_method:
+        comparison_name += f"{old_method}_"
+    else:
+        comparison_name += "all_"
+    comparison_name += "vs_"
+    if new_method:
+        comparison_name += new_method
+    else:
+        comparison_name += "all"
+
+    # save figure
+    plt.savefig(
+        output_dir / f"conv2d_{comparison_name}_execution_times.png",
+        bbox_inches="tight",
+        dpi=300,
+    )
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -481,6 +555,23 @@ if __name__ == "__main__":
     df = df.iloc[:, :num_columns]
 
     methods = [col.replace("mean_time_", "") for col in df.columns if "mean_time" in col]
+
+    if not only_stats:
+        rc('font', **{'family': 'serif', 'serif': ['Libertine']})
+        rc('text', usetex=True)
+        rc('text.latex', preamble="\n".join([
+            r"\usepackage[utf8]{inputenc}",
+            r"\usepackage[T1]{fontenc}",
+            r"\usepackage{libertine}",
+            r"\usepackage{newtxtext,newtxmath}",
+        ]))
+        plt.rcParams.update({
+            "font.size": 16,
+            "legend.fontsize": 16,
+        })
+
+        # Add graph with execution times for all methods
+        graph_execution_times(df, methods, output_dir)
 
     # Check if both methods are present
     if old_method and old_method not in methods:
