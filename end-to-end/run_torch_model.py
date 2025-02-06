@@ -172,7 +172,7 @@ def run_model(
 
 def get_all_models(source):
     if source == "timm":
-        model_names = timm.list_models(pretrained=True)
+        model_names = timm.list_models(pretrained=False)
     elif source == "torch":
         all_model_names = models.list_models()
         exclude_models = models.list_models(module=models.video)
