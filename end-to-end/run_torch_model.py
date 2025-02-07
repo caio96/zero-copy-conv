@@ -68,53 +68,37 @@ def convert_conv2d_weights_to_HWIO_static(model):
 # Converts weights to HWIO layout so that ZeroCopy2D can execute without changing the weights layout
 # This function requires running the model once to obtain the input size for each Conv2D layer
 # The commented version above works without running the model
-def get_convs_to_convert(model_name, source):
-    convs_to_convert = []
+def convert_conv2d_weights_to_HWIO_dynamic(model, input):
 
-    # Define hook
-    def get_hook(module_name):
-        def hook(module: torch.nn.Conv2d, inputs):
-            if torch._C._nn.will_use_zero_copy_conv2d_dynamic(
-                inputs[0],
-                module.weight,
-                module.dilation,
-                module.groups,
-                module.transposed,
-            ):
-                convs_to_convert.append(module_name)
-        return hook
-
-    # Get temporary model: hooks may affect performance and we don't want to change the original
-    model, input = get_model_and_input(model_name, source)
-
-    # Register hooks to process each Conv2d layer
-    handles = []
-    for name, module in model.named_modules():
-        if type(module) is torch.nn.Conv2d:
-            hook = get_hook(name)
-            handles.append(module.register_forward_pre_hook(hook))
-
-    # Perform a forward pass to trigger the hooks
-    with torch.no_grad():
-        model(input)
-
-    # Remove hooks
-    for handle in handles:
-        handle.remove()
-    del model
-
-    return convs_to_convert
-
-def convert_conv2d_weights_to_HWIO_dynamic(model, model_name, source):
-    convs_to_convert = get_convs_to_convert(model_name, source)
-    for name, module in model.named_modules():
-        if type(module) is torch.nn.Conv2d and name in convs_to_convert:
+    def process_layer(module: torch.nn.Conv2d, inputs):
+        if torch._C._nn.will_use_zero_copy_conv2d_dynamic(
+            inputs[0],
+            module.weight,
+            module.dilation,
+            module.groups,
+            module.transposed,
+        ):
             weight_data = module.weight.detach().clone()
             # weight layout to HWIO, making data contiguous (dimension order follow OIHW)
             weight_data = weight_data.permute(2, 3, 1, 0).contiguous()
             # permute dimensions to the order expected by pytorch (OIHW)
             weight_data = weight_data.permute(3, 2, 0, 1)
             module.weight.data = weight_data.resize_(weight_data.size())
+
+     # Register hooks to process each Conv2d layer
+    hooks = []
+    for module in model.modules():
+        if type(module) is torch.nn.Conv2d:
+            hooks.append(module.register_forward_pre_hook(process_layer))
+
+    # Perform a forward pass to trigger the hooks
+    with torch.no_grad():
+        model(input)
+
+     # Remove hooks
+    for hook in hooks:
+        hook.remove()
+
     return model
 
 
@@ -136,8 +120,9 @@ def run_model(
     model, input = get_model_and_input(model_name, source)
 
     if convert_weights_to_hwio:
+        # Heuristic changes slightly for the static version
         # model = convert_conv2d_weights_to_HWIO_static(model)
-        model = convert_conv2d_weights_to_HWIO_dynamic(model, model_name, source)
+        model = convert_conv2d_weights_to_HWIO_dynamic(model, input)
 
     if compile:
         model = torch.compile(model)
