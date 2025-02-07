@@ -12,6 +12,7 @@ function Help()
    echo -e "\t--threads [threads]: Specify the number of threads that each run can use (sets OMP_NUM_THREADS). Default is 1."
    echo -e "\t--core-range [range]: Specify the range of cores that a run may use. For example, to use only the first 12 cores, set it to '1-12'. Useful to select performance cores. Default is to use all cores."
    echo -e "\t--check-correctness: Run each benchmark once to check correctness. Ignores --repeats and --append-output."
+   echo -e "\t--parallel-single-thread-mode: Run each benchmark with a single thread but in parallel, using the configuration set with --threads and --core-range."
    echo -e "\t-h: Print this Help."
    echo -e "\t-v: Verbose mode."
    echo
@@ -46,6 +47,7 @@ function show_progress {
 
 BATCH_SIZE="1"
 REPEATS="1"
+PARALLEL_SINGLE_THREAD_MODE="false"
 APPEND_OUTPUT="false"
 CHECK_CORRECTNESS="false"
 OMP_NUM_THREADS="1"
@@ -53,7 +55,7 @@ OMP_NUM_THREADS="1"
 CORE_RANGE="0-$(numactl --show | grep "physcpubind" | sed 's/[[:blank:]]*$//' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
 
 # Parse Arguments
-PARSED_ARGUMENTS=$(getopt -a -n "benchmark_runner" -o hv --long append-output,check-correctness,repeats:,batch-size:,threads:,core-range: -- "$@")
+PARSED_ARGUMENTS=$(getopt -a -n "benchmark_runner" -o hv --long append-output,parallel-single-thread-mode,check-correctness,repeats:,batch-size:,threads:,core-range: -- "$@")
 if [ $? -ne 0 ]; then
   echo "Invalid option." >&2
   Help
@@ -92,6 +94,10 @@ while true; do
       ;;
     --check-correctness)
       CHECK_CORRECTNESS="true"
+      shift
+      ;;
+    --parallel-single-thread-mode)
+      PARALLEL_SINGLE_THREAD_MODE="true"
       shift
       ;;
     --)
@@ -182,10 +188,49 @@ if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
   $CORRECTNESS_EXECUTABLE 2> /dev/null | head -n1 >> "$OUTPUT_LOG"
 fi
 
+echo -e "Running with $REPEATS repetitions and $OMP_NUM_THREADS threads, using cores $CORE_RANGE\n"
+
+# Run single threaded benchmarks in parallel
+if [[ "$PARALLEL_SINGLE_THREAD_MODE" == "true" ]]; then
+  echo "Single-threaded parallel mode"
+  # Array to string, reconstructed inside parallel command
+  export EXECUTABLES_STR="${executables[*]}"
+  # Export variables so command inside parallel can see them
+  export CHECK_CORRECTNESS BATCH_SIZE CORRECTNESS_EXECUTABLE OUTPUT_LOG
+  parallel_log="$(dirname "$OUTPUT_LOG")/parallel_log.txt"
+
+  # Parallel reads from the csv, each line is an input for the quoted commands
+  numactl --physcpubind "$CORE_RANGE" parallel -a "$CSV_FILE" --skip-first-line --colsep "," --joblog "$parallel_log" --bar -j "$OMP_NUM_THREADS" '
+      # Set single thread execution
+      export OMP_NUM_THREADS=1
+
+      # Get csv field
+      conv_parameters={1}
+      # Add custom batch size
+      conv_parameters="$BATCH_SIZE $(echo "$conv_parameters" | cut -d " " -f2-)"
+
+      # Check correctness
+      if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
+        "$CORRECTNESS_EXECUTABLE" ${conv_parameters} | tail -n +2
+        if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+          echo "Error running with parameters: $conv_parameters" | tee -a "${OUTPUT_LOG}.err"
+        fi
+      else
+        # Recreate array from string
+        IFS=" " read -r -a EXES <<< "$EXECUTABLES_STR"
+
+        # Run each executable
+        for executable in $(shuf -e "${EXES[@]}"); do
+          "$executable" ${conv_parameters} 2> /dev/null | tail -n +2
+        done
+      fi
+      ' ::: $(seq 1 $REPEATS) >> "$OUTPUT_LOG"
+
+  exit 0
+fi
+
 # Set number of threads
 export OMP_NUM_THREADS
-
-echo -e "Running with $REPEATS repetitions and $OMP_NUM_THREADS threads, using cores $CORE_RANGE\n"
 
 total_iterations=$((REPEATS * ($(wc -l < "$CSV_FILE") - 1)))
 current_iteration=0
@@ -193,12 +238,7 @@ current_iteration=0
 # For each repetition
 for repeat in $(seq "$REPEATS"); do
   # For each configuration in the csv file
-  while IFS=',' read -r conv_parameters occurrences models; do
-    # Skip header
-    if [[ "$conv_parameters" == "conv_parameters" ]]; then
-      continue
-    fi
-
+  tail -n +2 "$CSV_FILE" | while IFS=',' read -r conv_parameters occurrences models; do
     # Show progress
     current_iteration=$((current_iteration + 1))
     show_progress "$current_iteration" "$total_iterations"
@@ -208,7 +248,7 @@ for repeat in $(seq "$REPEATS"); do
 
     # Check correctness
     if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
-      "$CORRECTNESS_EXECUTABLE" ${conv_parameters} 2>> "${OUTPUT_LOG}.err" | tail -n +2 >> "$OUTPUT_LOG"
+      "$CORRECTNESS_EXECUTABLE" ${conv_parameters} | tail -n +2 >> "$OUTPUT_LOG"
       if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         echo "Error running with parameters: $conv_parameters" | tee -a "${OUTPUT_LOG}.err"
       fi
@@ -220,6 +260,5 @@ for repeat in $(seq "$REPEATS"); do
       # Run executable in a random core
       numactl --physcpubind "$CORE_RANGE" "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
     done
-
-  done < "$CSV_FILE"
+  done
 done
