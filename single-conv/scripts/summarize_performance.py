@@ -85,7 +85,7 @@ def heuristic(speedup_results: pd.DataFrame):
     selection = speedup_results.query(
         # "`groups` == 1 and (`output channel` < `image channel` or `output height` == 1)"
         # "`groups` == 1 and (`output channel` < `image channel` or `output height` < `image channel`)"
-        "`groups` == 1 and ((`output channel` < `image channel` and `output height` < `image channel` and `output height` > 1) or (`output channel` >= `image channel` and `output height` == 1))"
+        "((`output channel` < `image channel` and `output height` < `image channel` and `output height` > 1) or (`output channel` >= `image channel` and `output height` == 1))"
     )
 
     # Remove extra columns
