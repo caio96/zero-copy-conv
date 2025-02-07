@@ -128,16 +128,17 @@ def run_model(
         model = torch.compile(model)
 
     num_threads = torch.get_num_threads()
-    # Warm up runs: for big models, the adaptive_autorange may not run enough warm up runs
-    for i in range(5):
-        model(input)
 
     t0 = benchmark.Timer(
         stmt="run_inference(model, input)",
         num_threads=num_threads,
         globals={"model": model, "input": input, "run_inference": run_inference},
     )
-    m0 = t0.adaptive_autorange(min_run_time=1, min_times=10, max_run_time=30)
+
+    # Warm up runs: for big models, the adaptive_autorange may not run enough warm up runs
+    t0.timeit(8)
+    # Actual runs
+    m0 = t0.blocked_autorange(min_run_time=5, min_number=10, min_times=5)
 
     if csv_output:
         if not method_name:
