@@ -238,7 +238,7 @@ current_iteration=0
 # For each repetition
 for repeat in $(seq "$REPEATS"); do
   # For each configuration in the csv file
-  tail -n +2 "$CSV_FILE" | while IFS=',' read -r conv_parameters occurrences models; do
+  while IFS=',' read -r conv_parameters occurrences models; do
     # Show progress
     current_iteration=$((current_iteration + 1))
     show_progress "$current_iteration" "$total_iterations"
@@ -260,5 +260,5 @@ for repeat in $(seq "$REPEATS"); do
       # Run executable in a random core
       numactl --physcpubind "$CORE_RANGE" "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
     done
-  done
+  done < <(tail -n +2 "$CSV_FILE")
 done
