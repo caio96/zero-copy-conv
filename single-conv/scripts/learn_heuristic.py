@@ -85,7 +85,7 @@ def get_data(df: pd.DataFrame):
 
 
 # Define a scaling function for weights
-def get_speedup_weights(y, speedup, occurrences):
+def get_speedup_weights(y, speedup, occurrences=None):
     df = pd.DataFrame()
     df["y"] = y
 
@@ -97,7 +97,9 @@ def get_speedup_weights(y, speedup, occurrences):
     speedup = (speedup - speedup.min()) / (speedup.max() - speedup.min())
 
     # Get weights
-    df["weight"] = speedup * occurrences
+    df["weight"] = speedup
+    if occurrences is not None:
+        df["weight"] = df["weight"] * occurrences
 
     # Separate weights by class
     weights_pos = df.loc[df["y"] == 1, "weight"]
@@ -153,13 +155,16 @@ def reduce_dimensionality(
     return X
 
 
-def separate_features(df: pd.DataFrame, speedup_threshold: float = 0.0):
+def separate_features(df: pd.DataFrame, speedup_threshold: float = 0.0, use_occurrences: bool=False):
 
     # Target column
     y = (df["speedup"] > speedup_threshold).astype(int)
 
     # Target weights
-    y_weights = get_speedup_weights(y, df["speedup"], df["occurrences"])
+    if use_occurrences:
+        y_weights = get_speedup_weights(y, df["speedup"], df["occurrences"])
+    else:
+        y_weights = get_speedup_weights(y, df["speedup"])
 
     # Remove columns not used as features
     df = df.drop(columns=["conv_parameters", "speedup", "occurrences"])
@@ -445,6 +450,11 @@ if __name__ == "__main__":
         type=str,
         help="Exports the decision tree to a file. Pass the output dir as argument.",
     )
+    parser.add_argument(
+        "--use-occurrences",
+        action="store_true",
+        help="Also use the number of occurrences of each convolution to weight the samples.",
+    )
 
     args = parser.parse_args()
     csv_input = Path(args.Speedup_CSV)
@@ -457,6 +467,7 @@ if __name__ == "__main__":
     search = args.search
     scoring = args.scoring
     plot_output_dir = args.plot_tree
+    use_occurrences = args.use_occurrences
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -485,7 +496,7 @@ if __name__ == "__main__":
     df = get_data(df)
 
     # Separate X, y, and weights
-    X, y, y_weights = separate_features(df, speedup_threshold)
+    X, y, y_weights = separate_features(df, speedup_threshold, use_occurrences)
     X = reduce_dimensionality(X, y, y_weights, max_leaf_nodes)
 
     if split_train_test:
