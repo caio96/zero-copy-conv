@@ -384,6 +384,8 @@ if __name__ == "__main__":
             "grouped",
             "dilated",
             "transposed",
+            "pixel-input",
+            "global",
         ],
         default=None,
     )
@@ -399,6 +401,8 @@ if __name__ == "__main__":
             "grouped",
             "dilated",
             "transposed",
+            "pixel-input",
+            "global",
         ],
     )
     parser.add_argument(

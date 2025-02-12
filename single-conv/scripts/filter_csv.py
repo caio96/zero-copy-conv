@@ -59,7 +59,7 @@ def include_only_in_df(df: pd.DataFrame, conv_type: list):
 
     if "pointwise" in conv_type:
         filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]]
+            [filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1) & (df["stride height"] == 1) & (df["stride width"] == 1) & (df["padding top"] == 0) & (df["padding bottom"] == 0) & (df["padding left"] == 0) & (df["padding right"] == 0)]]
         )
 
     if "grouped" in conv_type:
@@ -76,6 +76,12 @@ def include_only_in_df(df: pd.DataFrame, conv_type: list):
     if "depthwise" in conv_type:
         filtered_df = pd.concat([filtered_df, df.loc[(df["image channel"] == df["groups"])]])
 
+    if "pixel-input" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
+
+    if "global" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == df["filter height"]) & (df["image width"] == df["filter width"])]])
+
     # Drop duplicates to avoid duplicating rows if they match multiple types
     return filtered_df.drop_duplicates().reset_index(drop=True)
 
@@ -89,7 +95,7 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
         df = df.loc[(df["stride height"] == 1) & (df["stride width"] == 1)]
 
     if "pointwise" in conv_types:
-        df = df.loc[(df["filter height"] != 1) | (df["filter width"] != 1)]
+        df = df.loc[(df["filter height"] != 1) | (df["filter width"] != 1) | (df["stride height"] != 1) | (df["stride width"] != 1) | (df["padding top"] != 0) | (df["padding bottom"] != 0) | (df["padding left"] != 0) | (df["padding right"] != 0)]
 
     if "grouped" in conv_types:
         df = df.loc[df["groups"] == 1]
@@ -102,6 +108,12 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
 
     if "depthwise" in conv_types:
         df = df.loc[(df["image channel"] != df["groups"])]
+
+    if "pixel-input" in conv_types:
+        df = df.loc[(df["image height"] != 1) | (df["image width"] != 1)]
+
+    if "global" in conv_types:
+        df = df.loc[(df["image height"] != df["filter height"]) | (df["image width"] != df["filter width"])]
 
     return df.reset_index(drop=True)
 
@@ -124,6 +136,8 @@ if __name__ == "__main__":
             "grouped",
             "dilated",
             "transposed",
+            "pixel-input",
+            "global",
         ],
     )
     parser.add_argument(
@@ -138,6 +152,8 @@ if __name__ == "__main__":
             "grouped",
             "dilated",
             "transposed",
+            "pixel-input",
+            "global",
         ],
         default=None,
     )
