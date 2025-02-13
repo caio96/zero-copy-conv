@@ -567,6 +567,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Simulate a hardcoded heuristic defined in this script",
     )
+    parser.add_argument(
+        "--preset-comparisons",
+        action="store_true",
+        help="Use preset comparisons between methods to generate results.",
+    )
 
     args = parser.parse_args()
 
@@ -581,6 +586,7 @@ if __name__ == "__main__":
     clip_pos = args.clip_positive_outliers
     clip_neg = args.clip_negative_outliers
     use_heuristic = args.use_heuristic
+    preset_comparisons = args.preset_comparisons
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -657,7 +663,16 @@ if __name__ == "__main__":
                 df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
             )
     else:
-        for method1, method2 in itertools.combinations(methods, 2):
-            compare_methods(
-                df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
-            )
+        if preset_comparisons:
+            comparisons = [("Im2col", "ZeroCopy_jit"), ("Yaconv", "ZeroCopy_jit"), ("OneDNN_any", "ZeroCopy_jit"), ("LibTorch", "LibTorch_ZeroCopy2D_HWIO_TransformOutput")]
+            for method1, method2 in comparisons:
+                if method1 not in methods or method2 not in methods:
+                    continue
+                compare_methods(
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+                )
+        else:
+            for method1, method2 in itertools.combinations(methods, 2):
+                compare_methods(
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+                )
