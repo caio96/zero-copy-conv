@@ -191,7 +191,8 @@ def plot_speedup(
         clipped_neg_indices = neg_speedup[neg_speedup < neg_threshold].index.to_series()
         neg_speedup = np.clip(neg_speedup, neg_threshold, 0)
 
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots(figsize=(7.75, 4.8))
+    fig, ax = plt.subplots(figsize=(9.6, 4.8))
 
     # barplot
     ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
@@ -314,7 +315,7 @@ def plot_speedup(
     plt.savefig(
         output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.png",
         bbox_inches="tight",
-        dpi=300,
+        dpi=200,
     )
     plt.close()
 
