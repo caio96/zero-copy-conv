@@ -176,6 +176,7 @@ def plot_speedup(
     print(tabulate(df_stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
     if only_stats:
         return
+    df_stats.to_csv(output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}_stats.csv")
 
     # Clip positive outliers if enabled
     if clip_pos:
@@ -318,6 +319,45 @@ def plot_speedup(
     plt.close()
 
 
+def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_stats: bool=False):
+    categories = [
+            "strided",
+            "pointwise",
+            "depthwise",
+            "grouped",
+            "dilated",
+            "transposed",
+            "pixel-input",
+            "global",
+            "overlapped"
+    ]
+
+    speedup_results = split_parameters(speedup_results)
+    stats = {
+        "Category": [],
+        "Speedup": [],
+        "Slowdown": [],
+    }
+
+    # Remove rows where speedup or slowdown is less than 0.01
+    speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01]
+
+    for category in categories:
+        df = include_only_in_df(speedup_results, [category])
+        pos = df.loc[lambda x: x.speedup >= 0]
+        neg = df.loc[lambda x: x.speedup < 0]
+        stats["Category"].append(category)
+        stats["Speedup"].append(pos.shape[0])
+        stats["Slowdown"].append(neg.shape[0])
+
+    df_stats = pd.DataFrame(stats).fillna(0).set_index("Category")
+    print(tabulate(df_stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
+    if not only_stats:
+        df_stats.to_csv(
+            output_csv
+        )
+
+
 # Saves a csv with results and produces an speedup graph
 def compare_methods(
     joined_results: pd.DataFrame,
@@ -351,6 +391,8 @@ def compare_methods(
         speedup_results.to_csv(
             output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
+
+    speedup_per_category(speedup_results, output_dir/f"conv2d_{new_method_name}_vs_{old_method_name}_categories.csv", only_stats)
 
     plot_speedup(
         speedup_results,
