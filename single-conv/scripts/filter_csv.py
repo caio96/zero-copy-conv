@@ -82,6 +82,9 @@ def include_only_in_df(df: pd.DataFrame, conv_type: list):
     if "global" in conv_type:
         filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == df["filter height"]) & (df["image width"] == df["filter width"])]])
 
+    if "overlapped" in conv_type:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])]])
+
     # Drop duplicates to avoid duplicating rows if they match multiple types
     return filtered_df.drop_duplicates().reset_index(drop=True)
 
@@ -115,6 +118,9 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
     if "global" in conv_types:
         df = df.loc[(df["image height"] != df["filter height"]) | (df["image width"] != df["filter width"])]
 
+    if "overlapped" in conv_types:
+        df = df.loc[(df["filter height"] <= df["stride height"]) & (df["filter width"] <= df["stride width"])]
+
     return df.reset_index(drop=True)
 
 
@@ -138,6 +144,7 @@ if __name__ == "__main__":
             "transposed",
             "pixel-input",
             "global",
+            "overlapped"
         ],
     )
     parser.add_argument(
@@ -154,6 +161,7 @@ if __name__ == "__main__":
             "transposed",
             "pixel-input",
             "global",
+            "overlapped"
         ],
         default=None,
     )

@@ -474,6 +474,7 @@ if __name__ == "__main__":
             "transposed",
             "pixel-input",
             "global",
+            "overlapped"
         ],
         default=None,
     )
@@ -491,6 +492,7 @@ if __name__ == "__main__":
             "transposed",
             "pixel-input",
             "global",
+            "overlapped"
         ],
     )
     parser.add_argument(
