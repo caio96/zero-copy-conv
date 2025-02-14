@@ -12,6 +12,7 @@ import pandas as pd
 from filter_csv import exclude_from_df, include_only_in_df, split_parameters
 from tabulate import tabulate
 import scipy.stats as st
+from matplotlib.ticker import FuncFormatter
 
 
 def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, only_stats=False):
@@ -113,11 +114,13 @@ def get_speedup(
         if speedup_results.empty:
             return speedup_results
 
-    # Compute speedup
-    speedup_results["speedup"] = (
-        joined_results["mean_time_" + old_method_name]
-        - joined_results["mean_time_" + new_method_name]
-    ) / joined_results["mean_time_" + new_method_name]
+    # Compute speedup and slowdown -> results in asymmetric speedup and slowdown where 0 means no change
+    speedup = (joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name]) - 1
+    slowdown = (-1 * joined_results["mean_time_" + new_method_name] / joined_results["mean_time_" + old_method_name]) + 1
+    speedup_results["speedup"] = speedup.where(speedup >= 1, slowdown)
+
+    # Compute log2 speedup -> results in symmetric speedup and slowdown
+    speedup_results["log2_speedup"] = np.log2(joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name])
     speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
 
     return speedup_results
@@ -131,9 +134,10 @@ def plot_speedup(
     only_stats=False,
     clip_pos=False,
     clip_neg=False,
-    show_boxplot=True,
-    show_counts=True,
-    show_inflection=True,
+    plot_log2_speedup=False,
+    show_boxplot=False,
+    show_counts=False,
+    show_inflection=False,
 ):
 
     def weighted_median(df: pd.DataFrame):
@@ -150,12 +154,11 @@ def plot_speedup(
     speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01]
 
     speedup_results = speedup_results.reset_index(drop=True)
-    speedup = speedup_results["speedup"]
     num_points = speedup_results.shape[0]
 
     inflection = num_points
     for i in range(0, num_points - 1):
-        if speedup.iloc[i] > 0 and speedup.iloc[i + 1] < 0:
+        if speedup_results["speedup"].iloc[i] >= 0 and speedup_results["speedup"].iloc[i + 1] < 0:
             inflection = i + 0.5
 
     pos = speedup_results.loc[lambda x: x.speedup >= 0]
@@ -178,6 +181,10 @@ def plot_speedup(
         return
     df_stats.to_csv(output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}_stats.csv")
 
+    if plot_log2_speedup:
+        pos_speedup = pos["log2_speedup"]
+        neg_speedup = neg["log2_speedup"]
+
     # Clip positive outliers if enabled
     if clip_pos:
         pos_threshold = pos_speedup.quantile(0.99)
@@ -193,6 +200,13 @@ def plot_speedup(
 
     # fig, ax = plt.subplots(figsize=(7.75, 4.8))
     fig, ax = plt.subplots(figsize=(9.6, 4.8))
+
+    if plot_log2_speedup:
+        def power_of_two_formatter(x, pos):
+            return f"$2^{{{x:.0f}}}$"
+
+        # Apply the custom formatter to the y-axis
+        ax.yaxis.set_major_formatter(FuncFormatter(power_of_two_formatter))
 
     # barplot
     ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
@@ -210,28 +224,40 @@ def plot_speedup(
         cutoff_x_end = clipped_pos_indices.max() + 3 * mid_x_pos
         ax.hlines(pos_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
         # Annotate clipped value
+        text = ""
+        if plot_log2_speedup:
+            text = f"Max: $2^{{{max_pos:.0f}}}$"
+        else:
+            text = f"Max: {max_pos:.0f}"
         ax.text(
             mid_x_pos,
             pos_threshold,
-            f"{max_pos:.0f}",
-            ha="center",
+            text,
+            ha="left",
             va="bottom",
             fontsize=20,
             color="black",
         )
     # Add line showing that positive outliers clipped
-    if clip_neg:
+    if clip_neg and len(clipped_neg_indices) > 0:
         mid_x_neg = clipped_neg_indices.mean()
         cutoff_x_start = clipped_neg_indices.min() - 3 * mid_x_neg
         cutoff_x_end = clipped_neg_indices.max() + 3 * mid_x_neg
         ax.hlines(neg_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
         # Annotate clipped value
+        text = ""
+        if plot_log2_speedup:
+            text = f"Min: $2^{{{min_neg:.0f}}}$"
+        else:
+            text = f"Min: {min_neg:.0f}"
+        y_min, y_max = ax.get_ylim()
+        y_total = y_max - y_min
         ax.text(
             mid_x_neg,
-            neg_threshold,
-            f"{min_neg:.0f}",
-            ha="center",
-            va="bottom",
+            neg_threshold - y_total * 0.02,
+            text,
+            ha="right",
+            va="top",
             fontsize=20,
             color="black",
         )
@@ -255,13 +281,15 @@ def plot_speedup(
     frame.set_facecolor('white')
     frame.set_edgecolor('black')
 
-    ax.set_ylabel("Percentage Speedup")
-    ax.set_xlabel("Conv2D Layers")
+    if plot_log2_speedup:
+        ax.set_ylabel("$\log_2(\\text{Speedup})$")
+    else:
+        ax.set_ylabel("Relative Speedup/Slowdown")
+    ax.set_xlabel(f"Conv2D Layers ({num_points} total)")
     if show_inflection:
         ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
     else:
-        ax.set_xticks([0, num_points], [0, num_points])
-        ax.xaxis.set_label_coords(.5, -.05)
+        ax.set_xticks([])
 
     if show_counts:
         y_min, y_max = ax.get_ylim()
@@ -369,6 +397,7 @@ def compare_methods(
     clip_pos,
     clip_neg,
     use_heuristic,
+    plot_log2_speedup,
 ):
 
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
@@ -403,6 +432,7 @@ def compare_methods(
         only_stats,
         clip_pos,
         clip_neg,
+        plot_log2_speedup,
     )
 
 
@@ -573,6 +603,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Use preset comparisons between methods to generate results.",
     )
+    parser.add_argument(
+        "--plot-log2-speedup",
+        action="store_true",
+        help="Plot log2 of speedup in speedup graphs.",
+    )
 
     args = parser.parse_args()
 
@@ -588,6 +623,7 @@ if __name__ == "__main__":
     clip_neg = args.clip_negative_outliers
     use_heuristic = args.use_heuristic
     preset_comparisons = args.preset_comparisons
+    plot_log2_speedup = args.plot_log2_speedup
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -647,21 +683,21 @@ if __name__ == "__main__":
 
     if old_method and new_method:
         compare_methods(
-            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
         )
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
             compare_methods(
-                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
             )
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
             compare_methods(
-                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
             )
     else:
         if preset_comparisons:
@@ -670,10 +706,10 @@ if __name__ == "__main__":
                 if method1 not in methods or method2 not in methods:
                     continue
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
                 )
         else:
             for method1, method2 in itertools.combinations(methods, 2):
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
                 )
