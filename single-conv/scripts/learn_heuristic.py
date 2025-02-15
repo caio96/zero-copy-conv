@@ -167,7 +167,7 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float = 0.0, use_occu
         y_weights = get_speedup_weights(y, df["speedup"])
 
     # Remove columns not used as features
-    df = df.drop(columns=["conv_parameters", "speedup", "occurrences"])
+    df = df.drop(columns=["conv_parameters", "speedup", "occurrences", "log2_speedup"])
 
     # Remove columns with the same values
     df = remove_invariant_features(df)
