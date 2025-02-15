@@ -226,9 +226,9 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_log2_speedup:
-            text = f"Max: $2^{{{max_pos:.0f}}}$"
+            text = f"Max: $2^{{{max_pos:.1f}}}$"
         else:
-            text = f"Max: {max_pos:.0f}"
+            text = f"Max: {max_pos:.1f}"
         ax.text(
             mid_x_pos,
             pos_threshold,
@@ -247,9 +247,9 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_log2_speedup:
-            text = f"Min: $2^{{{min_neg:.0f}}}$"
+            text = f"Min: $2^{{{min_neg:.1f}}}$"
         else:
-            text = f"Min: {min_neg:.0f}"
+            text = f"Min: {min_neg:.1f}"
         y_min, y_max = ax.get_ylim()
         y_total = y_max - y_min
         ax.text(
