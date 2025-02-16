@@ -203,7 +203,9 @@ def plot_speedup(
 
     if plot_log2_speedup:
         def power_of_two_formatter(x, pos):
-            return f"$2^{{{x:.0f}}}$"
+            if x == 0:
+                return "1"
+            return f"$2^{{{x:.1g}}}$"
 
         # Apply the custom formatter to the y-axis
         ax.yaxis.set_major_formatter(FuncFormatter(power_of_two_formatter))
@@ -226,9 +228,9 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_log2_speedup:
-            text = f"Max: $2^{{{max_pos:.1f}}}$"
+            text = f"Max: $2^{{{max_pos:.1g}}}$"
         else:
-            text = f"Max: {max_pos:.1f}"
+            text = f"Max: {max_pos:.1g}"
         ax.text(
             mid_x_pos,
             pos_threshold,
@@ -247,9 +249,9 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_log2_speedup:
-            text = f"Min: $2^{{{min_neg:.1f}}}$"
+            text = f"Min: $2^{{{min_neg:.1g}}}$"
         else:
-            text = f"Min: {min_neg:.1f}"
+            text = f"Min: {min_neg:.1g}"
         y_min, y_max = ax.get_ylim()
         y_total = y_max - y_min
         ax.text(
