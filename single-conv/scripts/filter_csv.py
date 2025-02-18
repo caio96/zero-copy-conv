@@ -46,44 +46,86 @@ def remove_problem_parameters(df):
     return df.reset_index(drop=True)
 
 
-def include_only_in_df(df: pd.DataFrame, conv_type: list):
-    if not conv_type:
+def include_only_in_df(df: pd.DataFrame, conv_types: list):
+    if not conv_types:
         return df
 
     filtered_df = pd.DataFrame()
 
-    if "strided" in conv_type:
+    if "unit-stride" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["stride height"] == 1) & (df["stride width"] == 1)]]
+        )
+
+    if "strided" in conv_types:
         filtered_df = pd.concat(
             [filtered_df, df.loc[(df["stride height"] != 1) | (df["stride width"] != 1)]]
         )
 
-    if "pointwise" in conv_type:
+    if "not-padded" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["padding top"] == 0) & (df["padding bottom"] == 0) & (df["padding left"] == 0) & (df["padding right"] == 0)]]
+        )
+
+    if "padded" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["padding top"] != 0) | (df["padding bottom"] != 0) | (df["padding left"] != 0) | (df["padding right"] != 0)]]
+        )
+
+    if "pointwise" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1)]]
+        )
+
+    if "small-kernel" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["filter height"] > 1) & (df["filter width"] > 1) & (df["filter height"] <= 3) & (df["filter width"] <= 3)]]
+        )
+
+    if "large-kernel" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["filter height"] > 3) & (df["filter width"] > 3)]]
+        )
+
+    if "asymmetric-kernel" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["filter height"] != df["filter width"])]]
+        )
+
+    if "pixel-input" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
+
+    if "global" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == df["filter height"]) & (df["image width"] == df["filter width"])]])
+
+    if "direct-gemm" in conv_types:
         filtered_df = pd.concat(
             [filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1) & (df["stride height"] == 1) & (df["stride width"] == 1) & (df["padding top"] == 0) & (df["padding bottom"] == 0) & (df["padding left"] == 0) & (df["padding right"] == 0)]]
         )
 
-    if "grouped" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[df["groups"] != 1]])
+    if "overlapped" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])]])
 
-    if "dilated" in conv_type:
+    if "grouped" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["groups"] > 1) & (df["image channel"] != df["groups"])]]
+        )
+
+    if "depthwise" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["groups"] > 1) & (df["image channel"] == df["groups"])]])
+
+    if "dilated" in conv_types:
         filtered_df = pd.concat(
             [filtered_df, df.loc[(df["dilation height"] != 1) | (df["dilation width"] != 1)]]
         )
 
-    if "transposed" in conv_type:
+    if "not-dilated" in conv_types:
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["dilation height"] == 1) & (df["dilation width"] == 1)]]
+        )
+
+    if "transposed" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
-
-    if "depthwise" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["image channel"] == df["groups"])]])
-
-    if "pixel-input" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
-
-    if "global" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == df["filter height"]) & (df["image width"] == df["filter width"])]])
-
-    if "overlapped" in conv_type:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])]])
 
     # Drop duplicates to avoid duplicating rows if they match multiple types
     return filtered_df.drop_duplicates().reset_index(drop=True)
@@ -94,47 +136,30 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
     if not conv_types:
         return df
 
-    if "strided" in conv_types:
-        df = df.loc[(df["stride height"] == 1) & (df["stride width"] == 1)]
+    included_df = include_only_in_df(df, conv_types)
+    excluded_df = df.loc[~df['conv_parameters'].isin(included_df['conv_parameters'])]
+    return excluded_df.reset_index(drop=True)
 
-    if "pointwise" in conv_types:
-        df = df.loc[(df["filter height"] != 1) | (df["filter width"] != 1) | (df["stride height"] != 1) | (df["stride width"] != 1) | (df["padding top"] != 0) | (df["padding bottom"] != 0) | (df["padding left"] != 0) | (df["padding right"] != 0)]
-
-    if "grouped" in conv_types:
-        df = df.loc[df["groups"] == 1]
-
-    if "dilated" in conv_types:
-        df = df.loc[(df["dilation height"] == 1) & (df["dilation width"] == 1)]
-
-    if "transposed" in conv_types:
-        df = df.loc[df["is transposed"] == 0]
-
-    if "depthwise" in conv_types:
-        df = df.loc[(df["image channel"] != df["groups"])]
-
-    if "pixel-input" in conv_types:
-        df = df.loc[(df["image height"] != 1) | (df["image width"] != 1)]
-
-    if "global" in conv_types:
-        df = df.loc[(df["image height"] != df["filter height"]) | (df["image width"] != df["filter width"])]
-
-    if "overlapped" in conv_types:
-        df = df.loc[(df["filter height"] <= df["stride height"]) & (df["filter width"] <= df["stride width"])]
-
-    return df.reset_index(drop=True)
 
 def get_categories():
     return [
+            "unit-stride",
             "strided",
-            "direct-gemm",
+            "not-padded",
+            "padded",
             "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
+            "small-kernel",
+            "large-kernel",
+            "asymmetric-kernel",
             "pixel-input",
             "global",
-            "overlapped"
+            "direct-gemm",
+            "overlapped",
+            "grouped",
+            "depthwise",
+            "dilated",
+            "not-dilated",
+            "transposed",
         ]
 
 if __name__ == "__main__":
