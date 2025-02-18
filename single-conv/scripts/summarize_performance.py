@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import numpy as np
 import pandas as pd
-from filter_csv import exclude_from_df, include_only_in_df, split_parameters
+from filter_csv import exclude_from_df, include_only_in_df, split_parameters, get_categories
 from tabulate import tabulate
 import scipy.stats as st
 from matplotlib.ticker import FuncFormatter
@@ -351,18 +351,6 @@ def plot_speedup(
 
 
 def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_stats: bool=False):
-    categories = [
-            "strided",
-            "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
-            "pixel-input",
-            "global",
-            "overlapped"
-    ]
-
     speedup_results = split_parameters(speedup_results)
     stats = {
         "Category": [],
@@ -373,7 +361,7 @@ def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_s
     # Remove rows where speedup or slowdown is less than 0.01
     speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01]
 
-    for category in categories:
+    for category in get_categories():
         df = include_only_in_df(speedup_results, [category])
         pos = df.loc[lambda x: x.speedup >= 0]
         neg = df.loc[lambda x: x.speedup < 0]
@@ -540,17 +528,7 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         help="Only include the specified convolution types",
-        choices=[
-            "strided",
-            "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
-            "pixel-input",
-            "global",
-            "overlapped"
-        ],
+        choices=get_categories(),
         default=None,
     )
     parser.add_argument(
@@ -558,17 +536,7 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         help="List of convolution types to exclude",
-        choices=[
-            "strided",
-            "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
-            "pixel-input",
-            "global",
-            "overlapped"
-        ],
+        choices=get_categories(),
     )
     parser.add_argument(
         "--old-method",

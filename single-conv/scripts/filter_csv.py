@@ -123,6 +123,19 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
 
     return df.reset_index(drop=True)
 
+def get_categories():
+    return [
+            "strided",
+            "direct-gemm",
+            "pointwise",
+            "depthwise",
+            "grouped",
+            "dilated",
+            "transposed",
+            "pixel-input",
+            "global",
+            "overlapped"
+        ]
 
 if __name__ == "__main__":
 
@@ -135,35 +148,14 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         help="List of convolution types to exclude",
-        choices=[
-            "strided",
-            "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
-            "pixel-input",
-            "global",
-            "overlapped"
-        ],
+        choices=get_categories(),
     )
     parser.add_argument(
         "--include-only-conv-types",
         nargs="+",
         type=str,
         help="Only include the specified convolution types",
-        choices=[
-            "strided",
-            "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
-            "pixel-input",
-            "global",
-            "overlapped"
-        ],
-        default=None,
+        choices=get_categories(),
     )
 
     args = parser.parse_args()

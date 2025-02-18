@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from filter_csv import exclude_from_df, include_only_in_df, split_parameters
+from filter_csv import exclude_from_df, include_only_in_df, split_parameters, get_categories
 from joblib import parallel_backend
 from sklearn import set_config
 from sklearn.ensemble import ExtraTreesClassifier
@@ -382,35 +382,14 @@ if __name__ == "__main__":
         nargs="+",
         type=str,
         help="Only include the specified convolution types",
-        choices=[
-            "strided",
-            "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
-            "pixel-input",
-            "global",
-            "overlapped"
-        ],
-        default=None,
+        choices=get_categories(),
     )
     parser.add_argument(
         "--exclude-conv-types",
         nargs="+",
         type=str,
         help="List of convolution types to exclude",
-        choices=[
-            "strided",
-            "pointwise",
-            "depthwise",
-            "grouped",
-            "dilated",
-            "transposed",
-            "pixel-input",
-            "global",
-            "overlapped"
-        ],
+        choices=get_categories(),
     )
     parser.add_argument(
         "--speedup-threshold",
