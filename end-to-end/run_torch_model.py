@@ -208,8 +208,8 @@ if __name__ == "__main__":
         "--zc-weights-layout",
         type=str,
         default="HWIO",
-        choices=["HWIO", "IHWO"],
-        help="Weight layout for ZeroCopy2D. IHWO is the channel last layout. HWIO is the layout preferred by ZeroCopy2D."
+        choices=["HWIO", "OHWI"],
+        help="Weight layout for ZeroCopy2D. OHWI is the channel last layout. HWIO is the layout preferred by ZeroCopy2D."
         "If HWIO is chosen, weights are converted to HWIO for Conv2d layers that will call ZeroCopy2D before inference, otherwise they are kept in channel last layout."
         "Default: HWIO.",
     )
@@ -275,6 +275,7 @@ if __name__ == "__main__":
         os.environ["ZC_TIME"] = "FALSE"
 
     convert_weights_to_hwio = False
+    os.environ["ZC_WEIGHTS_LAYOUT"] = args.zc_weights_layout
     if args.zc_enable and args.zc_weights_layout == "HWIO":
         convert_weights_to_hwio = True
 

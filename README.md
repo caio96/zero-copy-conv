@@ -297,12 +297,11 @@ The execution of ZeroCopy2d in PyTorch is controlled by the following environmen
 - <code>ZC_TIME=[TRUE/**FALSE**]</code>: Prints the parameters and execution time of the convolution layers run in the model
 - <code>ZC_TRANSFORM_OUTPUT=[**TRUE**/FALSE]</code>: If set to FALSE, disables the transposition of `WH` to `HW` of the output.
     - Disabling the transformation is not supported and may generated incorrect results
-- <code>ZC_HEURISTIC=[**TRUE**/FALSE]</code>: If set to FALSE, the heuristic that decides whether to use ZeroCopy2d (and ZeroCopy2d_Ext) is ignored. Thus, ZeroCopy2d is always used (and ZeroCopy2d_Ext is never used).
-- <code>ZC_WEIGHTS_LAYOUT=[**HWIO**/OHWI]</code>: This variable does not affect PyTorch, but it maybe affect some scripts by changing layouts of the weights given to ZeroCopy2d (it only affects convolution layers that will execute using ZeroCopy2d)
+- <code>ZC_HEURISTIC=[**TRUE**/FALSE]</code>: If set to FALSE, the heuristic that decides whether to use ZeroCopy2d (and ZeroCopy2d_Ext) is ignored. Thus, ZeroCopy2d is always used.
+- <code>ZC_WEIGHTS_LAYOUT=[**HWIO**/OHWI]</code>: If set to HWIO, Pytorch only runs ZeroCopy2d if the weight layout is HWIO and scripts will change the weight layout to HWIO before running ZeroCopy2d.
 
-For end-to-end execution, the scripts control these variables automatically.
+For end-to-end execution, the following scripts control these variables automatically.
 Thus setting them before the end-to-end scripts has no effect.
-They do affect the execution of `LibTorch_ZeroCopy` in the single-conv experiments with the exception of `ZC_ENABLE`.
 
 ## Running Models
 
