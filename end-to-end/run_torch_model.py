@@ -161,14 +161,16 @@ def run_model(
 
 
 def get_all_models(source):
-    if source == "timm":
-        model_names = timm.list_models(pretrained=False)
-    elif source == "torch":
-        all_model_names = models.list_models()
-        exclude_models = models.list_models(module=models.video)
-        exclude_models += models.list_models(module=models.quantization)
-        exclude_models += models.list_models(module=models.optical_flow)
-        model_names = [model for model in all_model_names if model not in exclude_models]
+    all_torch_models = models.list_models()
+    exclude_models = models.list_models(module=models.video)
+    exclude_models += models.list_models(module=models.quantization)
+    exclude_models += models.list_models(module=models.optical_flow)
+    torch_models = [model for model in all_torch_models if model not in exclude_models]
+    if source == "torch":
+        model_names = torch_models
+    elif source == "timm":
+        all_timm_models = timm.list_models(pretrained=False)
+        model_names = [model for model in all_timm_models if model not in torch_models]
     else:
         model_names = []
         print("Unknown source", file=sys.stderr)
