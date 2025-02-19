@@ -52,6 +52,8 @@ def convert_conv2d_weights_to_HWIO_static(model):
                 module.in_channels,
                 module.out_channels,
                 module.weight,
+                module.stride,
+                (module._reversed_padding_repeated_twice[-1], module._reversed_padding_repeated_twice[-3]),
                 module.dilation,
                 module.groups,
                 module.transposed,
@@ -74,6 +76,8 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
         if torch._C._nn.will_use_zero_copy_conv2d_dynamic(
             inputs[0],
             module.weight,
+            module.stride,
+            (module._reversed_padding_repeated_twice[-1], module._reversed_padding_repeated_twice[-3]),
             module.dilation,
             module.groups,
             module.transposed,
