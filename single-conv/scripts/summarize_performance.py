@@ -84,9 +84,7 @@ def heuristic(speedup_results: pd.DataFrame):
 
     # Get convolutions selected by heuristic
     selection = speedup_results.query(
-        # "`groups` == 1 and (`output channel` < `image channel` or `output height` == 1)"
-        # "`groups` == 1 and (`output channel` < `image channel` or `output height` < `image channel`)"
-        "((`output channel` < `image channel` and `output height` < `image channel` and `output height` > 1) or (`output channel` >= `image channel` and `output height` == 1))"
+        "(`groups` == 1 and `output height` < `dim k` and `output height` != 1 and `output channel` < `dim k`)"
     )
 
     # Remove extra columns
