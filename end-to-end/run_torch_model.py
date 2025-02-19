@@ -258,7 +258,7 @@ if __name__ == "__main__":
         if source == "torch":
             args.model_name = "squeezenet1_1"
         elif source == "timm":
-            args.model_name = "mobilenetv3_small_100.lamb_in1k"
+            args.model_name = "mobilenetv3_small_100"
 
     if args.model_name not in model_names:
         print(f"Model {args.model_name} not found.", file=sys.stderr)
