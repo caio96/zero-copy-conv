@@ -15,7 +15,7 @@ import torch.utils.benchmark as benchmark
 import torchvision.models as models
 
 
-def get_model_and_input(model_name, source):
+def get_model_and_input(model_name, source, batch_size=1):
     if source == "torch":
         # Get model and weights
         weights = models.get_model_weights(model_name).DEFAULT
@@ -25,12 +25,12 @@ def get_model_and_input(model_name, source):
         preprocess = weights.transforms()
         input = preprocess(dummy_input)
         # Add batch dimension
-        input = input.unsqueeze(0)
+        input = input.unsqueeze(0).repeat(batch_size, 1, 1, 1)
     elif source == "timm":
         # Get model
         model = timm.create_model(model_name)
         # Get input
-        input_shape = (1, *model.default_cfg["input_size"])
+        input_shape = (batch_size, *model.default_cfg["input_size"])
         input = torch.randn(input_shape)
     else:
         print("Unknown source", file=sys.stderr)
@@ -108,14 +108,14 @@ def run_model(
     source,
     model_name,
     compile=False,
-    batch=1,
+    batch_size=1,
     convert_weights_to_hwio=False,
     csv_output=None,
     method_name=None,
     warmup=5,
     runs=50,
 ):
-    model, input_tensor = get_model_and_input(model_name, source)
+    model, input_tensor = get_model_and_input(model_name, source, batch_size)
 
     # Set the model to evaluation mode
     model.eval()
