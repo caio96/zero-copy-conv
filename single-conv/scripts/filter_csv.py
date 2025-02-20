@@ -183,15 +183,6 @@ def get_categories():
         ]
 
 
-def print_models(df: pd.DataFrame):
-    models = set()
-    for model in df["models"]:
-        models.update(model.split(" "))
-
-    for model in models:
-        print(model)
-
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Filter the csv with convolution layers.")
@@ -212,11 +203,6 @@ if __name__ == "__main__":
         help="Only include the specified convolution types",
         choices=get_categories(),
     )
-    parser.add_argument(
-        "--get-models",
-        action="store_true",
-        help="Print models that contain the specified convolution types",
-    )
 
     args = parser.parse_args()
 
@@ -224,7 +210,6 @@ if __name__ == "__main__":
     output_csv = Path(args.Output_CSV)
     exclude_conv_types = args.exclude_conv_types
     include_only_conv_types = args.include_only_conv_types
-    get_models = args.get_models
 
     # Check if input file exists
     if (not input_csv.exists()) or (not input_csv.is_file()):
@@ -249,10 +234,6 @@ if __name__ == "__main__":
 
     # Remove extra columns from split
     df = df.iloc[:, :num_columns]
-
-    if get_models:
-        print_models(df)
-        sys.exit(0)
 
     # Remove name of models column
     if "models" in df.columns:
