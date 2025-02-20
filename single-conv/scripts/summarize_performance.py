@@ -337,6 +337,8 @@ def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_s
 
     for category in get_categories():
         df = include_only_in_df(speedup_results, [category])
+        if df.empty:
+            continue
         pos = df.loc[lambda x: x.speedup >= 0]
         neg = df.loc[lambda x: x.speedup < 0]
         stats["Category"].append(category)
