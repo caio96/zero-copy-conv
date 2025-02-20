@@ -73,27 +73,8 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
     return joined_results
 
 
-# Define the heuristic here
-def heuristic(speedup_results: pd.DataFrame):
-    num_columns = len(speedup_results.columns)
-
-    # Get all features used by heuristic from conv parameters
-    from learn_heuristic import get_data  # Here to avoid circular import
-
-    speedup_results = get_data(speedup_results)
-
-    # Get convolutions selected by heuristic
-    selection = speedup_results.query(
-        "(`groups` == 1 and `output height` < `dim k` and `output height` != 1 and `output channel` < `dim k`)"
-    )
-
-    # Remove extra columns
-    selection = selection.iloc[:, :num_columns]
-    return selection
-
-
 def get_speedup(
-    joined_results: pd.DataFrame, old_method_name, new_method_name, use_heuristic=False
+    joined_results: pd.DataFrame, old_method_name, new_method_name
 ):
 
     # Remove rows where an error occurred in either method
@@ -106,11 +87,6 @@ def get_speedup(
     speedup_results["conv_parameters"] = joined_results["conv_parameters"]
     speedup_results["occurrences"] = joined_results["occurrences"]
     speedup_results["speedup"] = None
-
-    if use_heuristic:
-        speedup_results = heuristic(speedup_results)
-        if speedup_results.empty:
-            return speedup_results
 
     # Compute speedup and slowdown -> results in asymmetric speedup and slowdown where 0 means no change
     speedup = (joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name]) - 1
@@ -282,7 +258,7 @@ def plot_speedup(
     frame.set_edgecolor('black')
 
     if plot_log2_speedup:
-        ax.set_ylabel("$\log_2(\\text{Speedup})$")
+        ax.set_ylabel("Speedup")
     else:
         ax.set_ylabel("Relative Speedup/Slowdown")
     ax.set_xlabel(f"Conv2D Layers ({num_points} total)")
@@ -357,7 +333,7 @@ def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_s
     }
 
     # Remove rows where speedup or slowdown is less than 0.01
-    speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01]
+    speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01].copy()
 
     for category in get_categories():
         df = include_only_in_df(speedup_results, [category])
@@ -384,21 +360,10 @@ def compare_methods(
     only_stats,
     clip_pos,
     clip_neg,
-    use_heuristic,
     plot_log2_speedup,
 ):
 
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
-
-    if use_heuristic:
-        # Only print original results if heuristic is used
-        plot_speedup(
-            speedup_results, old_method_name, new_method_name, output_dir, True, clip_pos, clip_neg
-        )
-        speedup_results = get_speedup(
-            joined_results, old_method_name, new_method_name, use_heuristic
-        )
-        new_method_name = f"Heuristic_{new_method_name}"
 
     if not only_stats:
         # Add graph with execution times for comparison
@@ -562,11 +527,6 @@ if __name__ == "__main__":
         help="Clip negative outliers in the speedup graph",
     )
     parser.add_argument(
-        "--use-heuristic",
-        action="store_true",
-        help="Simulate a hardcoded heuristic defined in this script",
-    )
-    parser.add_argument(
         "--preset-comparisons",
         action="store_true",
         help="Use preset comparisons between methods to generate results.",
@@ -589,7 +549,6 @@ if __name__ == "__main__":
     only_stats = args.only_stats
     clip_pos = args.clip_positive_outliers
     clip_neg = args.clip_negative_outliers
-    use_heuristic = args.use_heuristic
     preset_comparisons = args.preset_comparisons
     plot_log2_speedup = args.plot_log2_speedup
 
@@ -651,21 +610,21 @@ if __name__ == "__main__":
 
     if old_method and new_method:
         compare_methods(
-            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
+            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
         )
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
             compare_methods(
-                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
+                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
             )
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
             compare_methods(
-                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
+                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
             )
     else:
         if preset_comparisons:
@@ -674,10 +633,10 @@ if __name__ == "__main__":
                 if method1 not in methods or method2 not in methods:
                     continue
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
                 )
         else:
             for method1, method2 in itertools.combinations(methods, 2):
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, use_heuristic, plot_log2_speedup
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
                 )
