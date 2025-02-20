@@ -3,6 +3,12 @@ import argparse
 import os
 import sys
 import timm
+import time
+import random
+import numpy as np
+from tabulate import tabulate
+import csv
+from pathlib import Path
 
 import torch
 import torch.utils.benchmark as benchmark
@@ -29,14 +35,6 @@ def get_model_and_input(model_name, source):
     else:
         print("Unknown source", file=sys.stderr)
         sys.exit(1)
-
-    # Set the model to evaluation mode
-    model.eval()
-    # Convert model and input to channel last memory format
-    model = model.to(device="cpu", memory_format=torch.channels_last)
-    input = input.to(
-        device="cpu", memory_format=torch.channels_last
-    )
 
     return model, input
 
@@ -113,51 +111,69 @@ def run_model(
     batch=1,
     convert_weights_to_hwio=False,
     csv_output=None,
-    csv_header=False,
     method_name=None,
+    warmup=5,
+    runs=50,
 ):
+    model, input_tensor = get_model_and_input(model_name, source)
 
-    def run_inference(model, input):
-        with torch.no_grad():  # Disable gradient calculation
-            return model(input)
+    # Set the model to evaluation mode
+    model.eval()
 
-    model, input = get_model_and_input(model_name, source)
+    # Convert model and input to channel last memory format
+    model = model.to(device="cpu", memory_format=torch.channels_last)
+    input_tensor = input_tensor.to(
+        device="cpu", memory_format=torch.channels_last
+    )
 
     if convert_weights_to_hwio:
         # Heuristic changes slightly for the static version
         # model = convert_conv2d_weights_to_HWIO_static(model)
-        model = convert_conv2d_weights_to_HWIO_dynamic(model, input)
+        model = convert_conv2d_weights_to_HWIO_dynamic(model, input_tensor)
 
     if compile:
         model = torch.compile(model)
 
-    num_threads = torch.get_num_threads()
+    # Warm-up
+    with torch.no_grad():
+        for _ in range(warmup):
+            model(input_tensor)
 
-    t0 = benchmark.Timer(
-        stmt="run_inference(model, input)",
-        num_threads=num_threads,
-        globals={"model": model, "input": input, "run_inference": run_inference},
-    )
-
-    # Warm up runs: for big models, the adaptive_autorange may not run enough warm up runs
-    t0.timeit(8)
-    # Actual runs
-    m0 = t0.blocked_autorange(min_run_time=5, min_number=10, min_times=5)
+    # Timing
+    times = []
+    with torch.no_grad():
+        for _ in range(runs):
+            start_time = time.perf_counter()
+            model(input_tensor)
+            end_time = time.perf_counter()
+            times.append(end_time - start_time)
 
     if csv_output:
+        csv_output = Path(csv_output)
         if not method_name:
             print("Method name is required for csv output", file=sys.stderr)
             sys.exit(1)
 
-        with open(csv_output, "a") as f:
-            if csv_header:
-                f.write("Method,Model,Mean,Median,IQR,Unit,Runs,Threads\n")
-            f.write(
-                f"{method_name},{model_name},{m0.mean*1000},{m0.median*1000},{m0.iqr*1000},ms,{len(m0.times)},{num_threads}\n"
-            )
+        csv_exists = csv_output.exists()
+        with open(csv_output, "a", newline="") as f:
+            writer = csv.writer(f)
+            # Write header if file is new
+            if not csv_exists:
+                writer.writerow(["Model", "Method Name", "Time", "Unit"])
+            for t in times:
+                writer.writerow([model_name, method_name, t, "s"])
     else:
-        print("Model: ", model_name)
-        print(m0)
+        # Calculate statistics
+        median_time = np.median(times)
+        iqr = np.percentile(times, 75) - np.percentile(times, 25)
+        stats = {
+            "Model": [model_name],
+            "Median": [median_time * 1000],
+            "IQR": [iqr * 1000],
+            "Unit": ["ms"],
+            "Runs": [runs],
+        }
+        print(tabulate(stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
 
 
 def get_all_models(source, filter_models=None):
@@ -292,5 +308,10 @@ if __name__ == "__main__":
         os.environ["ZC_HEURISTIC"] = "FALSE"
     else:
         os.environ["ZC_HEURISTIC"] = "TRUE"
+
+    # Avoid variability in performance measurements due to random choices
+    torch.manual_seed(0)
+    random.seed(0)
+    np.random.seed(0)
 
     run_model(source, args.model_name, args.compile, args.batch_size, convert_weights_to_hwio)

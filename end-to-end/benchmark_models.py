@@ -8,24 +8,24 @@ from run_torch_model import get_all_models, run_model
 from tqdm import tqdm
 
 
-def run_model_zc_heuristic(source, model_name, batch_size, output_csv, csv_header):
+def run_model_zc_heuristic(source, model_name, batch_size, output_csv):
     os.environ["ZC_ENABLE"] = "TRUE"
     os.environ["ZC_TIME"] = "FALSE"
     os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
     os.environ["ZC_HEURISTIC"] = "TRUE"
     os.environ["ZC_WEIGHTS_LAYOUT"] = "HWIO"
     try:
-        run_model(source, model_name, compile, batch_size, True, output_csv, csv_header, "ZeroCopy2d_Heuristic")
+        run_model(source, model_name, batch_size=batch_size, compile=False, convert_weights_to_hwio=True, csv_output=output_csv, method_name="ZeroCopy2d_Heuristic")
     except RuntimeError as e:
         with open(f"{output_csv}.err", "a") as f:
             f.write(f"Error running {model_name}, with ZeroCopy2d_Heuristic, {e}\n")
 
 
-def run_model_torch(source, model_name, batch_size, output_csv, csv_header):
+def run_model_torch(source, model_name, batch_size, output_csv):
     os.environ["ZC_ENABLE"] = "FALSE"
     os.environ["ZC_TIME"] = "FALSE"
     try:
-        run_model(source, model_name, compile, batch_size, False, output_csv, csv_header, "Torch")
+        run_model(source, model_name, batch_size=batch_size, compile=False, convert_weights_to_hwio=False, csv_output=output_csv, method_name="Torch")
     except RuntimeError as e:
         with open(f"{output_csv}.err", "a") as f:
             f.write(f"Error running {model_name}, with Torch, {e}\n")
@@ -56,6 +56,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--append-output",
+        action="store_true",
+        help="Allow output to be appended to existing file.",
+    )
+
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=1,
@@ -80,8 +86,9 @@ if __name__ == "__main__":
     output_csv = Path(args.Output_CSV)
     repeats = args.repeats
     filter_file = args.filter_models
+    append_output = args.append_output
 
-    if output_csv.exists():
+    if not append_output and output_csv.exists():
         print(f"Output CSV {output_csv} already exists.", file=sys.stderr)
         sys.exit(1)
 
@@ -102,14 +109,11 @@ if __name__ == "__main__":
 
     methods = [run_model_zc_heuristic, run_model_torch]
 
-    first = True
     total_iterations = repeats * len(models) * len(methods)
 
     with tqdm(total=total_iterations) as pbar:
         for repeat in range(repeats):
             for model_name in models:
                 for method in methods:
-                    method(source, model_name, args.batch_size, output_csv, first)
-                    if first:
-                        first = False
+                    method(source, model_name, args.batch_size, output_csv)
                     pbar.update(1)
