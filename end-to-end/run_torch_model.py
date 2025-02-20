@@ -160,7 +160,7 @@ def run_model(
         print(m0)
 
 
-def get_all_models(source):
+def get_all_models(source, filter_models=None):
     all_torch_models = models.list_models()
     exclude_models = models.list_models(module=models.video)
     exclude_models += models.list_models(module=models.quantization)
@@ -174,6 +174,10 @@ def get_all_models(source):
     else:
         model_names = []
         print("Unknown source", file=sys.stderr)
+
+    if filter_models:
+        model_names = [model for model in model_names if model in filter_models]
+
     return model_names
 
 
