@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 
 def split_parameters(df):
@@ -127,6 +128,23 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
     if "transposed" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
 
+    if "singlethread-heuristic" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
+
+    if "multithread-heuristic" in conv_types:
+        df["output height"] = np.floor(
+            (
+                df["image height"]
+                + df["padding top"] + df["padding bottom"]
+                - df["dilation height"] * (df["filter height"] - 1)
+                - 1
+            )
+            / df["stride height"]
+            + 1
+        )
+        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
+        filtered_df = pd.concat([filtered_df, df.loc[(df["groups"] == 1) & (df["output height"] < df["dim k"]) & (df["output height"] != 1) & (df["output channel"] < df["dim k"])]])
+
     # Drop duplicates to avoid duplicating rows if they match multiple types
     return filtered_df.drop_duplicates().reset_index(drop=True)
 
@@ -160,7 +178,19 @@ def get_categories():
             "dilated",
             "not-dilated",
             "transposed",
+            "multithread-heuristic",
+            "singlethread-heuristic",
         ]
+
+
+def print_models(df: pd.DataFrame):
+    models = set()
+    for model in df["models"]:
+        models.update(model.split(" "))
+
+    for model in models:
+        print(model)
+
 
 if __name__ == "__main__":
 
@@ -182,6 +212,11 @@ if __name__ == "__main__":
         help="Only include the specified convolution types",
         choices=get_categories(),
     )
+    parser.add_argument(
+        "--get-models",
+        action="store_true",
+        help="Print models that contain the specified convolution types",
+    )
 
     args = parser.parse_args()
 
@@ -189,6 +224,7 @@ if __name__ == "__main__":
     output_csv = Path(args.Output_CSV)
     exclude_conv_types = args.exclude_conv_types
     include_only_conv_types = args.include_only_conv_types
+    get_models = args.get_models
 
     # Check if input file exists
     if (not input_csv.exists()) or (not input_csv.is_file()):
@@ -198,11 +234,6 @@ if __name__ == "__main__":
     # Load input
     df = pd.read_csv(input_csv, header=0)
     num_columns = len(df.columns)
-
-    # Remove name of models column
-    if "models" in df.columns:
-        df = df.drop(columns=["models"])
-        num_columns -= 1
 
     # Split conv_parameters column
     df = split_parameters(df)
@@ -218,6 +249,15 @@ if __name__ == "__main__":
 
     # Remove extra columns from split
     df = df.iloc[:, :num_columns]
+
+    if get_models:
+        print_models(df)
+        sys.exit(0)
+
+    # Remove name of models column
+    if "models" in df.columns:
+        df = df.drop(columns=["models"])
+        num_columns -= 1
 
     # Make sure there are no duplicates
     df = (
