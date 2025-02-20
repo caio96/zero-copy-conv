@@ -260,7 +260,7 @@ def plot_speedup(
     if plot_log2_speedup:
         ax.set_ylabel("Speedup")
     else:
-        ax.set_ylabel("Relative Speedup/Slowdown")
+        ax.set_ylabel("Relative Speedup")
     ax.set_xlabel(f"Conv2D Layers ({num_points} total)")
     if show_inflection:
         ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
