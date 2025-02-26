@@ -109,7 +109,7 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
 
     if "grouped" in conv_types:
         filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["groups"] > 1) & (df["image channel"] != df["groups"])]]
+            [filtered_df, df.loc[(df["groups"] > 1)]]
         )
 
     if "depthwise" in conv_types:
@@ -128,10 +128,10 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
     if "transposed" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
 
-    if "singlethread-heuristic" in conv_types:
+    if "torch-singlethread-heuristic" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
 
-    if "multithread-heuristic" in conv_types:
+    if "torch-multithread-heuristic" in conv_types:
         df["output height"] = np.floor(
             (
                 df["image height"]
@@ -144,6 +144,9 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
         )
         df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
         filtered_df = pd.concat([filtered_df, df.loc[(df["groups"] == 1) & (df["output height"] < df["dim k"]) & (df["output height"] != 1) & (df["output channel"] < df["dim k"])]])
+
+    if "onednn-heuristic" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[((df["image height"] == 1) & (df["image width"] == 1)) | ((df["groups"] == 1) & ((df["filter height"] != 1) | (df["filter width"] != 1)))]])
 
     # Drop duplicates to avoid duplicating rows if they match multiple types
     return filtered_df.drop_duplicates().reset_index(drop=True)
@@ -178,8 +181,9 @@ def get_categories():
             "dilated",
             "not-dilated",
             "transposed",
-            "multithread-heuristic",
-            "singlethread-heuristic",
+            "torch-multithread-heuristic",
+            "torch-singlethread-heuristic",
+            "onednn-heuristic",
         ]
 
 
