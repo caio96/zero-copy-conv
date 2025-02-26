@@ -32,6 +32,7 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
             group.groupby(by="conv_parameters", as_index=False)
             .agg(
                 total_iterations=("iterations", "sum"),
+                repeats=("real_time", "count"),
                 mean_time=("real_time", "mean"),
                 std_time=("real_time", "std"),
                 time_unit=("time_unit", "first"),
@@ -43,6 +44,16 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
 
     # Join results by 'conv_parameters'
     method_names = list(df_dict.keys())
+    # Add the 95% confidence interval
+    for method_name in method_names:
+        means = df_dict[method_name]["mean_time"]
+        stds = df_dict[method_name]["std_time"]
+        repeats = df_dict[method_name]["repeats"]
+
+        conf_low, conf_high = st.norm.interval(confidence=0.95, loc=means, scale=stds/np.sqrt(repeats))
+        conf = (conf_high - conf_low) / 2
+        df_dict[method_name][f"95_confidence"] = conf
+        df_dict[method_name][f"confident"] = conf < (0.01 * means)
 
     if len(method_names) == 1:
         print("Only one method found. No comparison possible.", file=sys.stderr)
@@ -64,11 +75,18 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
             suffixes=(None, None),
         ).drop(columns=["conv_parameters_" + method_name])
 
+    # Add overall confident column
+    joined_results[f"overall_confident"] = True
+    for method_name in method_names:
+        joined_results[f"overall_confident"] = joined_results[f"overall_confident"] & joined_results[f"confident_{method_name}"]
+
     # Add occurrences column
     joined_results = joined_results.merge(occurrences_df, how="left", on="conv_parameters")
 
     if not only_stats:
         joined_results.to_csv(output_dir / "performance-results.csv", index=False)
+        non_confident_convs = joined_results.loc[joined_results["overall_confident"] == False]["conv_parameters"]
+        non_confident_convs.to_csv(output_dir / "non-confident-convs.csv", index=False)
 
     return joined_results
 
@@ -434,16 +452,9 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
             continue
         label_name = name_translation[method] if method in name_translation else method
         method_means = df[f"mean_time_{method}"]
-        method_iterations = df[f"total_iterations_{method}"]
+        method_conf = df[f"95_confidence_{method}"]
 
-        # Note that std deviation only sees the means from repeated runs, not the individual runs
-        method_std = df[f"std_time_{method}"]
-
-        # Calculate the 95% confidence interval
-        conf_low, conf_high = st.norm.interval(confidence=0.95, loc=method_means, scale=method_std/np.sqrt(method_iterations))
-        conf = (conf_high - conf_low) / 2
-
-        ax.errorbar(range(df.shape[0]), method_means, yerr=conf, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
+        ax.errorbar(range(df.shape[0]), method_means, yerr=method_conf, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
 
     legend = plt.legend(frameon=True, framealpha=1, markerscale=3)
     frame = legend.get_frame()
