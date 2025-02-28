@@ -146,7 +146,22 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
         filtered_df = pd.concat([filtered_df, df.loc[(df["groups"] == 1) & (df["output height"] < df["dim k"]) & (df["output height"] != 1) & (df["output channel"] < df["dim k"])]])
 
     if "onednn-heuristic" in conv_types:
-        filtered_df = pd.concat([filtered_df, df.loc[((df["image height"] == 1) & (df["image width"] == 1)) | ((df["groups"] == 1) & ((df["filter height"] != 1) | (df["filter width"] != 1)))]])
+        df["output height"] = np.floor(
+            (
+                df["image height"]
+                + df["padding top"] + df["padding bottom"]
+                - df["dilation height"] * (df["filter height"] - 1)
+                - 1
+            )
+            / df["stride height"]
+            + 1
+        )
+        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
+        filtered_df = pd.concat([filtered_df, df.loc[
+                                 (df["groups"] == 1) &
+                                 (((df["image height"] == 1) & (df["image width"] == 1)) |
+                                 (((df["filter height"] != 1) & (df["filter width"] != 1)) & (df["output height"] < df["dim k"]) & (df["output channel"] < df["dim k"])))
+                                 ]])
 
     # Drop duplicates to avoid duplicating rows if they match multiple types
     return filtered_df.drop_duplicates().reset_index(drop=True)
