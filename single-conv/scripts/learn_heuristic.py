@@ -158,7 +158,7 @@ def reduce_dimensionality(
     return X
 
 
-def separate_features(df: pd.DataFrame, speedup_threshold: float, use_speedup: bool, use_occurrences: bool, use_log2: bool):
+def separate_features(df: pd.DataFrame, speedup_threshold: float, use_speedup: str, use_occurrences: bool):
 
     # Target column
     y = (df["speedup"] > speedup_threshold).astype(int)
@@ -166,21 +166,23 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float, use_speedup: b
     # Target weights
     speedup = None
     occurrences = None
-    if use_speedup:
-        if use_log2:
-            speedup = df["log2_speedup"]
-        else:
-            speedup = df["speedup"]
+    if use_speedup == "log2-speedup":
+        speedup = df["log2_speedup"]
+    elif use_speedup == "speedup":
+        speedup = df["speedup"]
+    elif use_speedup == "time-diff":
+        speedup = df["time_diff"]
+
     if use_occurrences:
-        if use_log2:
-            occurrences = np.log2(df["occurrences"])+1
+        if use_speedup == "log2-speedup":
+            occurrences = 1 + np.log2(df["occurrences"])
         else:
             occurrences = df["occurrences"]
 
     y_weights = get_speedup_weights(y, speedup, occurrences)
 
     # Remove columns not used as features
-    df = df.drop(columns=["conv_parameters", "speedup", "occurrences", "log2_speedup"])
+    df = df.drop(columns=["conv_parameters", "speedup", "occurrences", "log2_speedup", "time_diff"])
 
     # Remove columns with the same values
     df = remove_invariant_features(df)
@@ -407,18 +409,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--use-speedup",
-        action="store_true",
-        help="Use the speedup of each convolution to weight the samples. Can be combined with --use-occurrences.",
+        type=str,
+        choices=["speedup", "log2-speedup", "time-diff"],
+        default="log2-speedup",
+        help="Use the speedup of each convolution to weight the samples. Speedup uses the relative speedup and slowdown, log2-speedup uses the log2 of the speedup, and time-diff uses the absolute difference in execution time. Can be combined with --use-occurrences. Default is log2-speedup.",
     )
     parser.add_argument(
         "--use-occurrences",
         action="store_true",
         help="Use the number of occurrences of each convolution to weight the samples. Can be combined with --use-speedup.",
-    )
-    parser.add_argument(
-        "--use-log2",
-        action="store_true",
-        help="Use the log2 to scale weights.",
     )
 
     args = parser.parse_args()
@@ -431,7 +430,6 @@ if __name__ == "__main__":
     scoring = args.scoring
     use_speedup = args.use_speedup
     use_occurrences = args.use_occurrences
-    use_log2_weights = args.use_log2
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -458,7 +456,7 @@ if __name__ == "__main__":
     df = get_data(df)
 
     # Separate X, y, and weights
-    X, y, y_weights = separate_features(df, speedup_threshold, use_speedup, use_occurrences, use_log2_weights)
+    X, y, y_weights = separate_features(df, speedup_threshold, use_speedup, use_occurrences)
     X = reduce_dimensionality(X, y, y_weights)
 
     if split_train_test:
@@ -482,13 +480,13 @@ if __name__ == "__main__":
     if not split_train_test:
         speedup_results = df[["conv_parameters", "occurrences", "speedup"]]
         print("\nOriginal speedup results:")
-        plot_speedup(speedup_results, "old", "new", None, True)
+        plot_speedup(speedup_results, "old", "new", None, "speedup", True)
 
         df["prediction"] = y_pred
         df = df.loc[df["prediction"] == 1]
         speedup_results = df[["conv_parameters", "occurrences", "speedup"]]
         print("\nHeuristic speedup results:")
-        plot_speedup(speedup_results, "old", "new", None, True)
+        plot_speedup(speedup_results, "old", "new", None, "speedup", True)
 
     prune_duplicate_leaves(model)
 
