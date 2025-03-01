@@ -366,10 +366,15 @@ def plot_speedup(
 
 def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_stats: bool=False):
     speedup_results = split_parameters(speedup_results)
+    unit = speedup_results["time_unit"].iloc[0]
     stats = {
         "Category": [],
-        "Speedup": [],
-        "Slowdown": [],
+        "Speedup Count": [],
+        "Slowdown Count": [],
+        "Count Ratio": [],
+        f"Speedup Time ({unit})": [],
+        f"Slowdown Time ({unit})": [],
+        "Time Ratio": [],
     }
 
     # Remove rows where speedup or slowdown is less than 0.01
@@ -382,8 +387,12 @@ def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_s
         pos = df.loc[lambda x: x.speedup >= 0]
         neg = df.loc[lambda x: x.speedup < 0]
         stats["Category"].append(category)
-        stats["Speedup"].append(pos.shape[0])
-        stats["Slowdown"].append(neg.shape[0])
+        stats["Speedup Count"].append(pos.shape[0])
+        stats["Slowdown Count"].append(neg.shape[0])
+        stats["Count Ratio"].append(pos.shape[0] / neg.shape[0] if neg.shape[0] != 0 else 0)
+        stats[f"Speedup Time ({unit})"].append(pos["time_diff"].sum())
+        stats[f"Slowdown Time ({unit})"].append(neg["time_diff"].sum())
+        stats["Time Ratio"].append(pos["time_diff"].sum() / neg["time_diff"].sum() * -1 if neg["time_diff"].sum() != 0 else 0)
 
     df_stats = pd.DataFrame(stats).fillna(0).set_index("Category")
     print(tabulate(df_stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
