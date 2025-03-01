@@ -128,6 +128,14 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
     if "transposed" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
 
+    if "im2col-singlethread-heuristic" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[
+                                 (df["image channel"] != df["groups"]) &                     # not depthwise
+                                 ((df["stride height"] == 1) & (df["stride width"] == 1)) &  # unit-stride
+                                 ((df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])) &  # overlapped (and not pointwise)
+                                 ((df["dilation height"] == 1) & (df["dilation width"] == 1))  # not dilated
+                                 ]])
+
     if "torch-singlethread-heuristic" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
 
@@ -196,6 +204,7 @@ def get_categories():
             "dilated",
             "not-dilated",
             "transposed",
+            "im2col-singlethread-heuristic",
             "torch-multithread-heuristic",
             "torch-singlethread-heuristic",
             "onednn-heuristic",
