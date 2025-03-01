@@ -62,14 +62,14 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
     joined_results = pd.merge(
         df_dict[method_names[0]],
         df_dict[method_names[1]].drop(columns=["time_unit"]),
-        how="inner",
+        how="left",
         on="conv_parameters",
         suffixes=("_" + method_names[0], "_" + method_names[1]),
     )
     for method_name in method_names[2:]:
         joined_results = joined_results.merge(
             df_dict[method_name].drop(columns=["time_unit"]).add_suffix("_" + method_name),
-            how="inner",
+            how="left",
             left_on="conv_parameters",
             right_on="conv_parameters_" + method_name,
             suffixes=(None, None),
@@ -116,6 +116,7 @@ def get_speedup(
 
     # Compute time difference between methods
     speedup_results["time_diff"] = joined_results["mean_time_" + old_method_name] - joined_results["mean_time_" + new_method_name]
+    speedup_results["time_unit"] = joined_results["time_unit"]
 
     return speedup_results
 
@@ -164,16 +165,17 @@ def plot_speedup(
     neg = speedup_results.loc[lambda x: x.speedup < 0]
     pos_speedup = pos["speedup"]
     neg_speedup = neg["speedup"]
+    unit = speedup_results["time_unit"].iloc[0]
 
     stats = {
         f"{new_method_name} vs {old_method_name}": ["Speedup", "Slowdown"],
         "Count": [pos_speedup.shape[0], neg_speedup.shape[0]],
         "Median": [pos_speedup.median(), neg_speedup.median()],
         "Max": [pos_speedup.max(), neg_speedup.min()],
-        "Time Difference": [(pos["time_diff"]).sum(), (neg["time_diff"]).sum()],
+        f"Time Difference ({unit})": [(pos["time_diff"]).sum(), (neg["time_diff"]).sum()],
         "Occurrences": [int(pos["occurrences"].sum()), int(neg["occurrences"].sum())],
         "Weighted Median": [weighted_median(pos), weighted_median(neg)],
-        "Weighted Time Difference": [(pos["time_diff"] * pos["occurrences"]).sum(), (neg["time_diff"] * neg["occurrences"]).sum()],
+        f"Weighted Time Difference ({unit})": [(pos["time_diff"] * pos["occurrences"]).sum(), (neg["time_diff"] * neg["occurrences"]).sum()],
         "Less than 1% change": [small_change_count, ""],
     }
     df_stats = pd.DataFrame(stats).fillna(0).set_index(f"{new_method_name} vs {old_method_name}")
@@ -290,7 +292,7 @@ def plot_speedup(
     if plot_type == "log2_speedup":
         ax.set_ylabel("Speedup")
     elif plot_type == "time_diff":
-        ax.set_ylabel("Time Difference (ms)")
+        ax.set_ylabel(f"Time Difference ({unit})")
     else:
         ax.set_ylabel("Relative Speedup")
     ax.set_xlabel(f"Conv2D Layers ({num_points} total)")
@@ -475,7 +477,8 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
     frame.set_facecolor('white')
     frame.set_edgecolor('black')
 
-    ax.set_ylabel("Execution time (ms)")
+    unit = df["time_unit"].iloc[0]
+    ax.set_ylabel(f"Execution time ({unit})")
     ax.set_xlabel("Conv2D Layers")
 
     comparison_name = ""
@@ -563,7 +566,7 @@ if __name__ == "__main__":
         type=str,
         choices=["speedup", "log2_speedup", "time_diff"],
         default="log2_speedup",
-        help="Data to plot. Speedup is the relative speedup and slowdown, log2_speedup is the log2 of speedup, and time_diff is the difference in time between methods.",
+        help="Data to plot. Speedup is the relative speedup and slowdown, log2_speedup is the log2 of speedup, and time_diff is the difference in time between methods. Default is log2_speedup",
     )
 
     args = parser.parse_args()
