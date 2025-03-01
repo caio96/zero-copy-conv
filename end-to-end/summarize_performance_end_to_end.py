@@ -392,7 +392,6 @@ def compare_methods(
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
     if not only_stats:
         # Save results to csv
-        speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
         speedup_results.to_csv(
             output_dir / f"end_to_end_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
