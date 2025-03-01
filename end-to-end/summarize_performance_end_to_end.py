@@ -56,14 +56,14 @@ def merge_results(df: pd.DataFrame, output_dir, only_stats=False):
     joined_results = pd.merge(
         df_dict[method_names[0]],
         df_dict[method_names[1]].drop(columns=["Unit"]),
-        how="inner",
+        how="left",
         on="Model",
         suffixes=("_" + method_names[0], "_" + method_names[1]),
     )
     for method_name in method_names[2:]:
         joined_results = joined_results.merge(
             df_dict[method_name].drop(columns=["Unit"]).add_suffix("_" + method_name),
-            how="inner",
+            how="left",
             left_on="Model",
             right_on="Model_" + method_name,
             suffixes=(None, None),
@@ -107,7 +107,8 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
     frame.set_facecolor('white')
     frame.set_edgecolor('black')
 
-    ax.set_ylabel("Execution time (ms)")
+    unit = df["Unit"].iloc[0]
+    ax.set_ylabel(f"Execution time ({unit})")
     ax.set_xlabel("Models")
 
     comparison_name = ""
@@ -144,7 +145,10 @@ def get_speedup(
 
     # Compute log2 speedup -> results in symmetric speedup and slowdown
     speedup_results["log2_speedup"] = np.log2(joined_results["Mean_" + old_method_name] / joined_results["Mean_" + new_method_name])
-    speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
+
+    # Compute time difference between methods
+    speedup_results["time_diff"] = joined_results["Mean_" + old_method_name] - joined_results["Mean_" + new_method_name]
+    speedup_results["Unit"] = joined_results["Unit"]
 
     return speedup_results
 
@@ -154,14 +158,19 @@ def plot_speedup(
     old_method_name,
     new_method_name,
     output_dir,
+    plot_type,
     only_stats=False,
     clip_pos=False,
     clip_neg=False,
-    plot_log2_speedup=False,
     show_boxplot=False,
     show_counts=False,
     show_inflection=False,
 ):
+
+    if plot_type == "time_diff":
+        speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
+    else:
+        speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
 
     # Remove rows where speedup or slowdown is less than 0.01
     small_change_count = speedup_results.loc[lambda x: x.speedup.abs() < 0.01].shape[0]
@@ -179,12 +188,14 @@ def plot_speedup(
     neg = speedup_results.loc[lambda x: x.speedup < 0]
     pos_speedup = pos["speedup"]
     neg_speedup = neg["speedup"]
+    unit = speedup_results["Unit"].iloc[0]
 
     stats = {
         f"{new_method_name} vs {old_method_name}": ["Speedup", "Slowdown"],
         "Count": [pos_speedup.shape[0], neg_speedup.shape[0]],
         "Median": [pos_speedup.median(), neg_speedup.median()],
         "Max": [pos_speedup.max(), neg_speedup.min()],
+        f"Time Difference ({unit})": [(pos["time_diff"]).sum(), (neg["time_diff"]).sum()],
         "Less than 1% change": [small_change_count, ""],
     }
     df_stats = pd.DataFrame(stats).fillna(0).set_index(f"{new_method_name} vs {old_method_name}")
@@ -193,9 +204,12 @@ def plot_speedup(
         return
     df_stats.to_csv(output_dir / f"end_to_end_{new_method_name}_vs_{old_method_name}_stats.csv")
 
-    if plot_log2_speedup:
+    if plot_type == "log2_speedup":
         pos_speedup = pos["log2_speedup"]
         neg_speedup = neg["log2_speedup"]
+    elif plot_type == "time_diff":
+        pos_speedup = pos["time_diff"]
+        neg_speedup = neg["time_diff"]
 
     # Clip positive outliers if enabled
     if clip_pos:
@@ -213,7 +227,7 @@ def plot_speedup(
     # fig, ax = plt.subplots(figsize=(7.75, 4.8))
     fig, ax = plt.subplots(figsize=(9.6, 4.8))
 
-    if plot_log2_speedup:
+    if plot_type == "log2_speedup":
         def power_of_two_formatter(x, pos):
             if x == 0:
                 return "1"
@@ -239,7 +253,7 @@ def plot_speedup(
         ax.hlines(pos_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
         # Annotate clipped value
         text = ""
-        if plot_log2_speedup:
+        if plot_type == "log2_speedup":
             text = f"Max: $2^{{{max_pos:.2g}}}$"
         else:
             text = f"Max: {max_pos:.2g}"
@@ -260,7 +274,7 @@ def plot_speedup(
         ax.hlines(neg_threshold, cutoff_x_start, cutoff_x_end, "gray", linewidth=0.5)
         # Annotate clipped value
         text = ""
-        if plot_log2_speedup:
+        if plot_type == "log2_speedup":
             text = f"Min: $2^{{{min_neg:.2g}}}$"
         else:
             text = f"Min: {min_neg:.2g}"
@@ -295,8 +309,10 @@ def plot_speedup(
     frame.set_facecolor('white')
     frame.set_edgecolor('black')
 
-    if plot_log2_speedup:
+    if plot_type == "log2_speedup":
         ax.set_ylabel("Speedup")
+    elif plot_type == "time_diff":
+        ax.set_ylabel(f"Time Difference ({unit})")
     else:
         ax.set_ylabel("Relative Speedup")
     ax.set_xlabel(f"Models ({num_points} total)")
@@ -371,11 +387,12 @@ def compare_methods(
     only_stats,
     clip_pos,
     clip_neg,
-    plot_log2_speedup,
+    plot_type,
 ):
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
     if not only_stats:
         # Save results to csv
+        speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
         speedup_results.to_csv(
             output_dir / f"end_to_end_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
@@ -384,10 +401,10 @@ def compare_methods(
         old_method_name,
         new_method_name,
         output_dir,
+        plot_type,
         only_stats,
         clip_pos,
         clip_neg,
-        plot_log2_speedup,
     )
 
 
@@ -432,9 +449,11 @@ if __name__ == "__main__":
         help="Use preset comparisons between methods to generate results.",
     )
     parser.add_argument(
-        "--plot-log2-speedup",
-        action="store_true",
-        help="Plot log2 of speedup in speedup graphs.",
+        "--plot-type",
+        type=str,
+        choices=["speedup", "log2_speedup", "time_diff"],
+        default="speedup",
+        help="Data to plot. Speedup is the relative speedup and slowdown, log2_speedup is the log2 of speedup, and time_diff is the difference in time between methods. Default is speedup.",
     )
 
     args = parser.parse_args()
@@ -447,7 +466,7 @@ if __name__ == "__main__":
     clip_pos = args.clip_positive_outliers
     clip_neg = args.clip_negative_outliers
     preset_comparisons = args.preset_comparisons
-    plot_log2_speedup = args.plot_log2_speedup
+    plot_type = args.plot_type
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -495,21 +514,21 @@ if __name__ == "__main__":
 
     if old_method and new_method:
         compare_methods(
-            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
+            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type
         )
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
             compare_methods(
-                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
+                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, plot_type
             )
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
             compare_methods(
-                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
+                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type
             )
     else:
         if preset_comparisons:
@@ -518,10 +537,10 @@ if __name__ == "__main__":
                 if method1 not in methods or method2 not in methods:
                     continue
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type
                 )
         else:
             for method1, method2 in itertools.combinations(methods, 2):
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_log2_speedup
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type
                 )
