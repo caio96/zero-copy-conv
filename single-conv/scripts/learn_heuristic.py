@@ -182,7 +182,7 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float, use_speedup: s
     y_weights = get_speedup_weights(y, speedup, occurrences)
 
     # Remove columns not used as features
-    df = df.drop(columns=["conv_parameters", "speedup", "occurrences", "log2_speedup", "time_diff"])
+    df = df.drop(columns=["conv_parameters", "speedup", "occurrences", "log2_speedup", "time_diff", "time_unit"])
 
     # Remove columns with the same values
     df = remove_invariant_features(df)
@@ -478,13 +478,13 @@ if __name__ == "__main__":
     )
 
     if not split_train_test:
-        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff"]]
+        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff", "time_unit"]]
         print("\nOriginal speedup results:")
         plot_speedup(speedup_results, "old", "new", None, "speedup", True)
 
         df["prediction"] = y_pred
         df = df.loc[df["prediction"] == 1]
-        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff"]]
+        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff", "time_unit"]]
         print("\nHeuristic speedup results:")
         plot_speedup(speedup_results, "old", "new", None, "speedup", True)
 
