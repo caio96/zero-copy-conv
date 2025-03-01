@@ -15,12 +15,18 @@ import scipy.stats as st
 from matplotlib.ticker import FuncFormatter
 
 
-def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, only_stats=False):
+def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, only_stats=False, incorrect_convs: pd.DataFrame=None):
 
     # Split the 'name' column into 'conv_type' and 'conv_parameters'
     df[["conv_type", "conv_parameters"]] = df["name"].str.split(" ", n=1, expand=True)
     df = df.drop(columns=["name"])
     df["conv_parameters"] = df["conv_parameters"].str.split("/", n=1).str[0]
+
+    # Removes the rows from df if the conv_type and conv_parameters are present in incorrect_convs
+    if incorrect_convs is not None:
+        df = df.merge(incorrect_convs, how="left", on=["conv_type", "conv_parameters"], indicator=True)
+        df = df.loc[df["_merge"] == "left_only"]
+        df = df.drop(columns=["_merge", "max_diff", "tolerance"])
 
     # Separate df by 'conv_type'
     groups = df.groupby(by=["conv_type"])
@@ -568,6 +574,11 @@ if __name__ == "__main__":
         default="log2_speedup",
         help="Data to plot. Speedup is the relative speedup and slowdown, log2_speedup is the log2 of speedup, and time_diff is the difference in time between methods. Default is log2_speedup",
     )
+    parser.add_argument(
+        "--incorrect-convs",
+        type=str,
+        help="Path to csv that contains convolution that generated incorrect results. Excludes these convolutions from the graphs if the method that generated them is part of the comparison.",
+    )
 
     args = parser.parse_args()
 
@@ -583,6 +594,7 @@ if __name__ == "__main__":
     clip_neg = args.clip_negative_outliers
     preset_comparisons = args.preset_comparisons
     plot_type = args.plot_type
+    incorrect_convs = args.incorrect_convs
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -598,11 +610,19 @@ if __name__ == "__main__":
         print("Output directory not found.", file=sys.stderr)
         sys.exit(-1)
 
+    incorrect_conv_df = None
+    if incorrect_convs:
+        incorrect_convs = Path(incorrect_convs)
+        if (not incorrect_convs.exists()) or (not incorrect_convs.is_file()):
+            print("CSV with incorrect convolutions not found.", file=sys.stderr)
+            sys.exit(-1)
+        incorrect_conv_df = pd.read_csv(incorrect_convs, header=0, index_col=False)
+
     df = pd.read_csv(csv_input, header=0, index_col=False)
     occurrences_df = pd.read_csv(occurrences_csv, header=0, index_col=False)
 
     # Merge results by conv_params and aggregate multiple runs
-    df = merge_results(df, occurrences_df, output_dir, only_stats)
+    df = merge_results(df, occurrences_df, output_dir, only_stats, incorrect_conv_df)
 
     # Filter convs if needed
     num_columns = len(df.columns)
