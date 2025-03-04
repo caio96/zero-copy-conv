@@ -39,10 +39,10 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
             .agg(
                 total_iterations=("iterations", "sum"),
                 repeats=("real_time", "count"),
-                mean_time=("real_time", "mean"),
-                std_time=("real_time", "std"),
+                median_time=("real_time", "median"),
                 time_unit=("time_unit", "first"),
                 error_occurred=("error_occurred", "any"),
+                iqr_time=("real_time", lambda x: x.quantile(0.75) - x.quantile(0.25)),
             )
             .sort_values(by=["conv_parameters"])
             .reset_index(drop=True)
@@ -50,16 +50,11 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
 
     # Join results by 'conv_parameters'
     method_names = list(df_dict.keys())
-    # Add the 95% confidence interval
+    # Add the iqr and confidence columns
     for method_name in method_names:
-        means = df_dict[method_name]["mean_time"]
-        stds = df_dict[method_name]["std_time"]
-        repeats = df_dict[method_name]["repeats"]
-
-        conf_low, conf_high = st.norm.interval(confidence=0.95, loc=means, scale=stds/np.sqrt(repeats))
-        conf = (conf_high - conf_low) / 2
-        df_dict[method_name][f"95_confidence"] = conf
-        df_dict[method_name][f"confident"] = conf < (0.01 * means)
+        medians = df_dict[method_name]["median_time"]
+        iqrs = df_dict[method_name]["iqr_time"]
+        df_dict[method_name]["confident"] = (iqrs / medians) < 0.1
 
     if len(method_names) == 1:
         print("Only one method found. No comparison possible.", file=sys.stderr)
@@ -81,18 +76,13 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
             suffixes=(None, None),
         ).drop(columns=["conv_parameters_" + method_name])
 
-    # Add overall confident column
-    joined_results[f"overall_confident"] = True
+    # Add non confident methods column
+    joined_results["non_confident_methods"] = ""
     for method_name in method_names:
-        joined_results[f"overall_confident"] = joined_results[f"overall_confident"] & joined_results[f"confident_{method_name}"]
+        joined_results.loc[joined_results[f"confident_{method_name}"] == False, "non_confident_methods"] += method_name + " "
 
     # Add occurrences column
     joined_results = joined_results.merge(occurrences_df, how="left", on="conv_parameters")
-
-    if not only_stats:
-        joined_results.to_csv(output_dir / "performance-results.csv", index=False)
-        non_confident_convs = joined_results.loc[joined_results["overall_confident"] == False]["conv_parameters"]
-        non_confident_convs.to_csv(output_dir / "non-confident-convs.csv", index=False)
 
     return joined_results
 
@@ -113,15 +103,15 @@ def get_speedup(
     speedup_results["speedup"] = None
 
     # Compute speedup and slowdown -> results in asymmetric speedup and slowdown where 0 means no change
-    speedup = (joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name]) - 1
-    slowdown = (-1 * joined_results["mean_time_" + new_method_name] / joined_results["mean_time_" + old_method_name]) + 1
+    speedup = (joined_results["median_time_" + old_method_name] / joined_results["median_time_" + new_method_name]) - 1
+    slowdown = (-1 * joined_results["median_time_" + new_method_name] / joined_results["median_time_" + old_method_name]) + 1
     speedup_results["speedup"] = speedup.where(speedup >= 1, slowdown)
 
     # Compute log2 speedup -> results in symmetric speedup and slowdown
-    speedup_results["log2_speedup"] = np.log2(joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name])
+    speedup_results["log2_speedup"] = np.log2(joined_results["median_time_" + old_method_name] / joined_results["median_time_" + new_method_name])
 
     # Compute time difference between methods
-    speedup_results["time_diff"] = joined_results["mean_time_" + old_method_name] - joined_results["mean_time_" + new_method_name]
+    speedup_results["time_diff"] = joined_results["median_time_" + old_method_name] - joined_results["median_time_" + new_method_name]
     speedup_results["time_unit"] = joined_results["time_unit"]
 
     return speedup_results
@@ -418,7 +408,7 @@ def compare_methods(
 
     if not only_stats:
         # Add graph with execution times for comparison
-        methods = [col.replace("mean_time_", "") for col in joined_results.columns if "mean_time" in col]
+        methods = [col.replace("median_time_", "") for col in joined_results.columns if "median_time" in col]
         graph_execution_times(joined_results, methods, output_dir, old_method, new_method)
 
         # Save results to csv
@@ -482,10 +472,10 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
         if old_method and new_method and method not in (old_method, new_method):
             continue
         label_name = name_translation[method] if method in name_translation else method
-        method_means = df[f"mean_time_{method}"]
-        method_conf = df[f"95_confidence_{method}"]
+        method_medians = df[f"median_time_{method}"]
+        iqr = df[f"iqr_time_{method}"]
 
-        ax.errorbar(range(df.shape[0]), method_means, yerr=method_conf, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
+        ax.errorbar(range(df.shape[0]), method_medians, yerr=iqr, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
 
     legend = plt.legend(frameon=True, framealpha=1, markerscale=3)
     frame = legend.get_frame()
@@ -627,7 +617,8 @@ if __name__ == "__main__":
             sys.exit(-1)
         incorrect_conv_df = pd.read_csv(incorrect_convs, header=0, index_col=False)
 
-    df = pd.read_csv(csv_input, header=0, index_col=False)
+    df = pd.read_csv(csv_input, header=0, index_col=False, dtype={"error_occurred": "boolean", "error_message": str})
+    df["error_occurred"].fillna(False)
     occurrences_df = pd.read_csv(occurrences_csv, header=0, index_col=False)
 
     # Merge results by conv_params and aggregate multiple runs
@@ -640,7 +631,13 @@ if __name__ == "__main__":
     df = exclude_from_df(df, exclude_conv_types)
     df = df.iloc[:, :num_columns]
 
-    methods = [col.replace("mean_time_", "") for col in df.columns if "mean_time" in col]
+    if not only_stats:
+        df.to_csv(output_dir / "performance-results.csv", index=False)
+        non_confident_convs = df.loc[df["non_confident_methods"] != ""]
+        non_confident_convs = non_confident_convs[["conv_parameters", "non_confident_methods"]]
+        non_confident_convs.to_csv(output_dir / "non-confident-convs.csv", index=False)
+
+    methods = [col.replace("median_time_", "") for col in df.columns if "median_time" in col]
 
     if not only_stats:
         rc('font', **{'family': 'serif', 'serif': ['Libertine']})
