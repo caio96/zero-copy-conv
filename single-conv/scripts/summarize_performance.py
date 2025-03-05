@@ -22,6 +22,9 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
     df = df.drop(columns=["name"])
     df["conv_parameters"] = df["conv_parameters"].str.split("/", n=1).str[0]
 
+    # Remove rows where error_occurred is True (happens when Yaconv is not supported)
+    df = df.loc[df["error_occurred"] != True]
+
     # Removes the rows from df if the conv_type and conv_parameters are present in incorrect_convs
     if incorrect_convs is not None:
         df = df.merge(incorrect_convs, how="left", on=["conv_type", "conv_parameters"], indicator=True)
@@ -618,7 +621,7 @@ if __name__ == "__main__":
         incorrect_conv_df = pd.read_csv(incorrect_convs, header=0, index_col=False)
 
     df = pd.read_csv(csv_input, header=0, index_col=False, dtype={"error_occurred": "boolean", "error_message": str})
-    df["error_occurred"].fillna(False)
+    df["error_occurred"] = df["error_occurred"].fillna(False)
     occurrences_df = pd.read_csv(occurrences_csv, header=0, index_col=False)
 
     # Merge results by conv_params and aggregate multiple runs
