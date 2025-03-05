@@ -173,7 +173,7 @@ for executable in $(find "$BUILD_DIR" -type f -name "benchmark_*" | sort); do
   fi
   # Do not execute yaconv in multithreaded runs
   if [[ "$executable" =~ ^.*yaconv.*$ ]]; then
-    if [[ "$PARALLEL_SINGLE_THREAD_MODE" == "false" ]] || [[ "$OMP_NUM_THREADS" != "1" ]]; then
+    if [[ "$PARALLEL_SINGLE_THREAD_MODE" == "false" ]] && [[ "$OMP_NUM_THREADS" != "1" ]]; then
         continue
     fi
   fi
