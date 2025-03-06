@@ -359,7 +359,7 @@ def plot_speedup(
 
     # save figure
     plt.savefig(
-        output_dir / f"end_to_end_{new_method_name}_vs_{old_method_name}.png",
+        output_dir / f"end_to_end_{new_method_name}_vs_{old_method_name}_{plot_type}.png",
         bbox_inches="tight",
         dpi=200,
     )
