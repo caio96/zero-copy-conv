@@ -133,6 +133,9 @@ def plot_speedup(
     show_counts=False,
     show_inflection=False,
 ):
+    if speedup_results.empty:
+        print("No data to plot.", file=sys.stderr)
+        return
 
     if plot_type == "time_diff":
         speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
@@ -633,6 +636,10 @@ if __name__ == "__main__":
     df = include_only_in_df(df, include_only_conv_types)
     df = exclude_from_df(df, exclude_conv_types)
     df = df.iloc[:, :num_columns]
+
+    if df.empty:
+        print("No data to process.", file=sys.stderr)
+        sys.exit(-1)
 
     if not only_stats:
         df.to_csv(output_dir / "performance-results.csv", index=False)

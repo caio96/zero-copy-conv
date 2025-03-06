@@ -452,6 +452,10 @@ if __name__ == "__main__":
     df = exclude_from_df(df, exclude_conv_types)
     df = df.iloc[:, :num_columns]
 
+    if df.empty:
+        print("No data to process.", file=sys.stderr)
+        sys.exit(-1)
+
     # Add more features
     df = get_data(df)
 
