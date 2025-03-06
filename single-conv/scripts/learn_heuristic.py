@@ -166,11 +166,11 @@ def separate_features(df: pd.DataFrame, speedup_threshold: float, use_speedup: s
     # Target weights
     speedup = None
     occurrences = None
-    if use_speedup == "log2-speedup":
+    if use_speedup == "log2_speedup":
         speedup = df["log2_speedup"]
     elif use_speedup == "speedup":
         speedup = df["speedup"]
-    elif use_speedup == "time-diff":
+    elif use_speedup == "time_diff":
         speedup = df["time_diff"]
 
     if use_occurrences:
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--use-speedup",
         type=str,
-        choices=["speedup", "log2-speedup", "time-diff"],
+        choices=["speedup", "log2_speedup", "time_diff"],
         default="log2-speedup",
         help="Use the speedup of each convolution to weight the samples. Speedup uses the relative speedup and slowdown, log2-speedup uses the log2 of the speedup, and time-diff uses the absolute difference in execution time. Can be combined with --use-occurrences. Default is log2-speedup.",
     )
