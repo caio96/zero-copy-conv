@@ -219,13 +219,15 @@ def plot_speedup(
         ax.yaxis.set_major_formatter(FuncFormatter(power_of_two_formatter))
 
     # barplot
-    ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
-    ax.bar(
-        range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
-        neg_speedup.values,
-        color="#ca0020",
-        label=f"Slowdown: {neg_speedup.shape[0]}"
-    )
+    if not pos_speedup.empty:
+        ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
+    if not neg_speedup.empty:
+        ax.bar(
+            range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
+            neg_speedup.values,
+            color="#ca0020",
+            label=f"Slowdown: {neg_speedup.shape[0]}"
+        )
 
     # Add line showing that positive outliers clipped
     if clip_pos and len(clipped_pos_indices) > 0:
@@ -347,8 +349,8 @@ def plot_speedup(
                 verticalalignment="center",
             )
     else:
-        top = pos_speedup.max() if clip_pos else None
-        bottom = neg_speedup.min() if clip_neg else None
+        top = pos_speedup.max() if clip_pos and not pos_speedup.empty else None
+        bottom = neg_speedup.min() if clip_neg and not neg_speedup.empty else None
         ax.set_ylim(top=top, bottom=bottom)
 
     # save figure
