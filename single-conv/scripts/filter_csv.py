@@ -132,11 +132,32 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
 
     if "im2col-singlethread-heuristic" in conv_types:
+        df["output height"] = np.floor(
+            (
+                df["image height"]
+                + df["padding top"] + df["padding bottom"]
+                - df["dilation height"] * (df["filter height"] - 1)
+                - 1
+            )
+            / df["stride height"]
+            + 1
+        )
+        df["output width"] = np.floor(
+            (
+                df["image width"]
+                + df["padding left"] + df["padding right"]
+                - df["dilation width"] * (df["filter width"] - 1)
+                - 1
+            )
+            / df["stride width"]
+            + 1
+        )
+        df["dim k im2col"] = df["filter width"] * df["filter height"] * df["image channel"]  / df["groups"]
+        df["patches"] = df["output height"] * df["output width"]
         filtered_df = pd.concat([filtered_df, df.loc[
-                                 (df["image channel"] != df["groups"]) &                     # not depthwise
-                                 ((df["stride height"] == 1) & (df["stride width"] == 1)) &  # unit-stride
-                                 ((df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])) &  # overlapped (and not pointwise)
-                                 ((df["dilation height"] == 1) & (df["dilation width"] == 1))  # not dilated
+                                 ((df["filter height"] != 1) | (df["filter width"] != 1))        # not pointwise
+                                 & (df["groups"] == 1)                                           # not grouped
+                                 & (df["dim k im2col"] < df["patches"])
                                  ]])
 
     if "torch-singlethread-heuristic" in conv_types:
