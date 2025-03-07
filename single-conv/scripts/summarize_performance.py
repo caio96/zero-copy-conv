@@ -419,6 +419,11 @@ def compare_methods(
         methods = [col.replace("median_time_", "") for col in joined_results.columns if "median_time" in col]
         graph_execution_times(joined_results, methods, output_dir, old_method, new_method)
 
+        if plot_type == "time_diff":
+            speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
+        else:
+            speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
+
         # Save results to csv
         speedup_results.to_csv(
             output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
