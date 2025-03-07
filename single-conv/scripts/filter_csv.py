@@ -107,6 +107,9 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
     if "overlapped" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])]])
 
+    if "not-overlapped" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] == df["stride height"]) & (df["filter width"] == df["stride width"])]])
+
     if "grouped" in conv_types:
         filtered_df = pd.concat(
             [filtered_df, df.loc[(df["groups"] > 1)]]
@@ -231,6 +234,7 @@ def get_categories():
             "global",
             "direct-gemm",
             "overlapped",
+            "not-overlapped",
             "grouped",
             "depthwise",
             "dilated",
