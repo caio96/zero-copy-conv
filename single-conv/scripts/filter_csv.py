@@ -153,12 +153,19 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
             + 1
         )
         df["dim k im2col"] = df["filter width"] * df["filter height"] * df["image channel"]  / df["groups"]
-        df["patches"] = df["output height"] * df["output width"]
+        df["dim m im2col"] = df["output channel"] / df["groups"]
+        df["dim n im2col"] = df["output height"] * df["output width"]
+        df["dim m"] = df["output height"]
+        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
+        df["dim n"] = df["output channel"] / df["groups"]
+        df["squareness im2col"] = df[["dim m im2col", "dim n im2col", "dim k im2col"]].max(axis=1) / df[["dim m im2col", "dim n im2col", "dim k im2col"]].min(axis=1)
+        df["squareness"] = df[["dim m", "dim n", "dim k"]].max(axis=1) / df[["dim m", "dim n", "dim k"]].min(axis=1)
         filtered_df = pd.concat([filtered_df, df.loc[
                                  ((df["filter height"] != 1) | (df["filter width"] != 1))        # not pointwise
                                  & (df["groups"] == 1)                                           # not grouped
-                                 & (df["dim k im2col"] < df["patches"])
+                                 & (df["squareness"] < df["squareness im2col"])
                                  ]])
+
 
     if "torch-singlethread-heuristic" in conv_types:
         # filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
