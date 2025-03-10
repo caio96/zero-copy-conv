@@ -644,6 +644,9 @@ if __name__ == "__main__":
         # Merge results by conv_params and aggregate multiple runs
         df = merge_results(df, occurrences_df, output_dir, only_stats, incorrect_conv_df)
     else:
+        if incorrect_convs:
+            print("Incorrect convolutions cannot be used with already merged results.", file=sys.stderr)
+            sys.exit(-1)
         df = pd.read_csv(csv_input, header=0, index_col=False)
 
     # Filter convs if needed
