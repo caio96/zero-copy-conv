@@ -168,7 +168,6 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
 
 
     if "torch-singlethread-heuristic" in conv_types:
-        # filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
         df["output height"] = np.floor(
             (
                 df["image height"]
@@ -179,11 +178,12 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
             / df["stride height"]
             + 1
         )
-        # todo: test heuristic
+        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
         filtered_df = pd.concat([filtered_df, df.loc[
                                  (df["groups"] == 1)                     # not grouped
                                  & ((df["filter height"] != 1) | (df["filter width"] != 1)) # not pointwise
-                                 & ((df["stride height"] == 1) & (df["stride width"] == 1))  # unit-stride
+                                 & ((df["dilation height"] == 1) | (df["dilation width"] == 1)) # not dilated
+                                 & (df["padding top"] == 0) & (df["padding bottom"] == 0) & (df["padding left"] == 0) & (df["padding right"] == 0) # not padded
                                  & (df["output height"] < df["image channel"])
                                  ]])
 
@@ -199,39 +199,10 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
             + 1
         )
         df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
-        # filtered_df = pd.concat([filtered_df, df.loc[(df["groups"] == 1) & (df["output height"] < df["dim k"]) & (df["output height"] != 1) & (df["output channel"] < df["dim k"])]])
-        # todo: test heuristic
         filtered_df = pd.concat([filtered_df, df.loc[
                                  (df["groups"] == 1)                     # not grouped
                                  & ((df["filter height"] != 1) | (df["filter width"] != 1)) # not pointwise
                                  & (df["output height"] < df["image channel"])
-                                 ]])
-
-    if "onednn-heuristic" in conv_types:
-        df["output height"] = np.floor(
-            (
-                df["image height"]
-                + df["padding top"] + df["padding bottom"]
-                - df["dilation height"] * (df["filter height"] - 1)
-                - 1
-            )
-            / df["stride height"]
-            + 1
-        )
-        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
-        # filtered_df = pd.concat([filtered_df, df.loc[
-        #                          (df["groups"] == 1) &
-        #                          (((df["image height"] == 1) & (df["image width"] == 1)) |
-        #                          (((df["filter height"] != 1) & (df["filter width"] != 1)) & (df["output height"] < df["dim k"]) & (df["output channel"] < df["dim k"])))
-        #                          ]])
-        # todo: test heuristic
-        filtered_df = pd.concat([filtered_df, df.loc[
-                                 (df["groups"] == 1) &                     # not grouped
-                                 ((df["stride height"] == 1) & (df["stride width"] == 1)) &  # unit-stride
-                                 ((df["filter height"] != 1) | (df["filter width"] != 1)) # not pointwise
-                                 # (df["output channel"] < df["image channel"])
-                                 # (df["output channel"] < df["image channel"] / df["groups"])
-                                 # (df["filter height"] != df["filter width"])
                                  ]])
 
     # Drop duplicates to avoid duplicating rows if they match multiple types
