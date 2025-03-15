@@ -482,13 +482,13 @@ if __name__ == "__main__":
     )
 
     if not split_train_test:
-        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff", "time_unit"]]
+        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff", "time_unit", "significant"]]
         print("\nOriginal speedup results:")
         plot_speedup(speedup_results, "old", "new", None, "speedup", True)
 
         df["prediction"] = y_pred
         df = df.loc[df["prediction"] == 1]
-        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff", "time_unit"]]
+        speedup_results = df[["conv_parameters", "occurrences", "speedup", "time_diff", "time_unit", "significant"]]
         print("\nHeuristic speedup results:")
         plot_speedup(speedup_results, "old", "new", None, "speedup", True)
 

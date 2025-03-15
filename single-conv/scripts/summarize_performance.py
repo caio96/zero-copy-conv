@@ -42,10 +42,10 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
             .agg(
                 total_iterations=("iterations", "sum"),
                 repeats=("real_time", "count"),
-                median_time=("real_time", "median"),
+                mean_time=("real_time", "mean"),
+                sem_time=("real_time", "sem"),
                 time_unit=("time_unit", "first"),
                 error_occurred=("error_occurred", "any"),
-                iqr_time=("real_time", lambda x: x.quantile(0.75) - x.quantile(0.25)),
             )
             .sort_values(by=["conv_parameters"])
             .reset_index(drop=True)
@@ -53,11 +53,15 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
 
     # Join results by 'conv_parameters'
     method_names = list(df_dict.keys())
-    # Add the iqr and confidence columns
+    # Add the 95% confidence interval
     for method_name in method_names:
-        medians = df_dict[method_name]["median_time"]
-        iqrs = df_dict[method_name]["iqr_time"]
-        df_dict[method_name]["confident"] = (iqrs / medians) < 0.1
+        means = df_dict[method_name][f"mean_time"]
+        iterations = df_dict[method_name][f"repeats"]
+        sems = df_dict[method_name][f"sem_time"]
+
+        conf_low, conf_high = st.norm.interval(confidence=0.95, loc=means, scale=sems)
+        conf = (conf_high - conf_low) / 2
+        df_dict[method_name][f"95_confidence"] = conf
 
     if len(method_names) == 1:
         print("Only one method found. No comparison possible.", file=sys.stderr)
@@ -78,11 +82,6 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
             right_on="conv_parameters_" + method_name,
             suffixes=(None, None),
         ).drop(columns=["conv_parameters_" + method_name])
-
-    # Add non confident methods column
-    joined_results["non_confident_methods"] = ""
-    for method_name in method_names:
-        joined_results.loc[joined_results[f"confident_{method_name}"] == False, "non_confident_methods"] += method_name + " "
 
     # Add occurrences column
     joined_results = joined_results.merge(occurrences_df, how="left", on="conv_parameters")
@@ -106,16 +105,29 @@ def get_speedup(
     speedup_results["speedup"] = None
 
     # Compute speedup and slowdown -> results in asymmetric speedup and slowdown where 0 means no change
-    speedup = (joined_results["median_time_" + old_method_name] / joined_results["median_time_" + new_method_name]) - 1
-    slowdown = (-1 * joined_results["median_time_" + new_method_name] / joined_results["median_time_" + old_method_name]) + 1
+    speedup = (joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name]) - 1
+    slowdown = (-1 * joined_results["mean_time_" + new_method_name] / joined_results["mean_time_" + old_method_name]) + 1
     speedup_results["speedup"] = speedup.where(speedup >= 1, slowdown)
 
     # Compute log2 speedup -> results in symmetric speedup and slowdown
-    speedup_results["log2_speedup"] = np.log2(joined_results["median_time_" + old_method_name] / joined_results["median_time_" + new_method_name])
+    speedup_results["log2_speedup"] = np.log2(joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name])
 
     # Compute time difference between methods
-    speedup_results["time_diff"] = joined_results["median_time_" + old_method_name] - joined_results["median_time_" + new_method_name]
+    speedup_results["time_diff"] = joined_results["mean_time_" + old_method_name] - joined_results["mean_time_" + new_method_name]
     speedup_results["time_unit"] = joined_results["time_unit"]
+
+    old_means = joined_results["mean_time_" + old_method_name]
+    old_conf = joined_results["95_confidence_" + old_method_name]
+    old_lower = old_means - old_conf
+    old_higher = old_means + old_conf
+
+    new_means = joined_results["mean_time_" + new_method_name]
+    new_conf = joined_results["95_confidence_" + new_method_name]
+    new_lower = new_means - new_conf
+    new_higher = new_means + new_conf
+
+    # Check if the difference is significant (i.e. the confidence intervals do not overlap)
+    speedup_results["significant"] = (old_lower > new_higher) | (new_lower > old_higher)
 
     return speedup_results
 
@@ -151,9 +163,16 @@ def plot_speedup(
         median = df["speedup"][cumsum >= cutoff].iloc[0]
         return median
 
-    # Remove rows where speedup or slowdown is less than 0.01
-    small_change_count = speedup_results.loc[lambda x: x.speedup.abs() < 0.01].shape[0]
-    speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01]
+    non_significant_results = speedup_results.loc[lambda x: x.significant == False]
+    non_significant_count = non_significant_results.shape[0]
+    speedup_results = speedup_results.loc[lambda x: x.significant == True]
+
+    # Save non-significant models to csv if the speedup is greater than 1%
+    try_rerun_layers = pd.DataFrame()
+    if not only_stats:
+        try_rerun_layers["conv_parameters"] = non_significant_results.loc[lambda x: x.speedup > 0.01]["conv_parameters"]
+        try_rerun_layers["rerun_methods"] = f"{old_method_name},{new_method_name}"
+        try_rerun_layers.to_csv(output_dir / f"{new_method_name}_vs_{old_method_name}_try_rerun.csv", index=False)
 
     speedup_results = speedup_results.reset_index(drop=True)
     num_points = speedup_results.shape[0]
@@ -178,7 +197,7 @@ def plot_speedup(
         "Occurrences": [int(pos["occurrences"].sum()), int(neg["occurrences"].sum())],
         "Weighted Median": [weighted_median(pos), weighted_median(neg)],
         f"Weighted Time Difference ({unit})": [(pos["time_diff"] * pos["occurrences"]).sum(), (neg["time_diff"] * neg["occurrences"]).sum()],
-        "Less than 1% change": [small_change_count, ""],
+        "No significant change": [non_significant_count, ""],
     }
     df_stats = pd.DataFrame(stats).fillna(0).set_index(f"{new_method_name} vs {old_method_name}")
     print(tabulate(df_stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
@@ -416,7 +435,7 @@ def compare_methods(
 
     if not only_stats:
         # Add graph with execution times for comparison
-        methods = [col.replace("median_time_", "") for col in joined_results.columns if "median_time" in col]
+        methods = [col.replace("mean_time_", "") for col in joined_results.columns if "mean_time" in col]
         graph_execution_times(joined_results, methods, output_dir, old_method, new_method)
 
         if plot_type == "time_diff":
@@ -485,10 +504,10 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
         if old_method and new_method and method not in (old_method, new_method):
             continue
         label_name = name_translation[method] if method in name_translation else method
-        method_medians = df[f"median_time_{method}"]
-        iqr = df[f"iqr_time_{method}"]
+        method_means = df[f"mean_time_{method}"]
+        conf = df[f"95_confidence_{method}"]
 
-        ax.errorbar(range(df.shape[0]), method_medians, yerr=iqr, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
+        ax.errorbar(range(df.shape[0]), method_means, yerr=conf, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
 
     legend = plt.legend(frameon=True, framealpha=1, markerscale=3)
     frame = legend.get_frame()
@@ -662,11 +681,8 @@ if __name__ == "__main__":
 
     if not only_stats and not already_merged:
         df.to_csv(output_dir / "performance-results.csv", index=False)
-        non_confident_convs = df.loc[df["non_confident_methods"] != ""]
-        non_confident_convs = non_confident_convs[["conv_parameters", "non_confident_methods"]]
-        non_confident_convs.to_csv(output_dir / "non-confident-convs.csv", index=False)
 
-    methods = [col.replace("median_time_", "") for col in df.columns if "median_time" in col]
+    methods = [col.replace("mean_time_", "") for col in df.columns if "mean_time" in col]
 
     if not only_stats:
         rc('font', **{'family': 'serif', 'serif': ['Libertine']})
@@ -727,3 +743,15 @@ if __name__ == "__main__":
                 compare_methods(
                     df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type
                 )
+
+    # Merge try_rerun csvs
+    if not only_stats and not already_merged:
+        rerun_df_merge = pd.DataFrame()
+        for file in output_dir.glob("*_try_rerun.csv"):
+            rerun_df = pd.read_csv(file)
+            rerun_df_merge = pd.concat([rerun_df_merge, rerun_df], ignore_index=True)
+        # Aggregate rerun results by conv_params
+        aggregated_rerun_df = rerun_df_merge.groupby("conv_parameters").agg(conv_parameters=("conv_parameters", "first"), rerun_methods=("rerun_methods", lambda x: ",".join(x)))
+        # Remove duplicates from rerun methods
+        aggregated_rerun_df["rerun_methods"] = aggregated_rerun_df["rerun_methods"].apply(lambda x: ",".join(set(x.split(","))))
+        aggregated_rerun_df.to_csv(output_dir / "try_rerun.csv", index=False)
