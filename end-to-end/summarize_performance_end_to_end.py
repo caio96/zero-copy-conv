@@ -166,12 +166,6 @@ def plot_speedup(
     show_counts=False,
     show_inflection=False,
 ):
-
-    if plot_type == "time_diff":
-        speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
-    else:
-        speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
-
     non_significant_results = speedup_results.loc[lambda x: x.Significant == False]
     non_significant_count = non_significant_results.shape[0]
     speedup_results = speedup_results.loc[lambda x: x.Significant == True]
@@ -395,6 +389,12 @@ def compare_methods(
     plot_type,
 ):
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
+
+    if plot_type == "time_diff":
+        speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
+    else:
+        speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
+
     if not only_stats:
         # Save results to csv
         speedup_results.to_csv(
