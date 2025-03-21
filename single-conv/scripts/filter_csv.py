@@ -131,7 +131,7 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
     if "transposed" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
 
-    if "im2col-singlethread-heuristic" in conv_types:
+    if "im2col-extra-heuristic" in conv_types:
         df["output height"] = np.floor(
             (
                 df["image height"]
@@ -166,8 +166,7 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
                                  & (df["squareness"] < df["squareness im2col"])
                                  ]])
 
-
-    if "torch-singlethread-heuristic" in conv_types:
+    if "torch-heuristic" in conv_types:
         df["output height"] = np.floor(
             (
                 df["image height"]
@@ -178,24 +177,14 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
             / df["stride height"]
             + 1
         )
-        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
-        filtered_df = pd.concat([filtered_df, df.loc[
-                                 (df["groups"] == 1)                     # not grouped
-                                 & ((df["filter height"] != 1) | (df["filter width"] != 1)) # not pointwise
-                                 & ((df["dilation height"] == 1) | (df["dilation width"] == 1)) # not dilated
-                                 & (df["padding top"] == 0) & (df["padding bottom"] == 0) & (df["padding left"] == 0) & (df["padding right"] == 0) # not padded
-                                 & (df["output height"] < df["image channel"])
-                                 ]])
-
-    if "torch-multithread-heuristic" in conv_types:
-        df["output height"] = np.floor(
+        df["output width"] = np.floor(
             (
-                df["image height"]
-                + df["padding top"] + df["padding bottom"]
-                - df["dilation height"] * (df["filter height"] - 1)
+                df["image width"]
+                + df["padding left"] + df["padding right"]
+                - df["dilation width"] * (df["filter width"] - 1)
                 - 1
             )
-            / df["stride height"]
+            / df["stride width"]
             + 1
         )
         df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
@@ -203,6 +192,7 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
                                  (df["groups"] == 1)                     # not grouped
                                  & ((df["filter height"] != 1) | (df["filter width"] != 1)) # not pointwise
                                  & (df["output height"] < df["image channel"])
+                                 & (df["output width"] < df["image channel"])
                                  ]])
 
     # Drop duplicates to avoid duplicating rows if they match multiple types
@@ -239,10 +229,8 @@ def get_categories():
             "dilated",
             "not-dilated",
             "transposed",
-            "im2col-singlethread-heuristic",
-            "torch-multithread-heuristic",
-            "torch-singlethread-heuristic",
-            "onednn-heuristic",
+            "im2col-extra-heuristic",
+            "torch-heuristic",
         ]
 
 
