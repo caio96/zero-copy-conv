@@ -233,7 +233,7 @@ if [[ "$PARALLEL_SINGLE_THREAD_MODE" == "true" ]]; then
       if [[ "$CHECK_CORRECTNESS" == "true" ]]; then
         "$CORRECTNESS_EXECUTABLE" ${conv_parameters} | tail -n +2
         if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-          echo "Error running with parameters: $conv_parameters" | tee -a "${OUTPUT_LOG}.err"
+          echo "[Error] When running with parameters: $conv_parameters"
         fi
       else
         if [[ "$RERUN" == "true" ]]; then
@@ -255,12 +255,12 @@ if [[ "$PARALLEL_SINGLE_THREAD_MODE" == "true" ]]; then
             elif [[ "$method" == "OneDNN_any" ]]; then
               executable="$BUILD_DIR/benchmark_onednn_any"
             else
-              echo "Unknown method: $method"
+              echo "[Error] Unknown method: $method"
               continue
             fi
 
             if [[ ! -f "$executable" ]]; then
-              echo "Executable not found: $executable"
+              echo "[Error] Executable not found: $executable"
               continue
             fi
 
