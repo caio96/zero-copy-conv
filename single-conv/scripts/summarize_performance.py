@@ -230,9 +230,11 @@ def plot_speedup(
 
     if plot_type == "log2_speedup":
         def power_of_two_formatter(x, pos):
-            if x == 0:
-                return "1"
-            return f"$2^{{{x:.1g}}}$"
+            x = 2**x
+            if (x < 1):
+                x = 1/x
+                return f"$\\frac{{1}}{{{x:.2g}}}$"
+            return f"{x:.2g}"
 
         # Apply the custom formatter to the y-axis
         ax.yaxis.set_major_formatter(FuncFormatter(power_of_two_formatter))
@@ -257,7 +259,7 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_type == "log2_speedup":
-            text = f"Max: $2^{{{max_pos:.2g}}}$"
+            text = f"Max: {2**max_pos:.1f}"
         else:
             text = f"Max: {max_pos:.2g}"
         ax.text(
@@ -278,7 +280,8 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_type == "log2_speedup":
-            text = f"Min: $2^{{{min_neg:.2g}}}$"
+            min_neg = 1/(2**min_neg)
+            text = f"Min: $\\frac{{1}}{{{min_neg:.1f}}}$"
         else:
             text = f"Min: {min_neg:.2g}"
         y_min, y_max = ax.get_ylim()
@@ -692,6 +695,7 @@ if __name__ == "__main__":
             r"\usepackage[T1]{fontenc}",
             r"\usepackage{libertine}",
             r"\usepackage{newtxtext,newtxmath}",
+            r"\usepackage{amsmath}",
         ]))
         plt.rcParams.update({
             "font.size": 22,
