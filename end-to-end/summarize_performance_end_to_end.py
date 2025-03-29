@@ -228,21 +228,27 @@ def plot_speedup(
 
     if plot_type == "log2_speedup":
         def power_of_two_formatter(x, pos):
-            if x == 0:
-                return "1"
-            return f"$2^{{{x:.1g}}}$"
+            x = 2**x
+            if (x < 1):
+                x = 1/x
+                return f"$\\frac{{1}}{{{x:.3g}}}$"
+            return f"{x:.3g}"
 
         # Apply the custom formatter to the y-axis
         ax.yaxis.set_major_formatter(FuncFormatter(power_of_two_formatter))
 
     # barplot
-    ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
-    ax.bar(
-        range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
-        neg_speedup.values,
-        color="#ca0020",
-        label=f"Slowdown: {neg_speedup.shape[0]}"
-    )
+    if not pos_speedup.empty:
+        label = f"Models: {pos_speedup.shape[0]}" if not neg_speedup.empty else None
+        ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=label)
+    if not neg_speedup.empty:
+        label = f"Models: {neg_speedup.shape[0]}" if not pos_speedup.empty else None
+        ax.bar(
+            range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
+            neg_speedup.values,
+            color="#ca0020",
+            label=label
+        )
 
     # Add line showing that positive outliers clipped
     if clip_pos and len(clipped_pos_indices) > 0:
@@ -253,7 +259,7 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_type == "log2_speedup":
-            text = f"Max: $2^{{{max_pos:.2g}}}$"
+            text = f"Max: {2**max_pos:.3g}"
         else:
             text = f"Max: {max_pos:.2g}"
         ax.text(
@@ -274,7 +280,8 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_type == "log2_speedup":
-            text = f"Min: $2^{{{min_neg:.2g}}}$"
+            min_neg = 1/(2**min_neg)
+            text = f"Min: $\\frac{{1}}{{{min_neg:.3g}}}$"
         else:
             text = f"Min: {min_neg:.2g}"
         y_min, y_max = ax.get_ylim()
@@ -303,10 +310,11 @@ def plot_speedup(
         x_total = pos_speedup.shape[0] + neg_speedup.shape[0]
         ax.set_xlim(left=-x_total*0.02, right=x_total*1.02)
 
-    legend = plt.legend(frameon=True, framealpha=1, handlelength=1)
-    frame = legend.get_frame()
-    frame.set_facecolor('white')
-    frame.set_edgecolor('black')
+    if not pos_speedup.empty and not neg_speedup.empty:
+        legend = plt.legend(frameon=True, framealpha=1, handlelength=1)
+        frame = legend.get_frame()
+        frame.set_facecolor('white')
+        frame.set_edgecolor('black')
 
     if plot_type == "log2_speedup":
         ax.set_ylabel("Speedup")
@@ -314,7 +322,7 @@ def plot_speedup(
         ax.set_ylabel(f"Time Difference ({unit})")
     else:
         ax.set_ylabel("Relative Speedup")
-    ax.set_xlabel(f"Models ({num_points} total)")
+    ax.set_xlabel(f"Models ({num_points} Total)")
     if show_inflection:
         ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
     else:
@@ -456,8 +464,8 @@ if __name__ == "__main__":
         "--plot-type",
         type=str,
         choices=["speedup", "log2_speedup", "time_diff"],
-        default="speedup",
-        help="Data to plot. Speedup is the relative speedup and slowdown, log2_speedup is the log2 of speedup, and time_diff is the difference in time between methods. Default is speedup.",
+        default="log2_speedup",
+        help="Data to plot. Speedup is the relative speedup and slowdown, log2_speedup is the log2 of speedup, and time_diff is the difference in time between methods. Default is log2_speedup.",
     )
 
     args = parser.parse_args()
@@ -499,6 +507,7 @@ if __name__ == "__main__":
             r"\usepackage[T1]{fontenc}",
             r"\usepackage{libertine}",
             r"\usepackage{newtxtext,newtxmath}",
+            r"\usepackage{amsmath}",
         ]))
         plt.rcParams.update({
             "font.size": 22,
