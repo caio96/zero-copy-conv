@@ -241,13 +241,15 @@ def plot_speedup(
 
     # barplot
     if not pos_speedup.empty:
-        ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=f"Speedup: {pos_speedup.shape[0]}")
+        label = f"Layers: {pos_speedup.shape[0]}" if not neg_speedup.empty else None
+        ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=label)
     if not neg_speedup.empty:
+        label = f"Layers: {neg_speedup.shape[0]}" if not pos_speedup.empty else None
         ax.bar(
             range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
             neg_speedup.values,
             color="#ca0020",
-            label=f"Slowdown: {neg_speedup.shape[0]}"
+            label=label
         )
 
     # Add line showing that positive outliers clipped
@@ -310,10 +312,11 @@ def plot_speedup(
         x_total = pos_speedup.shape[0] + neg_speedup.shape[0]
         ax.set_xlim(left=-x_total*0.02, right=x_total*1.02)
 
-    legend = plt.legend(frameon=True, framealpha=1, handlelength=1)
-    frame = legend.get_frame()
-    frame.set_facecolor('white')
-    frame.set_edgecolor('black')
+    if not pos_speedup.empty and not neg_speedup.empty:
+        legend = plt.legend(frameon=True, framealpha=1, handlelength=1)
+        frame = legend.get_frame()
+        frame.set_facecolor('white')
+        frame.set_edgecolor('black')
 
     if plot_type == "log2_speedup":
         ax.set_ylabel("Speedup")
@@ -321,7 +324,8 @@ def plot_speedup(
         ax.set_ylabel(f"Time Difference ({unit})")
     else:
         ax.set_ylabel("Relative Speedup")
-    ax.set_xlabel(f"Conv2D Layers ({num_points} total)")
+    ax.set_xlabel(f"Conv2D Layers ({num_points} Total)")
+    ax.xaxis.set_label_coords(0.5, -0.025)
     if show_inflection:
         ax.set_xticks([0, inflection, num_points], [0, int(inflection), num_points])
     else:
