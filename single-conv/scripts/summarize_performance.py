@@ -92,7 +92,6 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
 def get_speedup(
     joined_results: pd.DataFrame, old_method_name, new_method_name
 ):
-
     # Remove rows where an error occurred in either method
     joined_results = joined_results.loc[
         (joined_results["error_occurred_" + old_method_name] == False)
@@ -102,12 +101,13 @@ def get_speedup(
     speedup_results = pd.DataFrame()
     speedup_results["conv_parameters"] = joined_results["conv_parameters"]
     speedup_results["occurrences"] = joined_results["occurrences"]
-    speedup_results["speedup"] = None
+    speedup_results["speedup"] = joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name]
+    speedup_results["slowdown"] = joined_results["mean_time_" + new_method_name] / joined_results["mean_time_" + old_method_name]
 
     # Compute speedup and slowdown -> results in asymmetric speedup and slowdown where 0 means no change
-    speedup = (joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name]) - 1
-    slowdown = (-1 * joined_results["mean_time_" + new_method_name] / joined_results["mean_time_" + old_method_name]) + 1
-    speedup_results["speedup"] = speedup.where(speedup >= 1, slowdown)
+    speedup_results["relative_change"] = speedup_results.apply(
+        lambda row: row["speedup"]-1 if row["speedup"] >= 1 else (row["slowdown"]-1)*-1, axis=1
+    )
 
     # Compute log2 speedup -> results in symmetric speedup and slowdown
     speedup_results["log2_speedup"] = np.log2(joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name])
@@ -152,25 +152,25 @@ def plot_speedup(
     if plot_type == "time_diff":
         speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)
     else:
-        speedup_results = speedup_results.sort_values(by="speedup", ascending=False)
+        speedup_results = speedup_results.sort_values(by="relative_change", ascending=False)
 
     def weighted_median(df: pd.DataFrame):
         if df.empty:
             return float("nan")
-        df = df.sort_values("speedup")
+        df = df.sort_values("relative_change")
         cumsum = df["occurrences"].cumsum()
         cutoff = df["occurrences"].sum() / 2.0
-        median = df["speedup"][cumsum >= cutoff].iloc[0]
+        median = df["relative_change"][cumsum >= cutoff].iloc[0]
         return median
 
     non_significant_results = speedup_results.loc[lambda x: x.significant == False]
     non_significant_count = non_significant_results.shape[0]
     speedup_results = speedup_results.loc[lambda x: x.significant == True]
 
-    # Save non-significant models to csv if the speedup is greater than 1%
+    # Save non-significant models to csv if the performance change is greater than 1%
     try_rerun_layers = pd.DataFrame()
     if not only_stats:
-        try_rerun_layers["conv_parameters"] = non_significant_results.loc[lambda x: x.speedup > 0.01]["conv_parameters"]
+        try_rerun_layers["conv_parameters"] = non_significant_results.loc[lambda x: np.abs(x.relative_change) > 0.01]["conv_parameters"]
         try_rerun_layers["rerun_methods"] = f"{old_method_name},{new_method_name}"
         try_rerun_layers.to_csv(output_dir / f"{new_method_name}_vs_{old_method_name}_try_rerun.csv", index=False)
 
@@ -179,13 +179,13 @@ def plot_speedup(
 
     inflection = num_points
     for i in range(0, num_points - 1):
-        if speedup_results["speedup"].iloc[i] >= 0 and speedup_results["speedup"].iloc[i + 1] < 0:
+        if speedup_results["relative_change"].iloc[i] >= 0 and speedup_results["relative_change"].iloc[i + 1] < 0:
             inflection = i + 0.5
 
-    pos = speedup_results.loc[lambda x: x.speedup >= 0]
-    neg = speedup_results.loc[lambda x: x.speedup < 0]
-    pos_speedup = pos["speedup"]
-    neg_speedup = neg["speedup"]
+    pos = speedup_results.loc[lambda x: x.relative_change >= 0]
+    neg = speedup_results.loc[lambda x: x.relative_change < 0]
+    pos_speedup = pos["relative_change"]
+    neg_speedup = neg["relative_change"]
     unit = speedup_results["time_unit"].iloc[0]
 
     stats = {
@@ -229,7 +229,7 @@ def plot_speedup(
     fig, ax = plt.subplots(figsize=(9.6, 4.8))
 
     if plot_type == "log2_speedup":
-        def power_of_two_formatter(x, pos):
+        def custom_formatter(x, pos):
             x = 2**x
             if (x < 1):
                 x = 1/x
@@ -237,14 +237,26 @@ def plot_speedup(
             return f"{x:.2g}"
 
         # Apply the custom formatter to the y-axis
-        ax.yaxis.set_major_formatter(FuncFormatter(power_of_two_formatter))
+        ax.yaxis.set_major_formatter(FuncFormatter(custom_formatter))
+    elif plot_type == "speedup":
+        def custom_formatter(x, pos):
+            if (x >= 0):
+                x += 1
+                return f"{x:.3g}"
+            else:
+                x -= 1
+                x *= -1
+                return f"$\\frac{{1}}{{{x:.3g}}}$"
+
+        # Apply the custom formatter to the y-axis
+        ax.yaxis.set_major_formatter(FuncFormatter(custom_formatter))
 
     # barplot
     if not pos_speedup.empty:
-        label = f"Layers: {pos_speedup.shape[0]}" if not neg_speedup.empty else None
+        label = f"Count: {pos_speedup.shape[0]}" if not neg_speedup.empty else None
         ax.bar(pos_speedup.index, pos_speedup, color="#0571b0", label=label)
     if not neg_speedup.empty:
-        label = f"Layers: {neg_speedup.shape[0]}" if not pos_speedup.empty else None
+        label = f"Count: {neg_speedup.shape[0]}" if not pos_speedup.empty else None
         ax.bar(
             range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
             neg_speedup.values,
@@ -262,6 +274,9 @@ def plot_speedup(
         text = ""
         if plot_type == "log2_speedup":
             text = f"Max: {2**max_pos:.1f}"
+        elif plot_type == "speedup":
+            max_pos += 1
+            text = f"Max: {max_pos:.3g}"
         else:
             text = f"Max: {max_pos:.2g}"
         ax.text(
@@ -284,6 +299,10 @@ def plot_speedup(
         if plot_type == "log2_speedup":
             min_neg = 1/(2**min_neg)
             text = f"Min: $\\frac{{1}}{{{min_neg:.1f}}}$"
+        elif plot_type == "speedup":
+            min_neg -= 1
+            min_neg *= -1
+            text = f"Min: $\\frac{{1}}{{{min_neg:.3g}}}$"
         else:
             text = f"Min: {min_neg:.2g}"
         y_min, y_max = ax.get_ylim()
@@ -318,12 +337,10 @@ def plot_speedup(
         frame.set_facecolor('white')
         frame.set_edgecolor('black')
 
-    if plot_type == "log2_speedup":
-        ax.set_ylabel("Speedup")
-    elif plot_type == "time_diff":
+    if plot_type == "time_diff":
         ax.set_ylabel(f"Time Difference ({unit})")
     else:
-        ax.set_ylabel("Relative Speedup")
+        ax.set_ylabel("Speedup")
     ax.set_xlabel(f"Conv2D Layers ({num_points} Total)")
     ax.xaxis.set_label_coords(0.5, -0.025)
     if show_inflection:
