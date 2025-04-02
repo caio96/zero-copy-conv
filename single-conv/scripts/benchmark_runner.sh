@@ -309,8 +309,8 @@ for repeat in $(seq "$REPEATS"); do
     fi
 
     if [[ "$RERUN" == "true" ]]; then
-      rerun_methods="$occurrences"
-      for method in $(echo "$rerun_methods" | tr "," "\n"); do
+      rerun_methods="$occurrences,$models"
+      for method in $(echo "$rerun_methods" | tr -d '"' | tr "," "\n"); do
         # Choose executable based on method to rerun
         if [[ "$method" == "Naive" ]]; then
           executable="$BUILD_DIR/benchmark_naive"
