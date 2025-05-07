@@ -63,6 +63,7 @@ if(USE_MKL)
   if(USE_MKL_JIT)
     set(blas_define "${blas_define} -DUSE_MKL_JIT")
   endif()
+  message("Using MKL for BLAS")
 else()
   # Find BLIS library and headers
   find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
@@ -80,6 +81,7 @@ else()
 
   set(blas_includes "${BLIS_INCLUDE_DIR}")
   set(blas_libraries "${BLIS_LIBRARY}")
+  message("Using BLIS for BLAS")
 endif()
 
 # Find BLIS library and headers, there is no automatic package
