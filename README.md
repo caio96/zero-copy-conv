@@ -213,11 +213,13 @@ cmake -DCMAKE_C_COMPILER=clang                                \
       -DBLIS_YACONV_INSTALL="/path/to/blis-conv-install"      \
       -DUSE_MKL="[ON/OFF]"                                    \
       -DUSE_MKL_JIT="[ON/OFF]"                                \
+      -DUSE_FIXED_ITERATIONS="[ON/OFF]"                       \
       ..
 ```
 
 - If USE_MKL is set OFF, Blis is used as a BLAS library.
 - If USE_MKL_JIT is set ON, the Zero Copy Convolution may use MKL's jit for some GEMM configurations.
+- If USE_FIXED_ITERATIONS is set ON, benchmarks will run for a fixed number of iterations instead of running for minimum amount of time (useful for profiling runs).
 
 ## Running Benchmarks
 
