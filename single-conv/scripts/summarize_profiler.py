@@ -37,6 +37,8 @@ def perf_log_to_df(input_log : Path):
                 counter = line.split(',')[2]
                 counters.add(counter)
                 count = line.split(',')[0]
+                if count == "<not counted>" or count == "<not supported>":
+                    count = -1
                 data[counter].append(count)
 
     df = pd.DataFrame(data)
@@ -75,7 +77,7 @@ def perf_log_to_df(input_log : Path):
             )
 
         joined_results = joined_results.rename(columns={"conv_parameters": counter}).set_index(counter)
-        joined_results = joined_results.transpose().reset_index().rename(columns={"index": counter}).set_index(counter)
+        joined_results = joined_results.transpose().reset_index().rename(columns={"index": counter}).set_index(counter).fillna(-1)
         print(tabulate(joined_results, headers="keys", tablefmt="psql"))
 
 
