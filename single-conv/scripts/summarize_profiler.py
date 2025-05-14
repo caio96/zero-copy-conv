@@ -75,6 +75,7 @@ def perf_log_to_df(input_log : Path):
             )
 
         joined_results = joined_results.rename(columns={"conv_parameters": counter}).set_index(counter)
+        joined_results = joined_results.transpose().reset_index().rename(columns={"index": counter}).set_index(counter)
         print(tabulate(joined_results, headers="keys", tablefmt="psql"))
 
 
