@@ -60,6 +60,7 @@ function CheckPerfParanoid()
 
 BATCH_SIZE="1"
 REPEATS="1"
+PERF_REPEATS="1"
 PARALLEL_SINGLE_THREAD_MODE="false"
 APPEND_OUTPUT="false"
 CHECK_CORRECTNESS="false"
@@ -201,6 +202,8 @@ if [[ $PROFILE == "true" ]]; then
 
   CheckPerfParanoid
   PROFILE_OUTPUT=$(realpath "$PROFILE_OUTPUT")
+  PERF_REPEATS="$REPEATS"
+  REPEATS="1"
 fi
 
 # Create list with all executables found in build folder that start with "benchmark_"
@@ -340,7 +343,7 @@ for repeat in $(seq "$REPEATS"); do
 
     PERF_COMMAND=""
     if [[ "$PROFILE" == "true" ]]; then
-      PERF_COMMAND="perf stat -x, -r10 -e "page-faults,cpu_core/dTLB-loads/,cpu_core/dTLB-load-misses/,cpu_core/L1-dcache-loads/,cpu_core/L1-dcache-stores/,cpu_core/L1-dcache-load-misses/,cpu_core/LLC-loads/,cpu_core/LLC-loads-misses/,cpu_core/LLC-stores/,cpu_core/LLC-store-misses/" -o $PROFILE_OUTPUT --append"
+      PERF_COMMAND="perf stat -x, -r${PERF_REPEATS} -e "page-faults,cpu_core/dTLB-loads/,cpu_core/dTLB-load-misses/,cpu_core/L1-dcache-loads/,cpu_core/L1-dcache-stores/,cpu_core/L1-dcache-load-misses/,cpu_core/LLC-loads/,cpu_core/LLC-loads-misses/,cpu_core/LLC-stores/,cpu_core/LLC-store-misses/" -o $PROFILE_OUTPUT --append"
     fi
 
     # Check correctness
