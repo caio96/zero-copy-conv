@@ -58,6 +58,7 @@ function CheckPerfParanoid()
   fi
 }
 
+RUN_ZCONV_BLIS="false"
 BATCH_SIZE="1"
 REPEATS="1"
 PERF_REPEATS="1"
@@ -72,7 +73,7 @@ PROFILE_OUTPUT=""
 CORE_RANGE="0-$(numactl --show | grep "physcpubind" | sed 's/[[:blank:]]*$//' | tr -s ' ' | rev | cut -d ' ' -f 1 | rev)"
 
 # Parse Arguments
-PARSED_ARGUMENTS=$(getopt -a -n "benchmark_runner" -o hv --long append-output,parallel-single-thread-mode,check-correctness,repeats:,batch-size:,threads:,core-range:,rerun,save-profile: -- "$@")
+PARSED_ARGUMENTS=$(getopt -a -n "benchmark_runner" -o hv --long append-output,parallel-single-thread-mode,check-correctness,repeats:,batch-size:,threads:,core-range:,rerun,save-profile:,run-zconv-blis -- "$@")
 if [ $? -ne 0 ]; then
   echo "Invalid option." >&2
   Help
@@ -125,6 +126,10 @@ while true; do
       PROFILE_OUTPUT="$2"
       PROFILE="true"
       shift 2
+      ;;
+    --run-zconv-blis)
+      RUN_ZCONV_BLIS="true"
+      shift
       ;;
     --)
       shift
@@ -212,6 +217,12 @@ for executable in $(find "$BUILD_DIR" -type f -name "benchmark_*" | sort); do
   # If executable contains the word naive, skip it
   if [[ "$executable" =~ ^.*naive.*$ ]] ; then
     continue
+  fi
+  # Do not execute zconv_blis unless explicitly enabled
+  if [[ "$executable" =~ ^.*blis.*$ ]]; then
+    if [[ "$RUN_ZCONV_BLIS" == "false" ]]; then
+        continue
+    fi
   fi
   # Do not execute yaconv in multithreaded runs
   if [[ "$executable" =~ ^.*yaconv.*$ ]]; then
