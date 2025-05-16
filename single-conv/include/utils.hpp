@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#define ITERATION_NUMBER 1000
+
 #include <cstdlib>
 #include <vector>
 

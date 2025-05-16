@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
       ->Unit(benchmark::kMillisecond)
       ->MeasureProcessCPUTime()
 #ifdef FIXED_ITERATIONS
-      ->Iterations(500)
+      ->Iterations(ITERATION_NUMBER)
 #else
       ->MinWarmUpTime(0.1)
       ->MinTime(0.5)
