@@ -45,11 +45,16 @@ find_package(OpenMP REQUIRED)
 find_package(DNNL REQUIRED)
 
 option(USE_MKL "Use Intel MKL as BLAS. Default is to use Blis" OFF)
+option(BUILD_ZCONV_BLIS "If MKL is being used as blas, enable this option to build an additional zconv binary that uses BLIS" OFF)
 option(USE_MKL_JIT "Use MKL to jit the main gemm colled by Zero Copy Conv." OFF)
 option(USE_FIXED_ITERATIONS "Run each benchmark a fixed number of iterations" OFF)
 
 if(NOT USE_MKL AND USE_MKL_JIT)
   message(FATAL_ERROR "USE_MKL must be set to ON when USE_MKL_JIT is ON.")
+endif()
+
+if(NOT USE_MKL AND BUILD_ZCONV_BLIS)
+  message(FATAL_ERROR "USE_MKL must be set to ON when BUILD_ZCONV_BLIS is ON.")
 endif()
 
 set(blas_includes "")
@@ -189,3 +194,33 @@ target_link_libraries(
   ${BLIS_YACONV_LIBRARY_DIR} OpenMP::OpenMP_C)
 set_target_properties(
   correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS} ${blas_define}")
+
+# Zconv convolution using BLIS ------------------------------------------------
+if(BUILD_ZCONV_BLIS)
+  # Find BLIS library and headers
+  find_path(BLIS_INCLUDE_DIR blis PATHS "${BLIS_INSTALL}/include")
+  find_library(
+    BLIS_LIBRARY
+    NAMES blis
+    PATHS "${BLIS_INSTALL}/lib")
+
+  if(NOT BLIS_INCLUDE_DIR OR NOT BLIS_LIBRARY)
+    message(
+      FATAL_ERROR
+        "BLIS not found. Please specify the BLIS installation path using -DBLIS_INSTALL=<path>. This path should contain 'include' and 'lib' directories."
+    )
+  endif()
+
+  set(blas_includes "${BLIS_INCLUDE_DIR}")
+  set(blas_libraries "${BLIS_LIBRARY}")
+
+  add_executable(benchmark_zero_copy_blis src/driver.cpp src/kernel_conv_zero_copy.c
+                                     src/utils.cpp)
+  target_include_directories(
+    benchmark_zero_copy_blis PRIVATE ${PROJECT_SOURCE_DIR}/include ${BLIS_INCLUDE_DIR})
+  target_link_libraries(benchmark_zero_copy_blis benchmark::benchmark
+                        ${BLIS_LIBRARY} OpenMP::OpenMP_C)
+  set_target_properties(benchmark_zero_copy_blis
+                        PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${run_mode_define}")
+endif()
+
