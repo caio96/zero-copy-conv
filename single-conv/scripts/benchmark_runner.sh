@@ -15,6 +15,7 @@ function Help()
    echo -e "\t--rerun: Specify the csv file that contains 'conv_parameters' and 'rerun_methods', only these configurations will be run."
    echo -e "\t--check-correctness: Run each benchmark once to check correctness. Ignores --repeats and --append-output."
    echo -e "\t--parallel-single-thread-mode: Run each benchmark with a single thread but in parallel, using the configuration set with --threads and --core-range."
+   echo -e "\t--run-zconv-blis: Enable running benchmark-zconv-blis if found, which is ignored by default."
    echo -e "\t-h: Print this Help."
    echo -e "\t-v: Verbose mode."
    echo
@@ -394,7 +395,8 @@ for repeat in $(seq "$REPEATS"); do
           continue
         fi
 
-        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
+        # head is needed when perf has repetition, causing the csv header to print multiple times
+        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 | head -n 1 >> "$OUTPUT_LOG"
         if [[ "$PROFILE" == "true" ]]; then
           # append run information to profile output
           tail -n 1 "$OUTPUT_LOG" >> "$PROFILE_OUTPUT"
@@ -403,7 +405,7 @@ for repeat in $(seq "$REPEATS"); do
     else
       # For each executable (shuffled order)
       for executable in $(shuf -e "${executables[@]}"); do
-        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
+        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 | head -n 1 >> "$OUTPUT_LOG"
         if [[ "$PROFILE" == "true" ]]; then
           # append run information to profile output
           tail -n 1 "$OUTPUT_LOG" >> "$PROFILE_OUTPUT"
