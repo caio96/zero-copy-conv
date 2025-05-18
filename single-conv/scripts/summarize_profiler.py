@@ -35,6 +35,8 @@ def perf_log_to_df(input_log : Path):
                 data['error_occurred'].append(line.split(',')[8])
             else:
                 counter = line.split(',')[2]
+                if '/' in counter:
+                    counter = counter.split("/")[1]
                 counters.add(counter)
                 count = line.split(',')[0]
                 if count == "<not counted>" or count == "<not supported>":
@@ -60,7 +62,7 @@ def perf_log_to_df(input_log : Path):
         print("Only one method found. No comparison possible.", file=sys.stderr)
         sys.exit(-1)
 
-    for counter in counters:
+    for counter in sorted(counters):
         joined_results = pd.merge(
             df_dict[method_names[0]][["conv_parameters", counter]].rename(columns={counter: method_names[0]}),
             df_dict[method_names[1]][["conv_parameters", counter]].rename(columns={counter: method_names[1]}),
