@@ -16,7 +16,7 @@ import scipy.stats as st
 from matplotlib.ticker import FuncFormatter
 
 
-def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_method : str = None, old_method : str = None):
+def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_method : str = None, old_method : str = None, relative : bool = False):
 
     data = defaultdict(list)
     counters = set()
@@ -58,7 +58,7 @@ def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_
     df_dict = {}
     for name, group in groups:
         name = name[0]
-        df_dict[name] = group.sort_values(by=["conv_parameters"]).reset_index(drop=True)
+        df_dict[name] = group.reset_index(drop=True)
 
     # Join results by 'conv_parameters'
     method_names = list(df_dict.keys())
@@ -92,20 +92,20 @@ def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_
             )
 
         if new_method is not None:
-            for method_name in method_names:
-                if method_name == new_method:
-                    continue
-                else:
-                    joined_results[method_name] = joined_results[method_name].astype("Int64") / joined_results[new_method].astype("Int64")
-            joined_results[new_method] = 1
+            if relative:
+                for method_name in method_names:
+                    if method_name == new_method:
+                        continue
+                    else:
+                        joined_results[method_name] = joined_results[method_name].astype("Int64") / joined_results[new_method].astype("Int64")
+                joined_results[new_method] = 1
 
             if old_method is not None:
                 cols = ["conv_parameters", old_method, new_method]
                 joined_results = joined_results[cols].dropna()
 
         joined_results = joined_results.rename(columns={"conv_parameters": counter}).set_index(counter)
-        # joined_results = joined_results.transpose().reset_index().rename(columns={"index": counter}).set_index(counter)
-        print(tabulate(joined_results, headers="keys", tablefmt="psql"))
+        print(tabulate(joined_results, headers="keys", tablefmt="psql", floatfmt=".1f"))
 
 
 if __name__ == "__main__":
@@ -125,18 +125,24 @@ if __name__ == "__main__":
     parser.add_argument(
         "--new-method",
         type=str,
-        help="Name of the new method to be compared. If provided, results are relative to the new method, otherwise absolute values are shown.",
+        help="Name of the new method to be compared.",
     )
     parser.add_argument(
         "--old-method",
         type=str,
         help="Name of the old method to be compared. If not provided, all methods are shown.",
     )
+    parser.add_argument(
+        "--relative",
+        action="store_true",
+        help="If enabled, results are relative to the new method, otherwise absolute values are shown.",
+    )
 
     args = parser.parse_args()
     incorrect_convs = args.incorrect_convs
     old_method = args.old_method
     new_method = args.new_method
+    relative = args.relative
 
     input_log = Path(args.Log_Input)
 
@@ -146,7 +152,7 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     if new_method is None and old_method is not None:
-        print("Please only providing old_method is not supported.", file=sys.stderr)
+        print("Only providing old_method is not supported.", file=sys.stderr)
         sys.exit(-1)
 
     incorrect_conv_df = None
@@ -157,5 +163,5 @@ if __name__ == "__main__":
             sys.exit(-1)
         incorrect_conv_df = pd.read_csv(incorrect_convs, header=0, index_col=False)
 
-    df = perf_log_to_df(input_log, incorrect_conv_df, new_method, old_method)
+    df = perf_log_to_df(input_log, incorrect_conv_df, new_method, old_method, relative)
 
