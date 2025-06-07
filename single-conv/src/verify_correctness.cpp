@@ -332,7 +332,7 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
       input_NCHW, filters_OIHW, batch, input_height, input_width,
       input_channels, filter_height, filter_width, output_height, output_width,
       output_channels, padding_height, padding_width, stride_h, stride_w,
-      dilation_h, dilation_w, groups, bias);
+      dilation_h, dilation_w, groups, bias).contiguous(torch::MemoryFormat::ChannelsLast);
   output_torch_NHWC = output_tensor_nhwc.const_data_ptr<float>();
 
   // PyTorch reference output in NCHW layout
