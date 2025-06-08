@@ -18,7 +18,7 @@ int modulo(int a, int b) {
 // used in BLIS.
 // - Input is in NHWC format
 // - Filters are in HWIO format
-// - Output is in NWHC format (height and width are transposed)
+// - Output is in NHWC format
 void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
                        float *__restrict__ filters, int N, int H, int W, int C,
                        int FH, int FW, int OH, int OW, int M, int PH, int PW,
@@ -120,7 +120,7 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
 //
 // - Input is in NHWC format
 // - Filters are in HWIO format
-// - Output is in NWHC format (height and width are transposed)
+// - Output is in NHWC format
 void conv_2d_zero_copy_ext(float *__restrict__ input,
                            float *__restrict__ output,
                            float *__restrict__ filters, int N, int H, int W,
