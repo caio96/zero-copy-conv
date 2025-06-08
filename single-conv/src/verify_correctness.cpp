@@ -156,7 +156,7 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
     int lda = input_width * input_channels * stride_h;
     int ldb = output_channels;
     float beta = 1.0f;
-    int ldc = output_channels;
+    int ldc = output_channels * output_width;
     status =
         mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
                              m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
@@ -168,7 +168,7 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
     int lda = std::min(filter_width, input_width) * input_channels / groups;
     int ldb = output_channels;
     float beta = 1.0f;
-    int ldc = output_channels;
+    int ldc = output_channels * output_width;
     status =
         mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
                              m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
@@ -304,7 +304,6 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
   // Allocate memory for outputs
   float *output_im2col_NCHW = new float[output_size];
   float *output_yaconv_NHWC = new float[output_size];
-  float *output_zero_copy_NWHC = new float[output_size];
   float *output_zero_copy_NHWC = new float[output_size];
   const float *output_torch_NCHW;
   const float *output_torch_NHWC;
@@ -376,15 +375,11 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
   }
 
   // Run ZeroCopy convolution
-  conv_2d_zero_copy(input_NHWC, output_zero_copy_NWHC, filters_HWIO, batch,
+  conv_2d_zero_copy(input_NHWC, output_zero_copy_NHWC, filters_HWIO, batch,
                     input_height, input_width, input_channels, filter_height,
                     filter_width, output_height, output_width, output_channels,
                     padding_height, padding_width, stride_h, stride_w,
                     dilation_h, dilation_w, groups, bias);
-
-  // Transpose HW of zero copy as it flips HW to WH
-  NWHC_to_NHWC(output_zero_copy_NWHC, output_zero_copy_NHWC, batch,
-               output_channels, output_height, output_width);
 
   // Print output header
   print_header();
@@ -422,7 +417,6 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
   delete[] filters_HWIO;
   delete[] output_im2col_NCHW;
   delete[] output_yaconv_NHWC;
-  delete[] output_zero_copy_NWHC;
   delete[] output_zero_copy_NHWC;
 }
 

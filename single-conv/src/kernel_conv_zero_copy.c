@@ -42,9 +42,9 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
       for (int i = 0; i < OH; ++i) {
         for (int j = 0; j < M; ++j) {
           if (bias != NULL)
-            single_output[ow * OH * M + i * M + j] = bias[j];
+            single_output[i * OW * M + ow * M + j] = bias[j];
           else
-            single_output[ow * OH * M + i * M + j] = 0.0f;
+            single_output[i * OW * M + ow * M + j] = 0.0f;
         }
       }
 
@@ -84,12 +84,12 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         // Start of the image block of size OH,FW,C
         a = &single_input[height_start * W * C + width_start * C];
 
-        // Start of the output block of size 1,OH,M
+        // Start of the output block of size OH,1,M
         if (height_offset < 0) {
           int offset = floorf(height_offset / (float)SH);
-          c = &single_output[ow * OH * M - offset * M];
+          c = &single_output[ow * M - offset * OW * M];
         } else {
-          c = &single_output[ow * OH * M];
+          c = &single_output[ow * M];
         }
 
         int M_dim = height_slice;
@@ -104,10 +104,11 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         } else {
 #endif
           cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
-                      K_dim, alpha, a, W * C * SH, b, N_dim, beta, c, N_dim);
+                      K_dim, alpha, a, W * C * SH, b, N_dim, beta, c, N_dim * OW);
 #if defined USE_MKL_JIT
         }
 #endif
+
       }
     }
   }
@@ -150,9 +151,9 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
       for (int i = 0; i < OH; ++i) {
         for (int j = 0; j < M; ++j) {
           if (bias != NULL)
-            single_output[ow * OH * M + i * M + j] = bias[j];
+            single_output[i * OW * M + ow * M + j] = bias[j];
           else
-            single_output[ow * OH * M + i * M + j] = 0.0f;
+            single_output[i * OW * M + ow * M + j] = 0.0f;
         }
       }
 
@@ -217,9 +218,9 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
           // Start of the output block of size 1,OH,M
           if (height_offset < 0) {
             int offset = floorf(height_offset / (float)SH);
-            c = &single_output[ow * OH * M - offset * M + gr * M_GR];
+            c = &single_output[ow * M - offset * OW * M + gr * M_GR];
           } else {
-            c = &single_output[ow * OH * M + gr * M_GR];
+            c = &single_output[ow * M + gr * M_GR];
           }
 
           int M_dim = height_slice;
@@ -234,7 +235,7 @@ void conv_2d_zero_copy_ext(float *__restrict__ input,
           } else {
 #endif
             cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
-                        K_dim, alpha, a, K_dim, b, M, beta, c, M);
+                        K_dim, alpha, a, K_dim, b, M, beta, c, M * OW);
 #if defined USE_MKL_JIT
           }
 #endif

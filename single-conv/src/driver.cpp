@@ -141,7 +141,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     int lda = input_width * input_channels * stride_h;
     int ldb = output_channels;
     float beta = 1.0f;
-    int ldc = output_channels;
+    int ldc = output_channels * output_width;
     status =
         mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
                              m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
@@ -153,7 +153,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
     int lda = std::min(filter_width, input_width) * input_channels / groups;
     int ldb = output_channels;
     float beta = 1.0f;
-    int ldc = output_channels;
+    int ldc = output_channels * output_width;
     status =
         mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
                              m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
