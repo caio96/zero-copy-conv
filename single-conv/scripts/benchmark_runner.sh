@@ -396,7 +396,7 @@ for repeat in $(seq "$REPEATS"); do
         fi
 
         # head is needed when perf has repetition, causing the csv header to print multiple times
-        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 | head -n 1 >> "$OUTPUT_LOG"
+        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
         if [[ "$PROFILE" == "true" ]]; then
           # append run information to profile output
           tail -n 1 "$OUTPUT_LOG" >> "$PROFILE_OUTPUT"
@@ -405,7 +405,7 @@ for repeat in $(seq "$REPEATS"); do
     else
       # For each executable (shuffled order)
       for executable in $(shuf -e "${executables[@]}"); do
-        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 | head -n 1 >> "$OUTPUT_LOG"
+        numactl --physcpubind "$CORE_RANGE" $PERF_COMMAND "$executable" ${conv_parameters} 2> /dev/null | tail -n +2 >> "$OUTPUT_LOG"
         if [[ "$PROFILE" == "true" ]]; then
           # append run information to profile output
           tail -n 1 "$OUTPUT_LOG" >> "$PROFILE_OUTPUT"

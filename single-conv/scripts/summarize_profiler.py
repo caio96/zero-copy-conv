@@ -40,7 +40,7 @@ def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_
                 counters.add(counter)
                 count = line.split(',')[0]
                 if count == "<not counted>" or count == "<not supported>":
-                    count = -1
+                    count = np.nan
                 data[counter].append(count)
 
     df = pd.DataFrame(data)
