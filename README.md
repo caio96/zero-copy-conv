@@ -99,7 +99,7 @@ Data type used is float32.
 | Naive             | NCHW           | OIHW          | NCHW          | :x:                |
 | Im2col            | NCHW           | OIHW          | NCHW          | :white_check_mark: |
 | Yaconv            | NHWC           | HWIO          | NHWC          | :x:                |
-| ZeroCopy          | NHWC           | HWIO          | NWHC          | :white_check_mark: |
+| ZeroCopy          | NHWC           | HWIO          | NHWC          | :white_check_mark: |
 | OneDNN_any        | ??             | ??            | ??            | :white_check_mark: |
 | LibTorch_ZeroCopy | NHWC           | HWIO          | NHWC          | :white_check_mark: |
 | LibTorch          | NHWC           | OHWI          | NHWC          | :white_check_mark: |
@@ -300,8 +300,6 @@ Zero-Copy Convolution is integrated to the convolution selector in PyTorch and i
 The execution of ZeroCopy2d in PyTorch is controlled by the following environment variables.
 - <code>ZC_ENABLE=[TRUE/**FALSE**]</code>: Enables ZeroCopy2d
 - <code>ZC_TIME=[TRUE/**FALSE**]</code>: Prints the parameters and execution time of the convolution layers run in the model
-- <code>ZC_TRANSFORM_OUTPUT=[**TRUE**/FALSE]</code>: If set to FALSE, disables the transposition of `WH` to `HW` of the output.
-    - Disabling the transformation is not supported and may generated incorrect results
 - <code>ZC_HEURISTIC=[**TRUE**/FALSE]</code>: If set to FALSE, the heuristic that decides whether to use ZeroCopy2d (and ZeroCopy2d_Ext) is ignored. Thus, ZeroCopy2d is always used.
 - <code>ZC_WEIGHTS_LAYOUT=[**HWIO**/OHWI]</code>: If set to HWIO, Pytorch only runs ZeroCopy2d if the weight layout is HWIO and scripts will change the weight layout to HWIO before running ZeroCopy2d.
 

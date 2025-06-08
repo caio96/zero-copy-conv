@@ -11,7 +11,6 @@ from tqdm import tqdm
 def run_model_zc_heuristic(source, model_name, batch_size, output_csv):
     os.environ["ZC_ENABLE"] = "TRUE"
     os.environ["ZC_TIME"] = "FALSE"
-    os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
     os.environ["ZC_HEURISTIC"] = "TRUE"
     os.environ["ZC_WEIGHTS_LAYOUT"] = "HWIO"
     try:

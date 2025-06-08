@@ -160,24 +160,7 @@ void compute_output_dims(int input_height, int input_width, int filter_height,
                         1);
 }
 
-void set_zero_copy_2d_env_vars(bool &weights_HWIO, bool &transform_output) {
-  if (const char *env = std::getenv("ZC_TRANSFORM_OUTPUT")) {
-    std::string env_str(env);
-    if (env_str == "FALSE") {
-      transform_output = false;
-    } else if (env_str == "TRUE") {
-      transform_output = true;
-    } else {
-      std::cerr << "Invalid value for ZC_TRANSFORM_OUTPUT: " << env_str
-                << std::endl;
-    }
-  // If the environment variable is not set, use default
-  } else {
-    transform_output = true;
-    std::string true_str{"TRUE"};
-    setenv("ZC_TRANSFORM_OUTPUT", true_str.c_str(), 1);
-  }
-
+void set_zero_copy_2d_env_vars(bool &weights_HWIO) {
   if (const char *env = std::getenv("ZC_WEIGHTS_LAYOUT")) {
     std::string env_str(env);
     if (env_str == "HWIO") {

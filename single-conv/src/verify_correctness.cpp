@@ -82,7 +82,7 @@ torch::Tensor conv_2d_torch_zero_copy(
     int filter_width, int output_height, int output_width, int output_channels,
     int padding_height, int padding_width, int stride_h, int stride_w,
     int dilation_h, int dilation_w, int groups, float *__restrict__ bias,
-    bool zc_weights_HWIO, bool zc_transform_output) {
+    bool zc_weights_HWIO) {
 
   torch::TensorOptions tensor_options =
       torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
@@ -125,13 +125,6 @@ torch::Tensor conv_2d_torch_zero_copy(
         input_tensor, filters_tensor, {filter_height, filter_width},
         bias_tensor, {stride_h, stride_w}, {padding_height, padding_width},
         {dilation_h, dilation_w}, groups);
-  }
-
-  // Transpose HW if ZeroCopy2D is enabled and the output transform was disabled
-  if (!zc_transform_output) {
-    // NCWH -> NCHW (dimension order follows contiguous layout)
-    output_tensor_zc = output_tensor_zc.permute({0, 1, 3, 2})
-                           .contiguous(torch::MemoryFormat::ChannelsLast);
   }
 
   return output_tensor_zc;
@@ -221,8 +214,7 @@ void print_error_for_all(std::vector<std::string> &methods,
   }
 }
 
-void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
-                        bool zc_transform_output) {
+void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO) {
   // Convolution parameters
   int batch = arguments[0];
   int input_channels = arguments[1];
@@ -353,8 +345,7 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
       input_NCHW, filters_OIHW, batch, input_height, input_width,
       input_channels, filter_height, filter_width, output_height, output_width,
       output_channels, padding_height, padding_width, stride_h, stride_w,
-      dilation_h, dilation_w, groups, bias, zc_weights_HWIO,
-      zc_transform_output);
+      dilation_h, dilation_w, groups, bias, zc_weights_HWIO);
   output_torch_zc_NHWC = output_tensor_zc.const_data_ptr<float>();
 
   // Run Im2col convolution
@@ -428,11 +419,10 @@ int main(int argc, char *argv[]) {
 
   // Get PyTorch ZeroCopy2D related environment variables
   bool zc_weights_HWIO;
-  bool zc_transform_output;
-  set_zero_copy_2d_env_vars(zc_weights_HWIO, zc_transform_output);
+  set_zero_copy_2d_env_vars(zc_weights_HWIO);
 
   // Verify correctness
-  verify_correctness(arguments, zc_weights_HWIO, zc_transform_output);
+  verify_correctness(arguments, zc_weights_HWIO);
 
   return 0;
 }
