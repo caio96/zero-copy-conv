@@ -516,9 +516,11 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
     marker=['o', 'v', '^', '<', '>', 's', 'p', '*', 'X']
 
     name_translation = {
-            "ZeroCopy_jit": "ZConv",
+            "ZeroCopy_jit": "ZConv_T", # transposed HW
+            "ZeroCopy_no_transpose_mkl_jit": "ZConv", # transposed HW
             "OneDNN_jit": "OneDNN",
-            "LibTorch_ZeroCopy2D_HWIO_TransformOutput": "Torch_ZConv",
+            "LibTorch_ZeroCopy2D_HWIO_TransformOutput": "Torch_ZConv_T", # transposed HW
+            "LibTorch_ZeroCopy2D_no_transpose_HWIO": "Torch_ZConv",
             "LibTorch": "Torch",
             "Im2col": "Im2col",
             "Yaconv": "Yaconv",
@@ -756,7 +758,7 @@ if __name__ == "__main__":
             )
     else:
         if preset_comparisons:
-            comparisons = [("Im2col", "ZeroCopy_jit"), ("Yaconv", "ZeroCopy_jit"), ("OneDNN_any", "ZeroCopy_jit"), ("LibTorch", "LibTorch_ZeroCopy2D_HWIO_TransformOutput")]
+            comparisons = [("Im2col", "ZeroCopy_no_transpose_mkl_jit"), ("Yaconv", "ZeroCopy_no_transpose_mkl_jit"), ("OneDNN_any", "ZeroCopy_no_transpose_mkl_jit"), ("LibTorch", "LibTorch_ZeroCopy2D_no_transpose_HWIO")]
             for method1, method2 in comparisons:
                 if method1 not in methods or method2 not in methods:
                     continue
