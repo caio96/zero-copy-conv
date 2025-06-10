@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
 #if defined ZERO_COPY
   bool zc_weights_HWIO;
   set_zero_copy_2d_env_vars(zc_weights_HWIO);
-  std::string name{"LibTorch_ZeroCopy2D"};
+  std::string name{"LibTorch_ZeroCopy2D_no_transpose"};
   if (zc_weights_HWIO) {
     name += "_HWIO";
   } else {

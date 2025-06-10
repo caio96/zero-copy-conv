@@ -218,11 +218,11 @@ int main(int argc, char **argv) {
 #elif defined YACONV
   std::string name{"Yaconv"};
 #elif defined ZERO_COPY && defined USE_MKL_JIT
-  std::string name{"ZeroCopy_jit"};
+  std::string name{"ZeroCopy_no_transpose_mkl_jit"};
 #elif defined ZERO_COPY && defined USE_MKL
-  std::string name{"ZeroCopy_mkl"};
+  std::string name{"ZeroCopy_no_transpose_mkl"};
 #elif defined ZERO_COPY
-  std::string name{"ZeroCopy_blis"};
+  std::string name{"ZeroCopy_no_transpose_blis"};
 #else
   std::string name{"Unknown"};
 #endif
