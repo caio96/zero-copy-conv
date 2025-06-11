@@ -419,14 +419,14 @@ def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_s
     }
 
     # Remove rows where speedup or slowdown is less than 0.01
-    speedup_results = speedup_results.loc[lambda x: x.speedup.abs() >= 0.01].copy()
+    speedup_results = speedup_results.loc[lambda x: x.relative_change.abs() >= 0.01].copy()
 
     for category in get_categories():
         df = include_only_in_df(speedup_results, [category])
         if df.empty:
             continue
-        pos = df.loc[lambda x: x.speedup >= 0]
-        neg = df.loc[lambda x: x.speedup < 0]
+        pos = df.loc[lambda x: x.relative_change >= 0]
+        neg = df.loc[lambda x: x.relative_change < 0]
         stats["Category"].append(category)
         stats["Speedup Count"].append(pos.shape[0])
         stats["Slowdown Count"].append(neg.shape[0])
