@@ -164,11 +164,11 @@ def run_model(
                 writer.writerow([model_name, method_name, t, "s"])
     else:
         # Calculate statistics
-        median_time = np.median(times)
+        mean_time = np.mean(times)
         iqr = np.percentile(times, 75) - np.percentile(times, 25)
         stats = {
             "Model": [model_name],
-            "Median": [median_time * 1000],
+            "Mean": [mean_time * 1000],
             "IQR": [iqr * 1000],
             "Unit": ["ms"],
             "Runs": [runs],

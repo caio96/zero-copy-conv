@@ -17,7 +17,7 @@ def print_models(df: pd.DataFrame):
     for model in df["models"]:
         models.update(model.split(" "))
 
-    for model in models:
+    for model in sorted(models):
         print(model)
 
 
