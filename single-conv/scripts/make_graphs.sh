@@ -28,3 +28,9 @@ mkdir -p "$INPUT_DIR"/paper-graphs/1-thread "$INPUT_DIR"/paper-graphs/1-thread-z
 
 # copy conv_layers_yaconv_supported.csv from data/ to the input dir
 ./summarize_performance.py "$INPUT_DIR"/cdol01-performance-1-thread-zconv-blis.csv "$INPUT_DIR"/conv_layers_yaconv_supported.csv "$INPUT_DIR"/paper-graphs/1-thread-zconv-blis --plot-type log2_speedup --clip-pos --clip-neg --old-method Yaconv --new-method ZeroCopy_no_transpose_blis
+
+mkdir -p "$INPUT_DIR"/perf/tables
+
+./summarize_profiler.py "$INPUT_DIR"/perf/perf.txt --incorrect-convs "$INPUT_DIR"/correctness/1-thread/incorrect-convolutions.csv --new-method ZeroCopy_no_transpose_blis --old-method Yaconv --relative > "$INPUT_DIR"/perf/tables/zconv_blis_vs_yaconv.txt
+./summarize_profiler.py "$INPUT_DIR"/perf/perf.txt --new-method ZeroCopy_no_transpose_mkl_jit --old-method Im2col --relative > "$INPUT_DIR"/perf/tables/zconv_vs_im2col.txt
+./summarize_profiler.py "$INPUT_DIR"/perf/perf.txt --new-method LibTorch_ZeroCopy2D_no_transpose_HWIO --old-method LibTorch --relative > "$INPUT_DIR"/perf/tables/libtorch_zconv_vs_libtorch.txt
