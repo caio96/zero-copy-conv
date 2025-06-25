@@ -93,7 +93,7 @@ RUN git clone https://github.com/caio96/blis-yaconv.git blis-yaconv && \
                 auto && \
     make install -j
 
-# Build zconv binaries
+# Install zconv single conv eval binaries
 WORKDIR ${BUILD_DIR}
 RUN git clone https://github.com/caio96/zero-copy-conv.git zconv-eval && \
     cd zconv-eval/single-conv && \
@@ -109,7 +109,9 @@ RUN git clone https://github.com/caio96/zero-copy-conv.git zconv-eval && \
           -DBUILD_ZCONV_BLIS="ON"                                  \
           -DUSE_FIXED_ITERATIONS="OFF"                             \
           .. && \
-    make -j
+    make -j && \
+    mkdir ${BUILD_DIR}/zconv-eval-install && \
+    cmake --install . --config Release --prefix ${BUILD_DIR}/zconv-eval-install
 
 CMD ["bash"]
 
