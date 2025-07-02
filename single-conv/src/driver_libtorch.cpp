@@ -98,8 +98,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
 #if defined ZERO_COPY
   // Get PyTorch ZeroCopy2D related environment variables
   bool zc_weights_HWIO;
-  bool zc_transform_output; // Ignored, if output transform is disabled, it won't be timed
-  set_zero_copy_2d_env_vars(zc_weights_HWIO, zc_transform_output);
+  set_zero_copy_2d_env_vars(zc_weights_HWIO);
 
   // Convert filters to HWIO for ZeroCopy2D if enabled
   if (zc_weights_HWIO) {
@@ -144,18 +143,12 @@ int main(int argc, char **argv) {
 
 #if defined ZERO_COPY
   bool zc_weights_HWIO;
-  bool zc_transform_output;
-  set_zero_copy_2d_env_vars(zc_weights_HWIO, zc_transform_output);
-  std::string name{"LibTorch_ZeroCopy2D"};
+  set_zero_copy_2d_env_vars(zc_weights_HWIO);
+  std::string name{"LibTorch_ZeroCopy2D_no_transpose"};
   if (zc_weights_HWIO) {
     name += "_HWIO";
   } else {
     name += "_OHWI";
-  }
-  if (zc_transform_output) {
-    name += "_TransformOutput";
-  } else {
-    name += "_NoTransformOutput";
   }
 #else
   // Disable zero copy convolution
