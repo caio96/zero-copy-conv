@@ -50,7 +50,7 @@ conda install conda-forge::mkl-static==2025.0.0 conda-forge::mkl-include==2025.0
 Build and install
 
 ```sh
-git clone --recursive git@github.com:caio96/pytorch-zero-copy.git pytorch
+git clone --recursive https://github.com/caio96/pytorch-zero-copy.git pytorch
 cd pytorch
 git checkout v2.5.1-zero-copy
 git submodule sync
@@ -75,7 +75,7 @@ conda install libpng libjpeg-turbo -c pytorch
 git clone https://github.com/pytorch/vision.git
 cd vision
 git checkout v0.20.1
-MAX_JOBS=8 python setup.py develop
+MAX_JOBS=8 python setup.py install
 ```
 
 ---
