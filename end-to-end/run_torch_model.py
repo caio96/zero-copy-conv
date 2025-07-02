@@ -164,11 +164,11 @@ def run_model(
                 writer.writerow([model_name, method_name, t, "s"])
     else:
         # Calculate statistics
-        median_time = np.median(times)
+        mean_time = np.mean(times)
         iqr = np.percentile(times, 75) - np.percentile(times, 25)
         stats = {
             "Model": [model_name],
-            "Median": [median_time * 1000],
+            "Mean": [mean_time * 1000],
             "IQR": [iqr * 1000],
             "Unit": ["ms"],
             "Runs": [runs],
@@ -235,12 +235,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--zc-disable-output-transform",
-        action="store_true",
-        help="Disable ZeroCopy2D output transformation (NWHC -> NHWC). WARNING: Not yet supported by Pytorch, results may be incorrect",
-    )
-
-    parser.add_argument(
         "--zc-disable-heuristic",
         action="store_true",
         help="Disable heuristics that helps choose when to use ZeroCopy2D in Pytorch.",
@@ -298,11 +292,6 @@ if __name__ == "__main__":
     os.environ["ZC_WEIGHTS_LAYOUT"] = args.zc_weights_layout
     if args.zc_enable and args.zc_weights_layout == "HWIO":
         convert_weights_to_hwio = True
-
-    if args.zc_disable_output_transform:
-        os.environ["ZC_TRANSFORM_OUTPUT"] = "FALSE"
-    else:
-        os.environ["ZC_TRANSFORM_OUTPUT"] = "TRUE"
 
     if args.zc_disable_heuristic:
         os.environ["ZC_HEURISTIC"] = "FALSE"

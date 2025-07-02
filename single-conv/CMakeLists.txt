@@ -12,6 +12,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native") # -g -gdwarf-4"
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native") # -g -gdwarf-4"
 
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # Set Install Paths
 set(BENCHMARK_INSTALL
     ""
@@ -117,6 +119,7 @@ target_include_directories(benchmark_naive
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(benchmark_naive benchmark::benchmark)
 set_target_properties(benchmark_naive PROPERTIES COMPILE_FLAGS "-DNAIVE ${run_mode_define}")
+install(TARGETS benchmark_naive DESTINATION bin)
 
 # Im2col convolution -----------------------------------------------------------
 add_executable(benchmark_im2col src/driver.cpp src/kernel_conv_im2col.c
@@ -126,6 +129,7 @@ target_include_directories(
 target_link_libraries(benchmark_im2col benchmark::benchmark ${blas_libraries})
 set_target_properties(benchmark_im2col PROPERTIES COMPILE_FLAGS
                                                   "-DIM2COL ${blas_define} ${run_mode_define}")
+install(TARGETS benchmark_im2col DESTINATION bin)
 
 # Yaconv convolution -----------------------------------------------------------
 add_executable(benchmark_yaconv src/driver.cpp src/kernel_conv_yaconv.c
@@ -137,6 +141,7 @@ target_include_directories(
 target_link_libraries(benchmark_yaconv benchmark::benchmark
                       ${BLIS_YACONV_LIBRARY_DIR})
 set_target_properties(benchmark_yaconv PROPERTIES COMPILE_FLAGS "-DYACONV ${run_mode_define}")
+install(TARGETS benchmark_yaconv DESTINATION bin)
 
 # Zero-copy convolution --------------------------------------------------------
 add_executable(benchmark_zero_copy src/driver.cpp src/kernel_conv_zero_copy.c
@@ -147,6 +152,7 @@ target_link_libraries(benchmark_zero_copy benchmark::benchmark
                       ${blas_libraries} OpenMP::OpenMP_C)
 set_target_properties(benchmark_zero_copy
                       PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${blas_define} ${run_mode_define}")
+install(TARGETS benchmark_zero_copy DESTINATION bin)
 
 # OneDNN convolution using any layout ------------------------------------------
 add_executable(benchmark_onednn_any src/driver_onednn_any.cpp src/utils.cpp)
@@ -154,6 +160,7 @@ target_include_directories(benchmark_onednn_any
                            PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(benchmark_onednn_any benchmark::benchmark DNNL::dnnl)
 set_target_properties(benchmark_onednn_any PROPERTIES COMPILE_FLAGS "${run_mode_define}")
+install(TARGETS benchmark_onednn_any DESTINATION bin)
 
 # Libtorch convolution ---------------------------------------------------------
 add_executable(benchmark_libtorch src/driver_libtorch.cpp src/utils.cpp)
@@ -163,6 +170,7 @@ target_link_libraries(benchmark_libtorch benchmark::benchmark
                       "${TORCH_LIBRARIES}")
 set_target_properties(benchmark_libtorch PROPERTIES COMPILE_FLAGS
                                                     "${TORCH_CXX_FLAGS} ${run_mode_define}")
+install(TARGETS benchmark_libtorch DESTINATION bin)
 
 # Libtorch convolution using ZeroCopy2D ----------------------------------------
 add_executable(benchmark_libtorch_zerocopy src/driver_libtorch.cpp
@@ -173,6 +181,7 @@ target_link_libraries(benchmark_libtorch_zerocopy benchmark::benchmark
                       "${TORCH_LIBRARIES}")
 set_target_properties(benchmark_libtorch_zerocopy
                       PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${TORCH_CXX_FLAGS} ${run_mode_define}")
+install(TARGETS benchmark_libtorch_zerocopy DESTINATION bin)
 
 # Correctness verification -----------------------------------------------------
 if(NOT USE_MKL)
@@ -194,6 +203,7 @@ target_link_libraries(
   ${BLIS_YACONV_LIBRARY_DIR} OpenMP::OpenMP_C)
 set_target_properties(
   correctness PROPERTIES COMPILE_FLAGS "${TORCH_CXX_FLAGS} ${blas_define}")
+install(TARGETS correctness DESTINATION bin)
 
 # Zconv convolution using BLIS ------------------------------------------------
 if(BUILD_ZCONV_BLIS)
@@ -222,5 +232,6 @@ if(BUILD_ZCONV_BLIS)
                         ${BLIS_LIBRARY} OpenMP::OpenMP_C)
   set_target_properties(benchmark_zero_copy_blis
                         PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${run_mode_define}")
+  install(TARGETS benchmark_zero_copy_blis DESTINATION bin)
 endif()
 

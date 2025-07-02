@@ -82,7 +82,7 @@ torch::Tensor conv_2d_torch_zero_copy(
     int filter_width, int output_height, int output_width, int output_channels,
     int padding_height, int padding_width, int stride_h, int stride_w,
     int dilation_h, int dilation_w, int groups, float *__restrict__ bias,
-    bool zc_weights_HWIO, bool zc_transform_output) {
+    bool zc_weights_HWIO) {
 
   torch::TensorOptions tensor_options =
       torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
@@ -127,13 +127,6 @@ torch::Tensor conv_2d_torch_zero_copy(
         {dilation_h, dilation_w}, groups);
   }
 
-  // Transpose HW if ZeroCopy2D is enabled and the output transform was disabled
-  if (!zc_transform_output) {
-    // NCWH -> NCHW (dimension order follows contiguous layout)
-    output_tensor_zc = output_tensor_zc.permute({0, 1, 3, 2})
-                           .contiguous(torch::MemoryFormat::ChannelsLast);
-  }
-
   return output_tensor_zc;
 }
 
@@ -156,7 +149,7 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
     int lda = input_width * input_channels * stride_h;
     int ldb = output_channels;
     float beta = 1.0f;
-    int ldc = output_channels;
+    int ldc = output_channels * output_width;
     status =
         mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
                              m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
@@ -168,7 +161,7 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
     int lda = std::min(filter_width, input_width) * input_channels / groups;
     int ldb = output_channels;
     float beta = 1.0f;
-    int ldc = output_channels;
+    int ldc = output_channels * output_width;
     status =
         mkl_jit_create_sgemm(&jitter, MKL_ROW_MAJOR, MKL_NOTRANS, MKL_NOTRANS,
                              m_dim, n_dim, k_dim, alpha, lda, ldb, beta, ldc);
@@ -221,8 +214,7 @@ void print_error_for_all(std::vector<std::string> &methods,
   }
 }
 
-void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
-                        bool zc_transform_output) {
+void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO) {
   // Convolution parameters
   int batch = arguments[0];
   int input_channels = arguments[1];
@@ -304,7 +296,6 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
   // Allocate memory for outputs
   float *output_im2col_NCHW = new float[output_size];
   float *output_yaconv_NHWC = new float[output_size];
-  float *output_zero_copy_NWHC = new float[output_size];
   float *output_zero_copy_NHWC = new float[output_size];
   const float *output_torch_NCHW;
   const float *output_torch_NHWC;
@@ -332,7 +323,7 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
       input_NCHW, filters_OIHW, batch, input_height, input_width,
       input_channels, filter_height, filter_width, output_height, output_width,
       output_channels, padding_height, padding_width, stride_h, stride_w,
-      dilation_h, dilation_w, groups, bias);
+      dilation_h, dilation_w, groups, bias).contiguous(torch::MemoryFormat::ChannelsLast);
   output_torch_NHWC = output_tensor_nhwc.const_data_ptr<float>();
 
   // PyTorch reference output in NCHW layout
@@ -354,8 +345,7 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
       input_NCHW, filters_OIHW, batch, input_height, input_width,
       input_channels, filter_height, filter_width, output_height, output_width,
       output_channels, padding_height, padding_width, stride_h, stride_w,
-      dilation_h, dilation_w, groups, bias, zc_weights_HWIO,
-      zc_transform_output);
+      dilation_h, dilation_w, groups, bias, zc_weights_HWIO);
   output_torch_zc_NHWC = output_tensor_zc.const_data_ptr<float>();
 
   // Run Im2col convolution
@@ -376,15 +366,11 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
   }
 
   // Run ZeroCopy convolution
-  conv_2d_zero_copy(input_NHWC, output_zero_copy_NWHC, filters_HWIO, batch,
+  conv_2d_zero_copy(input_NHWC, output_zero_copy_NHWC, filters_HWIO, batch,
                     input_height, input_width, input_channels, filter_height,
                     filter_width, output_height, output_width, output_channels,
                     padding_height, padding_width, stride_h, stride_w,
                     dilation_h, dilation_w, groups, bias);
-
-  // Transpose HW of zero copy as it flips HW to WH
-  NWHC_to_NHWC(output_zero_copy_NWHC, output_zero_copy_NHWC, batch,
-               output_channels, output_height, output_width);
 
   // Print output header
   print_header();
@@ -422,7 +408,6 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO,
   delete[] filters_HWIO;
   delete[] output_im2col_NCHW;
   delete[] output_yaconv_NHWC;
-  delete[] output_zero_copy_NWHC;
   delete[] output_zero_copy_NHWC;
 }
 
@@ -434,11 +419,10 @@ int main(int argc, char *argv[]) {
 
   // Get PyTorch ZeroCopy2D related environment variables
   bool zc_weights_HWIO;
-  bool zc_transform_output;
-  set_zero_copy_2d_env_vars(zc_weights_HWIO, zc_transform_output);
+  set_zero_copy_2d_env_vars(zc_weights_HWIO);
 
   // Verify correctness
-  verify_correctness(arguments, zc_weights_HWIO, zc_transform_output);
+  verify_correctness(arguments, zc_weights_HWIO);
 
   return 0;
 }
