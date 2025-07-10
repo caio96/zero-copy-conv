@@ -148,8 +148,14 @@ COPY --chown=${user}:${group} --from=builder ${BUILD_DIR}/blis-install ${HOME}/i
 COPY --chown=${user}:${group} --from=builder ${BUILD_DIR}/blis-yaconv-install ${HOME}/install/blis-yaconv
 COPY --chown=${user}:${group} --from=builder ${BUILD_DIR}/libtorch-install ${HOME}/install/libtorch
 
+RUN chown -R ${uid}:${gid} ${HOME}
+
+# Set user
+USER ${uid}:${gid}
+ENV PATH="${HOME}/.local/bin:${PATH}"
+
 # Install python dependencies
-RUN pip install scipy matplotlib pandas tabulate timm==1.0.13
+RUN pip install scipy matplotlib pandas tabulate timm==1.0.13 visdom scikit-learn
 
 # Install zconv single conv eval binaries
 WORKDIR ${HOME}
@@ -188,8 +194,19 @@ RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
     cmake --install . --prefix "${HOME}/install/single-conv-fixed" && \
     cd .. && rm -r build
 
-# Set user
-USER ${uid}:${gid}
+WORKDIR ${HOME}
+COPY deeplabv3plus-zconv.patch ${HOME}/deeplabv3plus-zconv.patch
+COPY VOCtrainval_11-May-2012.tar ${HOME}/VOCtrainval_11-May-2012.tar
+WORKDIR ${HOME}
+RUN git clone https://github.com/VainF/DeepLabV3Plus-Pytorch.git deeplabv3plus && \
+    cd deeplabv3plus && \
+    git checkout 4e1087d && \
+    git apply ${HOME}/deeplabv3plus-zconv.patch && \
+    mv ${HOME}/deeplabv3plus-zconv.patch ${HOME}/deeplabv3plus && \
+    mv ${HOME}/VOCtrainval_11-May-2012.tar ./datasets/data/ && \
+    cd ./datasets/data && \
+    tar xf VOCtrainval_11-May-2012.tar && \
+    rm VOCtrainval_11-May-2012.tar
 
 # Set home
 WORKDIR ${HOME}
