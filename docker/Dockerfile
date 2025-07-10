@@ -115,6 +115,7 @@ RUN apt-get update && \
       libomp-15-dev                                      \
       linux-tools-common                                 \
       linux-tools-generic                                \
+      linux-tools-$(uname -r)                          \
       linux-headers-generic                              \
       linux-headers-$(uname -r)                          \
       nano                                               \
