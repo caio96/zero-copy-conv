@@ -108,6 +108,7 @@ ENV PATH="/opt/conda/bin:${PATH}"
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt-get update && \
     apt-get install --assume-yes --no-install-recommends \
+      bc                                                 \
       build-essential                                    \
       ca-certificates                                    \
       clang-15                                           \
@@ -116,7 +117,7 @@ RUN apt-get update && \
       libomp-15-dev                                      \
       linux-tools-common                                 \
       linux-tools-generic                                \
-      linux-tools-$(uname -r)                          \
+      linux-tools-$(uname -r)                            \
       linux-headers-generic                              \
       linux-headers-$(uname -r)                          \
       nano                                               \
@@ -198,17 +199,14 @@ RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
 
 WORKDIR ${HOME}
 COPY deeplabv3plus-zconv.patch ${HOME}/deeplabv3plus-zconv.patch
-COPY VOCtrainval_11-May-2012.tar ${HOME}/VOCtrainval_11-May-2012.tar
 WORKDIR ${HOME}
 RUN git clone https://github.com/VainF/DeepLabV3Plus-Pytorch.git deeplabv3plus && \
     cd deeplabv3plus && \
     git checkout 4e1087d && \
     git apply ${HOME}/deeplabv3plus-zconv.patch && \
-    mv ${HOME}/deeplabv3plus-zconv.patch ${HOME}/deeplabv3plus && \
-    mv ${HOME}/VOCtrainval_11-May-2012.tar ./datasets/data/ && \
-    cd ./datasets/data && \
-    tar xf VOCtrainval_11-May-2012.tar && \
-    rm VOCtrainval_11-May-2012.tar
+    mv ${HOME}/deeplabv3plus-zconv.patch ${HOME}/deeplabv3plus
+
+COPY auto-run.sh ${HOME}/auto-run.sh
 
 # Set home
 WORKDIR ${HOME}
