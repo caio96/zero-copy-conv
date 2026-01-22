@@ -25,10 +25,11 @@ RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 100 && 
 
 # Install conda and dependencies
 ENV PATH="/opt/conda/bin:${PATH}"
+ENV CONDA_PLUGINS_AUTO_ACCEPT_TOS="true"
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
     bash ~/miniconda.sh -b -p /opt/conda && \
     rm ~/miniconda.sh && \
-    conda install -y python=3.12 cmake ninja && \
+    conda install -y python=3.12 && \
     conda install -y -c conda-forge mkl-static==2025.0.0 mkl-include==2025.0.0 onednn==3.5.3 mkl-devel==2025.0.0 && \
     conda install -y -c pytorch libpng libjpeg-turbo
 
