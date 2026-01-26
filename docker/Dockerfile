@@ -195,7 +195,7 @@ RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
     make -j && \
     mkdir "${HOME}/install/single-conv-yaconv" && \
     cmake --install . --prefix "${HOME}/install/single-conv-yaconv" && \
-    rm "${HOME}/install/single-conv-yaconv/benchmark_libtorch*" "${HOME}/install/single-conv-yaconv/benchmark_im2col" && \
+    rm "${HOME}/install/single-conv-yaconv/bin/benchmark_libtorch" "${HOME}/install/single-conv-yaconv/bin/benchmark_libtorch_zerocopy" "${HOME}/install/single-conv-yaconv/bin/benchmark_im2col" && \
     cd .. && rm -r build
 
 WORKDIR ${HOME}

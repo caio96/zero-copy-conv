@@ -7,7 +7,6 @@ from pathlib import Path
 
 import scipy.stats as st
 import matplotlib.pyplot as plt
-from matplotlib import rc
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
@@ -166,6 +165,7 @@ def plot_speedup(
     show_boxplot=False,
     show_counts=False,
     show_inflection=False,
+    ignore_significance=False,
 ):
     if speedup_results.empty:
         print("No data to plot.", file=sys.stderr)
@@ -178,12 +178,17 @@ def plot_speedup(
 
     non_significant_results = speedup_results.loc[lambda x: x.Significant == False]
     non_significant_count = non_significant_results.shape[0]
-    speedup_results = speedup_results.loc[lambda x: x.Significant == True]
+    if not ignore_significance:
+        speedup_results = speedup_results.loc[lambda x: x.Significant == True]
 
     # Save non-significant models to csv if the performance change is greater than 1%
     if not only_stats:
         try_rerun_layers = non_significant_results.loc[lambda x: np.abs(x.relative_change) > 0.01]["Model"]
         try_rerun_layers.to_csv(output_dir / f"{new_method_name}_vs_{old_method_name}_try_rerun.csv", index=False)
+
+    if speedup_results.empty:
+        print("No data to plot after removing non-significant results.", file=sys.stderr)
+        return
 
     speedup_results = speedup_results.reset_index(drop=True)
     num_points = speedup_results.shape[0]
@@ -422,6 +427,7 @@ def compare_methods(
     clip_pos,
     clip_neg,
     plot_type,
+    ignore_significance,
 ):
     speedup_results = get_speedup(joined_results, old_method_name, new_method_name)
 
@@ -441,9 +447,10 @@ def compare_methods(
         new_method_name,
         output_dir,
         plot_type,
-        only_stats,
-        clip_pos,
-        clip_neg,
+        only_stats=only_stats,
+        clip_pos=clip_pos,
+        clip_neg=clip_neg,
+        ignore_significance=ignore_significance,
     )
 
 
@@ -494,6 +501,11 @@ if __name__ == "__main__":
         default="log2_speedup",
         help="Data to plot. Speedup is the relative speedup and slowdown, log2_speedup is the log2 of speedup, and time_diff is the difference in time between methods. Default is log2_speedup.",
     )
+    parser.add_argument(
+        "--ignore-significance",
+        action="store_true",
+        help="Do not filter speedup results by significance; include all results in plots.",
+    )
 
     args = parser.parse_args()
 
@@ -506,6 +518,7 @@ if __name__ == "__main__":
     clip_neg = args.clip_negative_outliers
     preset_comparisons = args.preset_comparisons
     plot_type = args.plot_type
+    ignore_significance = args.ignore_significance
 
     # Check if csv file exists
     if (not csv_input.exists()) or (not csv_input.is_file()):
@@ -527,15 +540,6 @@ if __name__ == "__main__":
     methods = [col.replace("Mean_", "") for col in df.columns if "Mean" in col]
 
     if not only_stats:
-        rc('font', **{'family': 'serif', 'serif': ['Libertine']})
-        rc('text', usetex=True)
-        rc('text.latex', preamble="\n".join([
-            r"\usepackage[utf8]{inputenc}",
-            r"\usepackage[T1]{fontenc}",
-            r"\usepackage{libertine}",
-            r"\usepackage{newtxtext,newtxmath}",
-            r"\usepackage{amsmath}",
-        ]))
         plt.rcParams.update({
             "font.size": 22,
             "legend.fontsize": 20,
@@ -556,21 +560,21 @@ if __name__ == "__main__":
 
     if old_method and new_method:
         compare_methods(
-            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type
+            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
         )
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
             compare_methods(
-                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, plot_type
+                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
             )
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
             compare_methods(
-                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type
+                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
             )
     else:
         if preset_comparisons:
@@ -579,10 +583,10 @@ if __name__ == "__main__":
                 if method1 not in methods or method2 not in methods:
                     continue
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
                 )
         else:
             for method1, method2 in itertools.combinations(methods, 2):
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type
+                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
                 )
