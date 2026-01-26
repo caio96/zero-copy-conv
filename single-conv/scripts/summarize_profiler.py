@@ -6,14 +6,9 @@ import sys
 from pathlib import Path
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
-from matplotlib import rc
 import numpy as np
 import pandas as pd
-from filter_csv import exclude_from_df, include_only_in_df, split_parameters, get_categories
 from tabulate import tabulate
-import scipy.stats as st
-from matplotlib.ticker import FuncFormatter
 
 
 def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_method : str = None, old_method : str = None, relative : bool = False):

@@ -181,6 +181,7 @@ RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
     make -j && \
     mkdir "${HOME}/install/single-conv" && \
     cmake --install . --prefix "${HOME}/install/single-conv" &&    \
+    rm "${HOME}/install/single-conv/bin/benchmark_yaconv" && \
     cmake -DCMAKE_C_COMPILER=clang                                 \
           -DCMAKE_CXX_COMPILER=clang++                             \
           -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \

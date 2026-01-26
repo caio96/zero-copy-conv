@@ -1,15 +1,20 @@
 #!/bin/env bash
 
 set -x
- 
-# System configuration, update as needed
+
+# System configuration, update as needed ---
 CORE_RANGE="0-7"
 THREADS="8"
 CONV_LAYERS_MAX="10" # Use -1 to run all layers from the inputs, otherwise set a max number of layers to run for quicker tests
-REPEAT_COUNT="1"
-# ---------------------------------------
+REPEAT_COUNT_CONV="1"
+MODEL_MAX="10" # Use -1 to run all models from the inputs, otherwise set a max number of models to run for quicker tests
+REPEAT_COUNT_MODEL="1"
+# ------------------------------------------
 
-# Standalone convolution benchmarks -----------
+#
+# Standalone convolution benchmarks 
+#
+
 WORKDIR="${HOME}/zero-copy-conv-outside/single-conv" # TODO: modify this
 # Path to convolution layers input CSV
 CONV_INPUTS_CSV="${WORKDIR}/data/conv_layers_all.csv"
@@ -28,7 +33,7 @@ if [[ ${CONV_LAYERS_MAX} -gt 0 ]]; then
 fi
 
 # Run multithreaded benchmarks
-"${WORKDIR}/scripts/benchmark_runner.sh" --threads ${THREADS} --core-range ${CORE_RANGE} --repeats ${REPEAT_COUNT} ${HOME}/install/single-conv ${HOME}/results/standalone-conv/multithread/inputs.csv ${HOME}/results/standalone-conv/multithread/outputs.csv
+"${WORKDIR}/scripts/benchmark_runner.sh" --threads ${THREADS} --core-range ${CORE_RANGE} --repeats ${REPEAT_COUNT_CONV} ${HOME}/install/single-conv ${HOME}/results/standalone-conv/multithread/inputs.csv ${HOME}/results/standalone-conv/multithread/outputs.csv
 
 # Summarize multithreaded results
 mkdir -p "${HOME}/results/standalone-conv/multithread/summary"
@@ -38,7 +43,9 @@ mkdir -p "${HOME}/results/standalone-conv/multithread/summary"
 "${WORKDIR}/scripts/summarize_performance.py" ${HOME}/results/standalone-conv/multithread/outputs.csv ${CONV_INPUTS_CSV} "${HOME}/results/standalone-conv/multithread/summary" --plot-type log2_speedup --clip-pos --clip-neg --old-method LibTorch --new-method LibTorch_ZeroCopy2D_no_transpose_HWIO --include torch-heuristic --ignore-significance
 
 # Update parameter for singlethreaded benchmarks (Yaconv)
+THREADS_BACKUP=${THREADS}
 THREADS="1"
+CONV_INPUTS_CSV_BACKUP="${CONV_INPUTS_CSV}"
 CONV_INPUTS_CSV="${WORKDIR}/data/conv_layers_yaconv_supported.csv" # excludes layers not supported by Yaconv and where Yaconv gives errors
 
 # Create results directory for singlethreaded benchmarks (Yaconv)
@@ -55,9 +62,52 @@ if [[ ${CONV_LAYERS_MAX} -gt 0 ]]; then
 fi
 
 # Run singlethreaded benchmarks
-"${WORKDIR}/scripts/benchmark_runner.sh" --threads ${THREADS} --core-range ${CORE_RANGE} --repeats ${REPEAT_COUNT} ${HOME}/install/single-conv-yaconv ${HOME}/results/standalone-conv/singlethread/inputs.csv ${HOME}/results/standalone-conv/singlethread/outputs.csv
+"${WORKDIR}/scripts/benchmark_runner.sh" --threads ${THREADS} --core-range ${CORE_RANGE} --repeats ${REPEAT_COUNT_CONV} ${HOME}/install/single-conv-yaconv ${HOME}/results/standalone-conv/singlethread/inputs.csv ${HOME}/results/standalone-conv/singlethread/outputs.csv
 
 # Summarize singlethreaded results
 mkdir -p "${HOME}/results/standalone-conv/singlethread/summary"
 # Yaconv vs ZConv BLIS
 "${WORKDIR}/scripts/summarize_performance.py" ${HOME}/results/standalone-conv/singlethread/outputs.csv ${CONV_INPUTS_CSV} "${HOME}/results/standalone-conv/singlethread/summary" --plot-type log2_speedup --clip-pos --clip-neg --old-method Yaconv --new-method ZeroCopy_no_transpose_blis --ignore-significance
+
+#
+# End-to-end model benchmarks 
+#
+
+THREADS=${THREADS_BACKUP} # Restore threads for multithreaded benchmarks
+
+WORKDIR="${HOME}/zero-copy-conv-outside/end-to-end" # TODO: modify this
+# Path to convolution layers input CSV
+CONV_INPUTS_CSV_TORCH="${HOME}/zero-copy-conv-outside/single-conv/data/conv_layers_torch.csv"
+CONV_INPUTS_CSV_TIMM="${HOME}/zero-copy-conv-outside/single-conv/data/conv_layers_timm.csv"
+
+# Create results directory for benchmarks
+mkdir -p "${HOME}/results/end-to-end/torch"
+mkdir -p "${HOME}/results/end-to-end/timm"
+
+# Filter out model that would not run ZConv due to its heuristic
+"${WORKDIR}/filter_models.py" ${CONV_INPUTS_CSV_TORCH} --include torch-heuristic > ${HOME}/results/end-to-end/inputs-torch.csv
+"${WORKDIR}/filter_models.py" ${CONV_INPUTS_CSV_TIMM} --include torch-heuristic > ${HOME}/results/end-to-end/inputs-timm.csv
+
+if [[ ${MODEL_MAX} -gt 0 ]]; then
+    head -n $((MODEL_MAX + 1)) ${HOME}/results/end-to-end/inputs-torch.csv > ${HOME}/results/end-to-end/inputs_temp.csv
+    rm ${HOME}/results/end-to-end/inputs-torch.csv
+    mv ${HOME}/results/end-to-end/inputs_temp.csv ${HOME}/results/end-to-end/inputs-torch.csv
+
+    head -n $((MODEL_MAX + 1)) ${HOME}/results/end-to-end/inputs-timm.csv > ${HOME}/results/end-to-end/inputs_temp.csv
+    rm ${HOME}/results/end-to-end/inputs-timm.csv
+    mv ${HOME}/results/end-to-end/inputs_temp.csv ${HOME}/results/end-to-end/inputs-timm.csv
+fi
+
+# Run multithreaded benchmarks for Torch models
+OMP_NUM_THREADS=${THREADS} numactl -C ${CORE_RANGE} "${WORKDIR}/benchmark_models.py" --repeats ${REPEAT_COUNT_MODEL} --filter-models ${HOME}/results/end-to-end/inputs-torch.csv torch ${HOME}/results/end-to-end/torch/outputs.csv
+
+# Summarize Torch model results
+mkdir -p "${HOME}/results/end-to-end/torch/summary"
+"${WORKDIR}/summarize_performance_end_to_end.py" ${HOME}/results/end-to-end/torch/outputs.csv "${HOME}/results/end-to-end/torch/summary" --clip-pos --clip-neg --preset --plot-type speedup --ignore-significance
+
+# Run multithreaded benchmarks for Timm models
+OMP_NUM_THREADS=${THREADS} numactl -C ${CORE_RANGE} "${WORKDIR}/benchmark_models.py" --repeats ${REPEAT_COUNT_MODEL} --filter-models ${HOME}/results/end-to-end/inputs-timm.csv timm ${HOME}/results/end-to-end/timm/outputs.csv
+
+# Summarize Timm model results
+mkdir -p "${HOME}/results/end-to-end/timm/summary"
+"${WORKDIR}/summarize_performance_end_to_end.py" ${HOME}/results/end-to-end/timm/outputs.csv "${HOME}/results/end-to-end/timm/summary" --clip-pos --clip-neg --preset --plot-type speedup --ignore-significance
