@@ -1,84 +1,68 @@
 # Zero-Copy GEMM-Based Fast Convolution :zap:
 
 This repository is designed to test the Zero-Copy GEMM-based convolution (in CPUs).
-The repository is divided in two:
+The repository is divided into:
+- [Docker](#docker)
 - [Single convolution testing](#single-convolution-testing)
 - [End-to-end model testing](#end-to-end-model-testing)
 
 ---
 
-# Common Dependecies
+# Docker
 
-## Conda Environment
+This docker builds all tools required to run and evaluate ZConv.
 
-Install conda first if necessary:
+## Requirements
 
-```sh
-mkdir -p ~/.anaconda3
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/.anaconda3/miniconda.sh
-bash ~/.anaconda3/miniconda.sh -b -u -p ~/.anaconda3
-rm ~/.anaconda3/miniconda.sh
-source ~/.anaconda3/bin/activate
-conda init --all
+The built docker image uses about 8 GB.
+
+## Files
+
+- `Dockerfile`: the docker build script
+- `pytorch-zconv.patch`: patch to PyTorch to add a ZConv convolution backend
+- `blis-yaconv.patch`: patch with changes to the BLIS library to add Yaconv
+- `deeplabv3plus-zconv.patch`: patch to deeplabv3plus to enable running it with ZConv
+- `auto-run.sh`: script to automatically run the evaluation in the container
+
+## Build
+
+To build the image, add the following files to the `./docker` directory.
+
+- `VOCtrainval_11-May-2012.tar`: Pascal VOC 2012 train/val archive (images and annotations). This dataset is used by deeplabv3plus in the end-to-end evaluation. Original host: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
+- `zero-copy-conv.zip`: this repository, archived into a zip file.
+
+You can download the Pascal VOC 2012 train/val archive (`VOCtrainval_11-May-2012.tar`) using either the official Pascal host or a commonly used mirror.
+
+Then, build the docker image with:
+
+```bash
+cd ./docker
+docker build -t zconv .
 ```
 
-Then create a new environment and install some common dependencies:
+## Run
 
-```sh
-conda create -y -n eval-zero-copy python==3.12
-conda activate eval-zero-copy
-conda install cmake ninja
+The container is created with privileged access so that the `numactl` and `perf` commands work inside it.
+
+```bash
+# Create the container
+docker create -it --privileged --name artifact \
+    -v /absolute/path/VOCtrainval_11-May-2012.tar:/home/artifact/VOCtrainval_11-May-2012.tar \
+    zconv:latest
+# Start it
+docker start artifact
+# Attach to it
+docker exec -it artifact bash
+# Stop it
+docker stop
 ```
 
-Use this environment when building or running the following experiments.
+## Perf support
 
-## Custom PyTorch + TorchVision
-
-Build and install a custom PyTorch that has a Zero-Copy Convolution implementation, and TorchVision.
-
-- [Custom PyTorch](https://github.com/caio96/pytorch-zero-copy.git)
-- [Pytorch Vision](https://github.com/pytorch/vision/tree/main)
-
-### How to build custom PyTorch
-
-Install MKL:
-
-```sh
-conda install conda-forge::mkl-static==2025.0.0 conda-forge::mkl-include==2025.0.0
+To enable running perf, execute in the host:
+```bash
+sudo sh -c 'echo 1 > /proc/sys/kernel/perf_event_paranoid'
 ```
-
-Build and install
-
-```sh
-git clone --recursive https://github.com/caio96/pytorch-zero-copy.git pytorch
-cd pytorch
-git checkout v2.5.1-zero-copy
-git submodule sync
-git submodule update --init --recursive
-
-pip install -r requirements.txt
-
-# Setup build environment
-export USE_CUDA=0 USE_ROCM=0 USE_XPU=0
-export _GLIBCXX_USE_CXX11_ABI=1
-export CMAKE_PREFIX_PATH="${CONDA_PREFIX:-'$(dirname $(which conda))/../'}:${CMAKE_PREFIX_PATH}"
-
-# Set number of threads and compile, this command will install torch and build LibTorch
-MAX_JOBS=8 python setup.py develop && python tools/build_libtorch.py
-```
-
-### How to build PyTorch vision
-
-```sh
-conda install libpng libjpeg-turbo -c pytorch
-
-git clone https://github.com/pytorch/vision.git
-cd vision
-git checkout v0.20.1
-MAX_JOBS=8 python setup.py install
-```
-
----
 
 # Single Convolution Testing
 
@@ -86,21 +70,17 @@ Compares the following convolution implementations.
 Over 9000 convolution layers were extracted from real models to evaluate the different methods.
 Data type used is float32.
 
-- Naive: For loops and simple multiply accumulate
 - Im2col: Transforms the input image with im2col and executes convolution as a GEMM call
-- Yaconv: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements. Defined in [blis-conv](https://github.com/caio96/blis-conv)
+- Yaconv: Implementation from this [paper](https://dl.acm.org/doi/10.1145/3570305) with slight improvements
 - ZeroCopy: Standalone C++ implementation that executes convolution as a sequence of GEMMs without transforming the input
-- OneDNN_any: Intel's OneDNN implementation allowing the framework to decide the best layouts. Transforming the layout is not included in the timing.
 - LibTorch_ZeroCopy: ZeroCopy Conv2D implemented inside Pytorch, run using its C++ API
 - LibTorch: Pytorch Conv2D implementation using the C++ API (the ZeroCopy implementation in Pytorch is disabled)
 
 |                   | Feature Layout | Weight Layout | Output Layout | Multithreading     |
 | ----------------- | -------------- | ------------- | ------------- | ------------------ |
-| Naive             | NCHW           | OIHW          | NCHW          | :x:                |
 | Im2col            | NCHW           | OIHW          | NCHW          | :white_check_mark: |
 | Yaconv            | NHWC           | HWIO          | NHWC          | :x:                |
 | ZeroCopy          | NHWC           | HWIO          | NHWC          | :white_check_mark: |
-| OneDNN_any        | ??             | ??            | ??            | :white_check_mark: |
 | LibTorch_ZeroCopy | NHWC           | HWIO          | NHWC          | :white_check_mark: |
 | LibTorch          | NHWC           | OHWI          | NHWC          | :white_check_mark: |
 
@@ -112,92 +92,19 @@ Note:
 ## Files
 
 - `data`: Contains convolution layer parameters obtained with the script `util/convolution_extraction`. Timm 1.0.13 and TorchVision 0.20.1 were used.
-- `include`
+- `include` contains utility function headers
 - `src`
   - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method is called
   - `driver_[method_name]` is a specialized driver if the method differs too much from the main driver
   - `kernel_conv_[method_name]` files have the implementation of each convolution method
-  - `utils`
-  - `verify_correctness` calls all convolutions methods converting their output if necessary to verify results. LibTorch's output is used as a reference.
+  - `utils` contains utility functions
+  - `verify_correctness` calls all convolutions methods converting their output if necessary to verify results. LibTorch's output is used as the reference.
 - `scripts`:
   - `convolution_extraction` extracts convolution layer parameters from multiple models into a csv (adapted from [ConvBench](https://github.com/LucasFernando-aes/ConvBench/))
-  - `filter_csv` allows filtering the csv containing convolution layer parameters and removes parameters that cause errors
+  - `filter_csv` allows filtering the csv containing convolution layer parameters and removes parameters that cause errors (filter size > input image + padding)
   - `benchmark_runner` controls running convolutions from a csv to measure correctness or performance
   - `summarize_correctness` generates csv files that summarize correctness results based on the logs from `benchmark_runner`
   - `summarize_performance` generates a csv file that summarizes performance results based on the logs from `benchmark_runner`
-  - `learn_heuristic` uses the speedup csv generated by `summarize_performance` to train a decision tree to decide which method to use based the convolution parameters
-  - `zero_copy_conv` is a simplified version of the Zero-Copy Convolution implemented in Python
-
-## Dependencies
-
-- [Google Benchmark](https://github.com/google/benchmark)
-- [Blis](https://github.com/flame/blis)
-- [Yaconv Blis](https://github.com/caio96/blis-conv), which is a fork of Blis that contains Yaconv
-- [OneDNN](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onednn.html)
-- [OneMKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
-
-### How to build Google Benchmark
-
-```sh
-git clone https://github.com/google/benchmark.git
-cd benchmark
-git checkout v1.9.0
-cmake -E make_directory "build"
-cmake -E chdir "build" cmake -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -DCMAKE_BUILD_TYPE=Release ../
-cmake --build "build" --config Release
-cmake --install build --config Release --prefix "/path/to/benchmark-install"
-```
-
-### How to build Blis
-
-```sh
-git clone https://github.com/flame/blis.git
-cd blis
-git checkout 1.0
-./configure --prefix="/path/to/blis-install" \
-            --enable-threading=openmp        \
-            --enable-cblas                   \
-            CC=clang CXX=clang++             \
-            auto
-make install -j4
-```
-
-### How to build Blis Yaconv
-
-```sh
-git clone git@github.com:caio96/blis-conv.git
-cd blis-conv
-git checkout yaconv-update
-./configure --prefix="/path/to/blis-conv-install" \
-            --enable-threading=openmp             \
-            --enable-cblas                        \
-            CC=clang CXX=clang++                  \
-            -a yaconv                             \
-            auto
-make install -j4
-```
-
-### How to install OneDNN and OneMKL
-
-```sh
-conda install conda-forge::onednn==3.5.3 conda-forge::mkl-devel==2025.0.0
-```
-
-### (Alternative) How to get LibTorch
-
-This method will work for the default LibTorch implementation, but it won't have LibTorch_ZeroCopy.
-Some adjustments in the repo may be needed for this to work as the custom PyTorch implementation is expected.
-
-- Go to [link](https://pytorch.org/get-started/locally/)
-- Select Package as "LibTorch", Language as "C++/Java", Compute platform as "CPU"
-- Download the cxx11 ABI version and unzip it
-
-Or run:
-
-```sh
-wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.5.1%2Bcpu.zip -O libtorch.zip
-unzip libtorch.zip -d .
-```
 
 ## How to Build Single Convolution Benchmarks
 
@@ -277,8 +184,7 @@ All scripts can take the `-h` flag to show usage information.
 4. Run `benchmark_runner` with the build dir and the csv from step 2 to test performance or correctness
     - This script will use the `benchmark_*` executables found in the build dir (except the naive one), remove executables if you do not want to execute them
 5. Run `summarize_correctness` or `summarize_performance` depending on the type of run with the output csv generated by the runner to summary CSVs
-6. Run `learn_heuristic` on one of the speedup outputs of `summarize_performance` to see decision tree heuristics
-7. Modify the heuristic in `summarize_performance` run it on the output of the runner with `--use-heuristic` enabled to see the effects of the heuristic
+6. Modify the heuristic in `summarize_performance` run it on the output of the runner with `--use-heuristic` enabled to see the effects of the heuristic
 
 ---
 

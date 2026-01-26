@@ -44,7 +44,6 @@ endif()
 find_package(benchmark REQUIRED PATHS ${BENCHMARK_INSTALL})
 find_package(Torch REQUIRED PATHS ${TORCH_INSTALL})
 find_package(OpenMP REQUIRED)
-find_package(DNNL REQUIRED)
 
 option(USE_MKL "Use Intel MKL as BLAS. Default is to use Blis" OFF)
 option(BUILD_ZCONV_BLIS "If MKL is being used as blas, enable this option to build an additional zconv binary that uses BLIS" OFF)
@@ -112,15 +111,6 @@ if(NOT BLIS_YACONV_INCLUDE_DIR OR NOT BLIS_YACONV_LIBRARY_DIR)
   )
 endif()
 
-# Naive convolution ------------------------------------------------------------
-add_executable(benchmark_naive src/driver.cpp src/kernel_conv_naive.c
-                               src/utils.cpp)
-target_include_directories(benchmark_naive
-                           PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(benchmark_naive benchmark::benchmark)
-set_target_properties(benchmark_naive PROPERTIES COMPILE_FLAGS "-DNAIVE ${run_mode_define}")
-install(TARGETS benchmark_naive DESTINATION bin)
-
 # Im2col convolution -----------------------------------------------------------
 add_executable(benchmark_im2col src/driver.cpp src/kernel_conv_im2col.c
                                 src/utils.cpp)
@@ -153,14 +143,6 @@ target_link_libraries(benchmark_zero_copy benchmark::benchmark
 set_target_properties(benchmark_zero_copy
                       PROPERTIES COMPILE_FLAGS "-DZERO_COPY ${blas_define} ${run_mode_define}")
 install(TARGETS benchmark_zero_copy DESTINATION bin)
-
-# OneDNN convolution using any layout ------------------------------------------
-add_executable(benchmark_onednn_any src/driver_onednn_any.cpp src/utils.cpp)
-target_include_directories(benchmark_onednn_any
-                           PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(benchmark_onednn_any benchmark::benchmark DNNL::dnnl)
-set_target_properties(benchmark_onednn_any PROPERTIES COMPILE_FLAGS "${run_mode_define}")
-install(TARGETS benchmark_onednn_any DESTINATION bin)
 
 # Libtorch convolution ---------------------------------------------------------
 add_executable(benchmark_libtorch src/driver_libtorch.cpp src/utils.cpp)

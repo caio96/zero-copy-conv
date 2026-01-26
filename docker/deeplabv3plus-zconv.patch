@@ -1,0 +1,195 @@
+diff --git a/main.py b/main.py
+index 129edae..f15d828 100644
+--- a/main.py
++++ b/main.py
+@@ -5,6 +5,7 @@ import os
+ import random
+ import argparse
+ import numpy as np
++import time
+ 
+ from torch.utils import data
+ from datasets import VOCSegmentation, Cityscapes
+@@ -93,6 +94,19 @@ def get_argparser():
+                         help='env for visdom')
+     parser.add_argument("--vis_num_samples", type=int, default=8,
+                         help='number of samples for visualization (default: 8)')
++
++    parser.add_argument(
++        "--zc-enable",
++        action="store_true",
++        help="Enable ZeroCopy2D in Pytorch.",
++    )
++
++    parser.add_argument(
++        "--show-conv-time",
++        action="store_true",
++        help="Print the execution time of each convolution in the model.",
++    )
++
+     return parser
+ 
+ 
+@@ -167,7 +181,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
+     with torch.no_grad():
+         for i, (images, labels) in tqdm(enumerate(loader)):
+ 
+-            images = images.to(device, dtype=torch.float32)
++            images = images.to(device, dtype=torch.float32, memory_format=torch.channels_last)
+             labels = labels.to(device, dtype=torch.long)
+ 
+             outputs = model(images)
+@@ -215,6 +229,14 @@ def main():
+     elif opts.dataset.lower() == 'cityscapes':
+         opts.num_classes = 19
+ 
++    if opts.zc_enable:
++        os.environ["ZC_ENABLE"] = "TRUE"
++        os.environ["ZC_WEIGHTS_LAYOUT"] = "OHWI"
++        os.environ["ZC_HEURISTIC"] = "TRUE"
++
++    if opts.show_conv_time:
++        os.environ["ZC_TIME"] = "TRUE"
++
+     # Setup visualization
+     vis = Visualizer(port=opts.vis_port,
+                      env=opts.vis_env) if opts.enable_vis else None
+@@ -236,10 +258,10 @@ def main():
+ 
+     train_dst, val_dst = get_dataset(opts)
+     train_loader = data.DataLoader(
+-        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2,
++        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=0,
+         drop_last=True)  # drop_last=True to ignore single-image batches.
+     val_loader = data.DataLoader(
+-        val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2)
++        val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=0)
+     print("Dataset: %s, Train set: %d, Val set: %d" %
+           (opts.dataset, len(train_dst), len(val_dst)))
+ 
+@@ -314,8 +336,13 @@ def main():
+ 
+     if opts.test_only:
+         model.eval()
++        model = model.to(device, memory_format=torch.channels_last)
++
++        start_time = time.perf_counter()
+         val_score, ret_samples = validate(
+             opts=opts, model=model, loader=val_loader, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
++        end_time = time.perf_counter()
++        print("Validation time: ", end_time - start_time)
+         print(metrics.to_str(val_score))
+         return
+ 
+diff --git a/network/backbone/hrnetv2.py b/network/backbone/hrnetv2.py
+index a33c6f2..722d29e 100644
+--- a/network/backbone/hrnetv2.py
++++ b/network/backbone/hrnetv2.py
+@@ -10,7 +10,7 @@ __all__ = ['HRNet', 'hrnetv2_48', 'hrnetv2_32']
+ # weights to the folder /checkpoints
+ 
+ model_urls = {
+-    'hrnetv2_32': './checkpoints/model_best_epoch96_edit.pth',
++    'hrnetv2_32': None,
+     'hrnetv2_48': None
+ }
+ 
+@@ -148,6 +148,23 @@ class StageModule(nn.Module):
+ 
+         self.relu = nn.ReLU(inplace=True)
+ 
++
++    def match_shape(self, x, y):
++        height_diff = x.size(2) - y.size(2)
++        if height_diff > 0:
++            y = F.pad(y, (0, height_diff))
++        elif height_diff < 0:
++            y = y[:, :, :height_diff, :]
++
++        width_diff = x.size(3) - y.size(3)
++        if width_diff > 0:
++            y = F.pad(y, (0, width_diff))
++        elif width_diff < 0:
++            y = y[:, :, :, :width_diff]
++
++        return x,y
++
++
+     def forward(self, x):
+ 
+         # input to each stage is a list of inputs for each branch
+@@ -157,11 +174,12 @@ class StageModule(nn.Module):
+         for branch_output_index in range(
+                 self.output_branches):  # Amount of output branches == total length of fusion layers
+             for input_index in range(self.number_of_branches):  # The inputs of other branches to be fused.
++                out = self.fuse_layers[branch_output_index][input_index](x[input_index])
+                 if input_index == 0:
+-                    x_fused.append(self.fuse_layers[branch_output_index][input_index](x[input_index]))
++                    x_fused.append(out)
+                 else:
+-                    x_fused[branch_output_index] = x_fused[branch_output_index] + self.fuse_layers[branch_output_index][
+-                        input_index](x[input_index])
++                    x_fused[branch_output_index], out = self.match_shape(x_fused[branch_output_index], out) # Fix dimension mismatch
++                    x_fused[branch_output_index] = x_fused[branch_output_index] + out
+ 
+         # After fusing all streams together, you will need to pass the fused layers
+         for i in range(self.output_branches):
+diff --git a/network/modeling.py b/network/modeling.py
+index ebf409c..4e4e48d 100644
+--- a/network/modeling.py
++++ b/network/modeling.py
+@@ -128,7 +128,7 @@ def _load_model(arch_type, backbone, num_classes, output_stride, pretrained_back
+ def deeplabv3_hrnetv2_48(num_classes=21, output_stride=4, pretrained_backbone=False): # no pretrained backbone yet
+     return _load_model('deeplabv3', 'hrnetv2_48', output_stride, num_classes, pretrained_backbone=pretrained_backbone)
+ 
+-def deeplabv3_hrnetv2_32(num_classes=21, output_stride=4, pretrained_backbone=True):
++def deeplabv3_hrnetv2_32(num_classes=21, output_stride=4, pretrained_backbone=False):
+     return _load_model('deeplabv3', 'hrnetv2_32', output_stride, num_classes, pretrained_backbone=pretrained_backbone)
+ 
+ def deeplabv3_resnet50(num_classes=21, output_stride=8, pretrained_backbone=True):
+@@ -176,7 +176,7 @@ def deeplabv3_xception(num_classes=21, output_stride=8, pretrained_backbone=True
+ def deeplabv3plus_hrnetv2_48(num_classes=21, output_stride=4, pretrained_backbone=False): # no pretrained backbone yet
+     return _load_model('deeplabv3plus', 'hrnetv2_48', num_classes, output_stride, pretrained_backbone=pretrained_backbone)
+ 
+-def deeplabv3plus_hrnetv2_32(num_classes=21, output_stride=4, pretrained_backbone=True):
++def deeplabv3plus_hrnetv2_32(num_classes=21, output_stride=4, pretrained_backbone=False):
+     return _load_model('deeplabv3plus', 'hrnetv2_32', num_classes, output_stride, pretrained_backbone=pretrained_backbone)
+ 
+ def deeplabv3plus_resnet50(num_classes=21, output_stride=8, pretrained_backbone=True):
+diff --git a/run_models.sh b/run_models.sh
+new file mode 100755
+index 0000000..7b80f4f
+--- /dev/null
++++ b/run_models.sh
+@@ -0,0 +1,31 @@
++#!/bin/env bash
++
++echo "Model: deeplabv3plus_hrnetv2_32"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_hrnetv2_32
++echo "Model: deeplabv3plus_hrnetv2_32 --zc-enable"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_hrnetv2_32 --zc-enable
++
++echo "Model: deeplabv3plus_hrnetv2_48"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_hrnetv2_48
++echo "Model: deeplabv3plus_hrnetv2_48 --zc-enable"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_hrnetv2_48 --zc-enable
++
++echo "Model: deeplabv3plus_mobilenet"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_mobilenet
++echo "Model: deeplabv3plus_mobilenet --zc-enable"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_mobilenet --zc-enable
++
++echo "Model: deeplabv3plus_resnet101"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_resnet101
++echo "Model: deeplabv3plus_resnet101 --zc-enable"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_resnet101 --zc-enable
++
++echo "Model: deeplabv3plus_resnet50"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_resnet50
++echo "Model: deeplabv3plus_resnet50 --zc-enable"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_resnet50 --zc-enable
++
++echo "Model: deeplabv3plus_xception"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_xception
++echo "Model: deeplabv3plus_xception --zc-enable"
++OMP_NUM_THREADS=8 numactl -C 0-7 python main.py --test_only --model deeplabv3plus_xception --zc-enable

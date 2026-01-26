@@ -1,0 +1,1847 @@
+diff --git a/aten/src/ATen/native/CPUBlas.cpp b/aten/src/ATen/native/CPUBlas.cpp
+index 0a2789f4ca..7a1dacc1fc 100644
+--- a/aten/src/ATen/native/CPUBlas.cpp
++++ b/aten/src/ATen/native/CPUBlas.cpp
+@@ -79,6 +79,31 @@ void normalize_last_dims(
+     *ldb = k;
+   }
+ }
++
++void normalize_last_dims_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    int64_t *lda, int64_t *ldb, int64_t *ldc) {
++  if (m == 1) {
++    *ldc = n;
++  }
++
++  if(transa != TransposeType::NoTranspose) {
++    if (k == 1) {
++      *lda = m;
++    }
++  } else if(m == 1) {
++    *lda = k;
++  }
++
++  if(transb != TransposeType::NoTranspose) {
++    if (n == 1) {
++      *ldb = k;
++    }
++  } else if (k == 1) {
++    *ldb = n;
++  }
++}
+ }  // namespace internal
+ 
+ namespace {
+@@ -98,6 +123,22 @@ bool use_blas_gemm(
+ }
+ C10_DIAGNOSTIC_POP()
+ 
++C10_DIAGNOSTIC_PUSH_AND_IGNORED_IF_DEFINED("-Wunneeded-internal-declaration")
++bool use_blas_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    int64_t lda, int64_t ldb, int64_t ldc) {
++  const bool transa_ = transa != TransposeType::NoTranspose;
++  const bool transb_ = transb != TransposeType::NoTranspose;
++  return (
++      (m <= INT_MAX) && (n <= INT_MAX) && (k <= INT_MAX) &&
++      (lda <= INT_MAX) && (ldb <= INT_MAX) && (ldc <= INT_MAX) &&
++      (lda >= std::max(int64_t{1}, (transa_ ? m : k))) &&
++      (ldb >= std::max(int64_t{1}, (transb_ ? k : n))) &&
++      (ldc >= std::max(int64_t{1}, n)));
++}
++C10_DIAGNOSTIC_POP()
++
+ #ifdef USE_FBGEMM
+ fbgemm::matrix_op_t to_fbgemm(TransposeType trans) {
+   switch (trans) {
+@@ -120,6 +161,17 @@ CBLAS_TRANSPOSE to_apple_accelerate_transpose(TransposeType trans) {
+ }
+ #endif
+ 
++#if (AT_BUILD_WITH_BLAS())
++CBLAS_TRANSPOSE to_blas_transpose(TransposeType trans) {
++  switch (trans) {
++    case TransposeType::Transpose: return CblasTrans;
++    case TransposeType::NoTranspose: return CblasNoTrans;
++    case TransposeType::ConjTranspose: return CblasConjTrans;
++  }
++  TORCH_INTERNAL_ASSERT(false, "Invalid transpose type");
++}
++#endif
++
+ }  // namespace (anonymous)
+ 
+ DEFINE_DISPATCH(gemm_stub);
+@@ -490,6 +542,338 @@ void gemm(
+       transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+ }
+ 
++DEFINE_DISPATCH(gemm_row_major_stub);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const double alpha,
++    const double *a, int64_t lda,
++    const double *b, int64_t ldb,
++    const double beta,
++    double *c, int64_t ldc) {
++  internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#if AT_BUILD_WITH_BLAS()
++  if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++    int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++    double alpha_ = alpha, beta_ = beta;
++    CBLAS_TRANSPOSE transa_ = to_blas_transpose(transa);
++    CBLAS_TRANSPOSE transb_ = to_blas_transpose(transb);
++    cblas_dgemm(CblasRowMajor,
++      transa_, transb_,
++      m_, n_, k_,
++      alpha_,
++      a, lda_,
++      b, ldb_,
++      beta_,
++      c, ldc_);
++    return;
++  }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // gemm_stub(
++  //     at::kCPU, at::kDouble,
++  //     transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const float alpha,
++    const float *a, int64_t lda,
++    const float *b, int64_t ldb,
++    const float beta,
++    float *c, int64_t ldc) {
++  internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#if AT_MKLDNN_ENABLED()
++   if (mkldnn_bf32_gemm_row_major(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)) {
++     return;
++   }
++#endif
++#if AT_BUILD_WITH_BLAS()
++  if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++    int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++    float alpha_ = alpha, beta_ = beta;
++    CBLAS_TRANSPOSE transa_ = to_blas_transpose(transa);
++    CBLAS_TRANSPOSE transb_ = to_blas_transpose(transb);
++    cblas_sgemm(CblasRowMajor,
++      transa_, transb_,
++      m_, n_, k_,
++      alpha_,
++      a, lda_,
++      b, ldb_,
++      beta_,
++      c, ldc_);
++    return;
++  }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // gemm_stub(
++  //     at::kCPU, at::kFloat,
++  //     transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const c10::complex<double> alpha,
++    const c10::complex<double> *a, int64_t lda,
++    const c10::complex<double> *b, int64_t ldb,
++    const c10::complex<double> beta,
++    c10::complex<double> *c, int64_t ldc) {
++  internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#if AT_BUILD_WITH_BLAS()
++  if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++    int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++    c10::complex<double> alpha_ = alpha, beta_ = beta;
++    CBLAS_TRANSPOSE transa_ = to_blas_transpose(transa);
++    CBLAS_TRANSPOSE transb_ = to_blas_transpose(transb);
++    cblas_zgemm(CblasRowMajor,
++      transa_, transb_,
++      m_, n_, k_,
++      &alpha_,
++      a, lda_,
++      b, ldb_,
++      &beta_,
++      c, ldc_);
++    return;
++  }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // gemm_stub(
++  //     at::kCPU, at::kComplexDouble,
++  //     transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const c10::complex<float> alpha,
++    const c10::complex<float> *a, int64_t lda,
++    const c10::complex<float> *b, int64_t ldb,
++    const c10::complex<float> beta,
++    c10::complex<float> *c, int64_t ldc) {
++  internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#if AT_BUILD_WITH_BLAS()
++  if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++    int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++    c10::complex<float> alpha_ = alpha, beta_ = beta;
++    CBLAS_TRANSPOSE transa_ = to_blas_transpose(transa);
++    CBLAS_TRANSPOSE transb_ = to_blas_transpose(transb);
++    cblas_cgemm(CblasRowMajor,
++      transa_, transb_,
++      m_, n_, k_,
++      &alpha_,
++      a, lda_,
++      b, ldb_,
++      &beta_,
++      c, ldc_);
++    return;
++  }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // gemm_stub(
++  //     at::kCPU, at::kComplexFloat,
++  //     transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++void gemm_row_major(
++   TransposeType transa, TransposeType transb,
++   int64_t m, int64_t n, int64_t k,
++   const float alpha,
++   const at::BFloat16 *a, int64_t lda,
++   const at::BFloat16 *b, int64_t ldb,
++   const float beta,
++   at::BFloat16 *c, int64_t ldc) {
++   internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#if AT_BUILD_WITH_BLAS() && defined(BLAS_HAS_SBGEMM)
++   if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++      int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++      CBLAS_TRANSPOSE transa_ = to_blas_transpose(transa);
++      CBLAS_TRANSPOSE transb_ = to_blas_transpose(transb);
++      float alpha_ = alpha, beta_ = beta;
++      int c_size = m_ * ldc_;
++      // C matrix in OpenBLAS sbgemm are of type "float" so we have to convert, copy and copy back.
++      std::vector<float> float_v(c, c + c_size);
++      cblas_sbgemm(CblasRowMajor,
++                   &transa_, &transb_,
++                   &m_, &n_, &k_,
++                   &alpha_,
++                   a, &lda_,
++                   b, &ldb_,
++                   &beta_,
++                   float_v.data(), &ldc_);
++      for (auto cv: float_v) {
++        *(c++) = c10::convert<at::BFloat16>(cv);
++      }
++      return;
++   }
++#endif
++#if AT_MKLDNN_ENABLED()
++   if (mkldnn_bf16_gemm_row_major(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)) {
++     return;
++   }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // gemm_stub(
++  //    at::kCPU, at::kBFloat16,
++  //    transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++void gemm_row_major(
++   TransposeType transa, TransposeType transb,
++   int64_t m, int64_t n, int64_t k,
++   const float alpha,
++   const at::Half *a, int64_t lda,
++   const at::Half *b, int64_t ldb,
++   const float beta,
++   at::Half *c, int64_t ldc) {
++   internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#if AT_MKLDNN_ENABLED()
++   if (mkldnn_fp16_gemm_row_major(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)) {
++     return;
++   }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // gemm_stub(
++  //    at::kCPU, at::kHalf,
++  //    transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const float alpha,
++    const at::BFloat16 *a, int64_t lda,
++    const at::BFloat16 *b, int64_t ldb,
++    const float beta,
++    float *c, int64_t ldc) {
++  internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#if AT_BUILD_WITH_BLAS() && defined(BLAS_HAS_SBGEMM)
++   if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++      int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++      CBLAS_TRANSPOSE transa_ = to_blas_transpose(transa);
++      CBLAS_TRANSPOSE transb_ = to_blas_transpose(transb);
++      float alpha_ = alpha, beta_ = beta;
++      cblas_sbgemm(CblasRowMajor,
++                   &transa_, &transb_,
++                   &m_, &n_, &k_,
++                   &alpha_,
++                   a, &lda_,
++                   b, &ldb_,
++                   &beta_,
++                   c, &ldc_);
++      return;
++   }
++#endif
++#ifdef MKL_HAS_SBGEMM
++  if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++    int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++    mkl_gemm_bf16bf16f32_row_major(transa, transb, m_, n_, k_, alpha, a, lda_, b, ldb_, beta, c, ldc_);
++    return;
++  }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // // for the fallback path, first compute gemm with beta = 0,
++  // // and then add c in full precision.
++  // int64_t c_size = n * m;
++  // std::vector<at::BFloat16> bfloat_c(c_size, 0.f);
++  // gemm_stub(
++  //     at::kCPU, at::kBFloat16,
++  //     transa, transb, m, n, k, alpha, a, lda, b, ldb, 0.f, bfloat_c.data(), m);
++  // for (const auto j : c10::irange(n)) {
++  //   for (const auto i : c10::irange(m)) {
++  //     auto offset = j * ldc + i;
++  //     // beta == 0 won't propagate NaN from C
++  //     if (beta == 0.f) {
++  //       c[offset] = c10::convert<float>(bfloat_c[j * m + i]);
++  //     } else {
++  //       c[offset] = beta * c[offset] + c10::convert<float>(bfloat_c[j * m + i]);
++  //     }
++  //   }
++  // }
++}
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const float alpha,
++    const at::Half *a, int64_t lda,
++    const at::Half *b, int64_t ldb,
++    const float beta,
++    float *c, int64_t ldc) {
++  internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#ifdef MKL_HAS_SHGEMM
++  if (use_blas_gemm_row_major(transa, transb, m, n, k, lda, ldb, ldc)) {
++    int m_ = m, n_ = n, k_ = k, lda_ = lda, ldb_ = ldb, ldc_ = ldc;
++    mkl_gemm_f16f16f32_row_major(transa, transb, m_, n_, k_, alpha, a, lda_, b, ldb_, beta, c, ldc_);
++    return;
++  }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // // for the fallback path, first compute gemm with beta = 0,
++  // // and then add c in full precision.
++  // int64_t c_size = n * m;
++  // std::vector<at::Half> float16_c(c_size, 0.f);
++  // gemm_stub(
++  //     at::kCPU, at::kHalf,
++  //     transa, transb, m, n, k, alpha, a, lda, b, ldb, 0.f, float16_c.data(), m);
++  // for (const auto j : c10::irange(n)) {
++  //   for (const auto i : c10::irange(m)) {
++  //     auto offset = j * ldc + i;
++  //     // beta == 0 won't propagate NaN from C
++  //     if (beta == 0.f) {
++  //       c[offset] = c10::convert<float>(float16_c[j * m + i]);
++  //     } else {
++  //       c[offset] = beta * c[offset] + c10::convert<float>(float16_c[j * m + i]);
++  //     }
++  //   }
++  // }
++}
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const int64_t alpha,
++    const int64_t *a, int64_t lda,
++    const int64_t *b, int64_t ldb,
++    const int64_t beta,
++    int64_t *c, int64_t ldc) {
++  internal::normalize_last_dims_row_major(transa, transb, m, n, k, &lda, &ldb, &ldc);
++#ifdef USE_FBGEMM
++  if (alpha == 1 && (beta == 0 || beta == 1)) {
++    // In FBGEMM, we assume row-major ordering
++    fbgemm::cblas_gemm_i64_i64acc(
++        to_fbgemm(transa),
++        to_fbgemm(transb),
++        m,
++        n,
++        k,
++        a,
++        lda,
++        b,
++        ldb,
++        beta == 1,
++        c,
++        ldc);
++    return;
++  }
++#endif
++  // TODO: add row major version
++  TORCH_CHECK(false, "Row major GEMM does not support fallback");
++  // gemm_stub(
++  //     kCPU, kLong,
++  //     transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
+ template <typename scalar_t>
+ static void gemm_batched_mkl_impl(
+       TransposeType transa, TransposeType transb,
+diff --git a/aten/src/ATen/native/CPUBlas.h b/aten/src/ATen/native/CPUBlas.h
+index ad209329c9..9f936d6ef5 100644
+--- a/aten/src/ATen/native/CPUBlas.h
++++ b/aten/src/ATen/native/CPUBlas.h
+@@ -125,6 +125,113 @@ void gemm(
+     int64_t beta,
+     int64_t *c, int64_t ldc);
+ 
++using gemm_row_major_fn = void(*)(
++    at::ScalarType type,
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const Scalar& alpha,
++    const void *a, int64_t lda,
++    const void *b, int64_t ldb,
++    const Scalar& beta,
++    void *c, int64_t ldc);
++
++DECLARE_DISPATCH(gemm_row_major_fn, gemm_row_major_stub);
++
++template <typename scalar_t>
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    at::opmath_type<scalar_t> alpha,
++    const scalar_t *a, int64_t lda,
++    const scalar_t *b, int64_t ldb,
++    at::opmath_type<scalar_t> beta,
++    scalar_t *c, int64_t ldc) {
++  gemm_row_major_stub(
++    kCPU, c10::CppTypeToScalarType<scalar_t>::value,
++    transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    double alpha,
++    const double *a, int64_t lda,
++    const double *b, int64_t ldb,
++    double beta,
++    double *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const float *a, int64_t lda,
++    const float *b, int64_t ldb,
++    float beta,
++    float *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const at::BFloat16 *a, int64_t lda,
++    const at::BFloat16 *b, int64_t ldb,
++    float beta,
++    at::BFloat16 *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const float alpha,
++    const at::BFloat16 *a, int64_t lda,
++    const at::BFloat16 *b, int64_t ldb,
++    const float beta,
++    float *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const at::Half *a, int64_t lda,
++    const at::Half *b, int64_t ldb,
++    float beta,
++    at::Half *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const float alpha,
++    const at::Half *a, int64_t lda,
++    const at::Half *b, int64_t ldb,
++    const float beta,
++    float *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    c10::complex<double> alpha,
++    const c10::complex<double> *a, int64_t lda,
++    const c10::complex<double> *b, int64_t ldb,
++    c10::complex<double> beta,
++    c10::complex<double> *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    c10::complex<float> alpha,
++    const c10::complex<float> *a, int64_t lda,
++    const c10::complex<float> *b, int64_t ldb,
++    c10::complex<float> beta,
++    c10::complex<float> *c, int64_t ldc);
++
++void gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    int64_t alpha,
++    const int64_t *a, int64_t lda,
++    const int64_t *b, int64_t ldb,
++    int64_t beta,
++    int64_t *c, int64_t ldc);
++
+ template <typename scalar_t>
+ void gemm_batched(
+     TransposeType transa, TransposeType transb,
+diff --git a/aten/src/ATen/native/ConvUtils.h b/aten/src/ATen/native/ConvUtils.h
+index ad05a820f7..5442aab9ea 100644
+--- a/aten/src/ATen/native/ConvUtils.h
++++ b/aten/src/ATen/native/ConvUtils.h
+@@ -108,6 +108,8 @@ enum class ConvBackend {
+   NnpackSpatial,
+   Overrideable,
+   Slow2d,
++  ZeroCopy2d,
++  ZeroCopy2dExt,
+   Slow3d,
+   SlowDilated2d,
+   SlowDilated3d,
+diff --git a/aten/src/ATen/native/Convolution.cpp b/aten/src/ATen/native/Convolution.cpp
+index 2f85c97243..36b7cf5d7e 100644
+--- a/aten/src/ATen/native/Convolution.cpp
++++ b/aten/src/ATen/native/Convolution.cpp
+@@ -15,6 +15,7 @@
+ #include <c10/macros/Macros.h>
+ #include <limits>
+ #include <utility>
++#include <iostream>
+ 
+ #ifndef AT_PER_OPERATOR_HEADERS
+ #include <ATen/Functions.h>
+@@ -79,6 +80,8 @@
+ #include <ATen/ops/slow_conv_transpose2d.h>
+ #include <ATen/ops/slow_conv_transpose3d.h>
+ #include <ATen/ops/thnn_conv2d.h>
++#include <ATen/ops/zero_copy_conv2d.h>
++#include <ATen/ops/zero_copy_conv2d_ext.h>
+ #include <ATen/ops/view_as_real.h>
+ #include <ATen/ops/zeros.h>
+ #include <ATen/ops/zeros_like.h>
+@@ -91,6 +94,25 @@ namespace at::native {
+ 
+ static bool conv_benchmark_empty_cache = true;
+ 
++// Integer division rounding to -Infinity
++template <typename T>
++static inline T div_rtn(const T &x, const T &y) {
++  int q = x / y;
++  int r = x % y;
++  if ((r != 0) && ((r < 0) != (y < 0)))
++    --q;
++  return q;
++}
++// Integer division rounding to -Infinity so it works with SymInt
++template<>
++ inline c10::SymInt div_rtn(const c10::SymInt& x, const c10::SymInt& y) {
++  c10::SymInt q = x / y;
++  c10::SymInt r = x % y;
++  if ((r != 0) && ((r < 0) != (y < 0)))
++    return q - 1;
++  return q;
++}
++
+ // Check workload to activate fast depthwise FP16 cudnn conv kernels
+ template <typename T>
+ bool check_cudnn_depthwise_workload(const at::Tensor& input, T stride) {
+@@ -513,6 +535,72 @@ struct ConvParams {
+            && !(groups > 1 && is_dilated()) // MIOpen currently does not support dilation with groups of size > 1
+            ;
+   }
++  bool use_zero_copy_2d(const at::Tensor& input, const at::Tensor& weight, bool ignore_weight_layout = false) const  {
++    // Requires row-major gemm that is provided by BLAS
++    if constexpr (!AT_BUILD_WITH_BLAS()) {
++      return false;
++    }
++
++    bool use = false;
++    if (const char* env = std::getenv("ZC_ENABLE")) {
++      std::string env_str(env);
++      if (env_str == "TRUE") {
++        use = true;
++      }
++    }
++
++    bool heuristic = true;
++    if (const char* env = std::getenv("ZC_HEURISTIC")) {
++      std::string env_str(env);
++      if (env_str == "FALSE") {
++        heuristic = false;
++      }
++    }
++
++    if (const char* env = std::getenv("ZC_WEIGHTS_LAYOUT")) {
++      std::string env_str(env);
++      if (env_str == "OHWI") {
++        ignore_weight_layout = true;
++      }
++    }
++
++    use = use &&
++      input.device().is_cpu() &&
++      input.ndimension() == 4 &&
++      weight.ndimension() == 4 &&
++      weight.is_non_overlapping_and_dense() &&
++      input.is_contiguous(at::MemoryFormat::ChannelsLast) &&
++      !transposed;
++
++    if (!ignore_weight_layout) {
++      bool are_weights_HWIO = weight.stride(0) == 1 &&
++                              weight.stride(1) == weight.size(0) &&
++                              weight.stride(3) == weight.size(0) * weight.size(1);
++      use = use && are_weights_HWIO;
++      // If weights are in HWIO format, use ZeroCopy2D
++      if (use)
++        return true;
++    }
++
++    // If heuristic is disabled, return use as is
++    if (!use || !heuristic)
++      return use;
++
++    auto input_channel = at::symint::size<T>(input, 1);
++    auto input_height = at::symint::size<T>(input, 2);
++    auto input_width = at::symint::size<T>(input, 3);
++    auto filter_height = at::symint::size<T>(weight, 2);
++    auto filter_width = at::symint::size<T>(weight, 3);
++
++    auto output_height = (input_height + 2 * padding[0] - filter_height) / stride[0] + 1;
++    auto output_width = (input_width + 2 * padding[1] - filter_width) / stride[1] + 1;
++
++    use = use && groups == 1                          // not grouped
++      && (filter_height != 1 || filter_width != 1)    // not pointwise
++      && output_height < input_channel && output_width < input_channel;
++
++    return use;
++  }
+   bool use_mkldnn(const at::Tensor& input, const at::Tensor& weight) const  {
+ #if AT_MKLDNN_ENABLED()
+     if (!at::globalContext().userEnabledMkldnn()) {
+@@ -612,6 +700,93 @@ struct ConvParams {
+   }
+ };
+ 
++// Returns if ZeroCopy2D will be used for the given conv2d configuration
++bool will_use_zero_copy_conv2d_dynamic(
++    const Tensor& input,
++    const Tensor& weight,
++    IntArrayRef stride,
++    IntArrayRef padding,
++    IntArrayRef dilation,
++    int64_t groups, bool transposed) {
++
++  ConvParams<int64_t> params;
++  params.stride = expand_param_if_needed(stride, "stride", 2);
++  params.padding = expand_param_if_needed(padding, "padding", 2);
++  params.dilation = expand_param_if_needed(dilation, "dilation", 2);
++  params.transposed = transposed;
++  params.groups = groups;
++
++  return params.use_zero_copy_2d(input, weight, true);
++}
++
++// Returns if ZeroCopy2D will be used for the given conv2d configuration
++// Based on use_zero_copy_2d but adapted to unknown input sizes
++bool will_use_zero_copy_conv2d_static(
++    int64_t input_channel,
++    int64_t output_channel,
++    const Tensor& weight,
++    IntArrayRef stride,
++    IntArrayRef padding,
++    IntArrayRef dilation,
++    int64_t groups, bool transposed) {
++
++  // Requires row-major gemm that is provided by BLAS
++  if constexpr (!AT_BUILD_WITH_BLAS()) {
++    return false;
++  }
++
++  bool use = false;
++  if (const char* env = std::getenv("ZC_ENABLE")) {
++    std::string env_str(env);
++    if (env_str == "TRUE") {
++      use = true;
++    }
++  }
++
++  bool heuristic = true;
++  if (const char* env = std::getenv("ZC_HEURISTIC")) {
++    std::string env_str(env);
++    if (env_str == "FALSE") {
++      heuristic = false;
++    }
++  }
++
++  bool ignore_weight_layout = false;
++  if (const char* env = std::getenv("ZC_WEIGHTS_LAYOUT")) {
++    std::string env_str(env);
++    if (env_str == "OHWI") {
++      ignore_weight_layout = true;
++    }
++  }
++
++  use = use &&
++    weight.ndimension() == 4 &&
++    weight.is_non_overlapping_and_dense() &&
++    !transposed;
++
++  if (!ignore_weight_layout) {
++    bool are_weights_HWIO = weight.stride(0) == 1 &&
++                            weight.stride(1) == weight.size(0) &&
++                            weight.stride(3) == weight.size(0) * weight.size(1);
++    use = use && are_weights_HWIO;
++  }
++
++  // If heuristic is disabled, return use as is
++  if (!use || !heuristic)
++    return use;
++
++  auto threads = at::get_num_threads();
++  auto filter_height = at::symint::size<int64_t>(weight, 2);
++  auto filter_width = at::symint::size<int64_t>(weight, 3);
++  use = use
++    && threads > 1
++    && groups == 1                                  // not grouped
++    && (filter_height != 1 || filter_width != 1)    // not pointwise
++    && output_channel < input_channel;
++
++  return use;
++}
++
+ DEFINE_DISPATCH(conv_depthwise2d_backward_stub);
+ DEFINE_DISPATCH(conv_depthwise3d_backward_stub);
+ DEFINE_DISPATCH(cudnn_convolution_backward_stub);
+@@ -1240,6 +1415,12 @@ ConvBackend _select_conv_backend(
+     } else {
+       return ConvBackend::Miopen;
+     }
++  } else if (params.use_zero_copy_2d(input, weight)) {
++    if (params.is_dilated() || params.groups > 1) {
++      return ConvBackend::ZeroCopy2dExt;
++    } else {
++      return ConvBackend::ZeroCopy2d;
++    }
+   } else if (params.use_mkldnn(input, weight)) {
+     if (params.transposed) {
+       return ConvBackend::MkldnnTranspose;
+@@ -1439,6 +1620,10 @@ static inline at::MemoryFormat determine_backend_memory_format(
+         backend_memory_format = (k == 5) ? at::MemoryFormat::ChannelsLast3d : at::MemoryFormat::ChannelsLast;
+       }
+       break;
++    case ConvBackend::ZeroCopy2d:
++    case ConvBackend::ZeroCopy2dExt:
++      backend_memory_format = at::MemoryFormat::ChannelsLast;
++      break;
+     case ConvBackend::Slow2d:
+     case ConvBackend::SlowDilated2d:
+     case ConvBackend::SlowTranspose2d:
+@@ -1515,9 +1700,67 @@ at::Tensor _convolution(
+   ConvBackend backend = _select_conv_backend(input, weight, bias, c10::OptionalIntArrayRef(bias_sizes_opt), need_backward, params);
+   at::MemoryFormat backend_memory_format = determine_backend_memory_format(input, weight, backend);
+ 
++  std::string backend_str;
++  switch (backend) {
++    case ConvBackend::CudaDepthwise2d: backend_str = "CudaDepthwise2d";
++      break;
++    case ConvBackend::CudaDepthwise3d: backend_str = "CudaDepthwise3d";
++      break;
++    case ConvBackend::Cudnn: backend_str = "Cudnn";
++      break;
++    case ConvBackend::CudnnTranspose: backend_str = "CudnnTranspose";
++      break;
++    case ConvBackend::Empty: backend_str = "Empty";
++      break;
++    case ConvBackend::Miopen: backend_str = "Miopen";
++      break;
++    case ConvBackend::MiopenDepthwise: backend_str = "MiopenDepthwise";
++      break;
++    case ConvBackend::MiopenTranspose: backend_str = "MiopenTranspose";
++      break;
++    case ConvBackend::ZeroCopy2d: backend_str = "ZeroCopy2d";
++      break;
++    case ConvBackend::ZeroCopy2dExt: backend_str = "ZeroCopy2dExt";
++      break;
++    case ConvBackend::Mkldnn: backend_str = "Mkldnn";
++      break;
++    case ConvBackend::MkldnnTranspose: backend_str = "MkldnnTranspose";
++      break;
++    case ConvBackend::MkldnnEmpty: backend_str = "MkldnnEmpty";
++      break;
++    case ConvBackend::NnpackSpatial: backend_str = "NnpackSpatial";
++      break;
++    case ConvBackend::Overrideable: backend_str = "Overrideable";
++      break;
++    case ConvBackend::Slow2d: backend_str = "Slow2d";
++      break;
++    case ConvBackend::Slow3d: backend_str = "Slow3d";
++      break;
++    case ConvBackend::SlowDilated2d: backend_str = "SlowDilated2d";
++      break;
++    case ConvBackend::SlowDilated3d: backend_str = "SlowDilated3d";
++      break;
++    case ConvBackend::SlowTranspose2d: backend_str = "SlowTranspose2d";
++      break;
++    case ConvBackend::SlowTranspose3d: backend_str = "SlowTranspose3d";
++      break;
++    case ConvBackend::Winograd3x3Depthwise: backend_str = "Winograd3x3Depthwise";
++      break;
++    case ConvBackend::Xnnpack2d: backend_str = "Xnnpack2d";
++      break;
++    case ConvBackend::Mps: backend_str = "Mps";
++      break;
++    case ConvBackend::MpsTranspose: backend_str = "MpsTranspose";
++      break;
++    default: backend_str = "Unknown";
++      break;
++  }
++
+   // Call the backend.
+   Tensor output;
+   auto kernel_size = weight.sizes().slice(2);
++
++  auto start = std::chrono::high_resolution_clock::now();
+   switch (backend) {
+     case ConvBackend::CudaDepthwise2d:
+       output = at::_conv_depthwise2d(input.contiguous(), weight, kernel_size, bias,
+@@ -1584,6 +1827,12 @@ at::Tensor _convolution(
+           input.contiguous(backend_memory_format), weight, bias, params.padding, params.output_padding,
+           params.stride, params.dilation, params.groups, params.benchmark, params.deterministic);
+       break;
++    case ConvBackend::ZeroCopy2d:
++      output = at::zero_copy_conv2d(input, weight, kernel_size, bias, params.stride, params.padding);
++      break;
++    case ConvBackend::ZeroCopy2dExt:
++      output = at::zero_copy_conv2d_ext(input, weight, kernel_size, bias, params.stride, params.padding, params.dilation, params.groups);
++      break;
+     case ConvBackend::Mkldnn:
+ #if AT_MKLDNN_ENABLED()
+       check_input_same_type_as_parameters(input, weight, bias, backend);
+@@ -1702,6 +1951,23 @@ at::Tensor _convolution(
+     output = view3d(output);
+   }
+ 
++  auto end = std::chrono::high_resolution_clock::now();
++  if (const char* env = std::getenv("ZC_TIME")) {
++    std::string env_str(env);
++    if (env_str == "TRUE") {
++      std::chrono::duration<double> elapsed = end - start;
++      int has_bias = bias.defined() ? 1 : 0;
++      std::cerr << backend_str << "," << backend_memory_format << ",";
++      std::cerr << at::symint::size<int64_t>(input, 0) << " " << at::symint::size<int64_t>(input, 1) << " "
++                << at::symint::size<int64_t>(input, 2) << " " << at::symint::size<int64_t>(input, 3) << " " << weight_sizes[0]
++                << " " << weight_sizes[2] << " " << weight_sizes[3] << " " << params.padding[0]
++                << " " << params.padding[1] << " " << params.padding[0] << " " << params.padding[1]
++                << " " << params.stride[0] << " " << params.stride[1] << " " << params.dilation[0]
++                << " " << params.dilation[1] << " " << params.groups << " " << "0" << " " << has_bias << ",";
++      std::cerr << elapsed.count() * 1000 << ",ms" << std::endl;
++    }
++  }
++
+   return output;
+ }
+ 
+@@ -2211,6 +2477,8 @@ std::tuple<Tensor, Tensor, Tensor> convolution_backward(
+       break;
+     // Handle backends that don't natively support groups > 1.
+     case ConvBackend::NnpackSpatial:
++    case ConvBackend::ZeroCopy2d:
++    case ConvBackend::ZeroCopy2dExt:
+     case ConvBackend::Slow2d:
+     case ConvBackend::SlowDilated2d:
+     case ConvBackend::SlowDilated3d:
+diff --git a/aten/src/ATen/native/ConvolutionMM2d.cpp b/aten/src/ATen/native/ConvolutionMM2d.cpp
+index 10ab4a70f0..191e220d87 100644
+--- a/aten/src/ATen/native/ConvolutionMM2d.cpp
++++ b/aten/src/ATen/native/ConvolutionMM2d.cpp
+@@ -25,6 +25,81 @@ namespace at::native {
+ 
+ namespace {
+ 
++// Based on mkldnn/Conv.cpp
++static void zero_copy_ext_shape_check(const Tensor& input,
++                                      const Tensor& weight,
++                                      const Tensor& bias,
++                                      const IntArrayRef& padding,
++                                      const IntArrayRef& stride,
++                                      const IntArrayRef& dilation,
++                                      const int64_t groups) {
++#define CONV_ARG_CHECK(IT, OP) std::any_of(IT.begin(), IT.end(), [](auto x) { return x OP 0; })
++  auto is_padding_neg = CONV_ARG_CHECK(padding, <);
++  auto is_stride_nonpos = CONV_ARG_CHECK(stride, <=);
++  auto is_dilation_nonpos = CONV_ARG_CHECK(dilation, <=);
++#undef CONV_ARG_CHECK
++  TORCH_CHECK(!is_padding_neg, "negative padding is not supported");
++  TORCH_CHECK(!is_stride_nonpos, "non-positive stride is not supported");
++  TORCH_CHECK(!is_dilation_nonpos, "non-positive dilation is not supported");
++  TORCH_CHECK(groups > 0, "non-positive groups is not supported");
++
++  int64_t k = input.ndimension();
++  const IntArrayRef& weight_sizes = weight.sizes();
++  int64_t weight_dim = weight_sizes.size();
++
++  TORCH_CHECK(weight_dim == k,
++              "Expected ", weight_dim, "-dimensional input for ", weight_dim,
++              "-dimensional weight ", weight_sizes, ", but got ", k, "-dimensional input of size ",
++              input.sizes(), " instead");
++  TORCH_CHECK(weight_sizes[0] >= groups,
++              "Given groups=", groups, ", expected weight to be at least ", groups,
++              " at dimension 0, but got weight of size ", weight_sizes, " instead");
++  TORCH_CHECK(weight_sizes[0] % groups == 0,
++              "Given groups=", groups, ", expected weight to be divisible by ",
++              groups, " at dimension 0, but got weight of size [", weight_sizes,
++              "] instead");
++  TORCH_CHECK(input.size(1) == (weight_sizes[1] * groups),
++              "Given groups=", groups, ", weight of size ", weight_sizes,
++              ", expected input", input.sizes(), " to have ",
++              (weight_sizes[1] * groups), " channels, but got ", input.size(1),
++              " channels instead");
++  TORCH_CHECK(!bias.defined() || (bias.ndimension() == 1 && bias.size(0) == weight_sizes[0]),
++              "Given weight of size ", weight_sizes,
++              ", expected bias to be 1-dimensional with ", weight_sizes[0], " elements",
++              ", but got bias of size ", bias.sizes(), " instead");
++
++  std::vector<int64_t> input_shape;
++  std::vector<int64_t> kernel_shape;
++  bool kernel_size_correct = true;
++
++  for (const auto i : c10::irange(2, k)) {
++    input_shape.push_back(input.size(i) + 2 * padding[i-2]);
++    // log new kernel size considering dilation
++    kernel_shape.push_back(dilation[i-2] * (weight_sizes[i]-1) + 1);
++    if (input_shape.back() < kernel_shape.back()) {
++      kernel_size_correct = false;
++    }
++  }
++
++  TORCH_CHECK(input_shape.size() == kernel_shape.size(), "Inconsistent shape between Input and Kernel");
++
++  if (!kernel_size_correct) {
++    // If kernel size is incorrect
++    std::ostringstream input_ss;
++    std::ostringstream kernel_ss;
++    std::string separator = "";
++
++    for (int i = 0, len = input_shape.size(); i < len; ++i) {
++      input_ss << separator << input_shape[i];
++      kernel_ss << separator << kernel_shape[i];
++      separator = " x ";
++    }
++
++    TORCH_CHECK(false, "Calculated padded input size per channel: (", input_ss.str(), "). "
++                "Kernel size: (", kernel_ss.str(), "). Kernel size can't be greater than actual input size");
++  }
++}
++
+ static Tensor compute_columns2d(
+     const Tensor& input,
+     IntArrayRef padding,
+@@ -218,6 +293,229 @@ static inline Tensor view_weight_2d(const Tensor& weight_,
+   }
+ }
+ 
++template <typename scalar_t>
++static scalar_t modulo(scalar_t a, scalar_t b) {
++  const scalar_t result = a % b;
++  return result >= 0 ? result : result + b;
++}
++
++template <typename scalar_t>
++static void zero_copy_conv2d_update_output_frame(
++    const scalar_t *input,
++    scalar_t *output,
++    const scalar_t *filters,
++    std::optional<const scalar_t*> bias,
++    int64_t ow,
++    int64_t FH,
++    int64_t FW,
++    int64_t SH,
++    int64_t SW,
++    int64_t PH,
++    int64_t PW,
++    int64_t C,
++    int64_t H,
++    int64_t W,
++    int64_t M,
++    int64_t OH,
++    int64_t OW) {
++
++  // Initialize output to zeros
++  for (int i = 0; i < OH; ++i) {
++    for (int j = 0; j < M; ++j) {
++      if (bias.has_value()) {
++        output[i * OW * M + ow * M + j] = bias.value()[j];
++      } else {
++        output[i * OW * M + ow * M + j] = 0;
++      }
++    }
++  }
++
++  // Calculate width slice of size FW and handle edge cases
++  int64_t iw = ow * SW - PW;
++  int64_t width_start = std::max(0l, iw);
++  int64_t width_end = std::min(W, iw + FW);
++  int64_t width_slice = width_end - width_start;
++
++  if (width_slice > 0) {
++
++    // For every element in the filter height
++    for (int fh = 0; fh < FH; ++fh) {
++      // Calculate height slice of size OH and handle edge cases
++      int64_t height_offset = fh - PH;
++      int64_t height_start = height_offset;
++      if (height_offset < 0) {
++        height_start = std::max(0l, modulo(height_offset, SH));
++      }
++      int64_t height_end = std::min(H, height_offset + OH * SH);
++      int64_t height_slice = static_cast<int64_t>(ceilf(
++          static_cast<float>(height_end - height_start) /
++          static_cast<float>(SH)));
++
++      if (height_slice <= 0)
++        continue;
++
++      // Start of the filter block of size 1,FW,C,M
++      const scalar_t* b = &filters[fh * FW * C * M];
++      if (iw < 0) {
++        b = &filters[(fh * FW - iw) * C * M];
++      }
++
++      // Start of the image block of size OH,FW,C
++      const scalar_t* a = &input[(height_start * W + width_start) * C];
++
++      // Start of the output block of size 1,OH,M
++      scalar_t* c = &output[ow * M];
++      if (height_offset < 0) {
++        int64_t offset = static_cast<int64_t>(floorf(static_cast<float>(height_offset) / static_cast<float>(SH)));
++        c = &output[ow * M -offset * OW * M];
++      }
++
++      int64_t M_dim = height_slice;
++      int64_t K_dim = width_slice * C;
++      int64_t N_dim = M;
++      scalar_t alpha = 1.0f;
++      scalar_t beta = 1.0f;
++      int64_t lda = W*C*SH;
++      int64_t ldb = N_dim;
++      int64_t ldc = N_dim * OW;
++      at::native::cpublas::gemm_row_major(
++          TransposeType::NoTranspose,
++          TransposeType::NoTranspose,
++          M_dim, N_dim, K_dim,
++          alpha,
++          a, lda,
++          b, ldb,
++          beta,
++          c, ldc);
++    }
++  }
++}
++
++template <typename scalar_t>
++static void zero_copy_conv2d_ext_update_output_frame(
++    const scalar_t* input,
++    scalar_t* tmp_input,
++    scalar_t* output,
++    const scalar_t* filters,
++    std::optional<const scalar_t*> bias,
++    int64_t ow,
++    int64_t FH,
++    int64_t FW,
++    int64_t SH,
++    int64_t SW,
++    int64_t PH,
++    int64_t PW,
++    int64_t DH,
++    int64_t DW,
++    int64_t GR,
++    int64_t C,
++    int64_t H,
++    int64_t W,
++    int64_t M,
++    int64_t OH,
++    int64_t OW) {
++  const int64_t C_GR = C / GR;
++  const int64_t M_GR = M / GR;
++
++  // Initialize output to zeros
++  for (int i = 0; i < OH; ++i) {
++    for (int j = 0; j < M; ++j) {
++      if (bias.has_value()) {
++        output[i * OW * M + ow * M + j] = bias.value()[j];
++      } else {
++        output[i * OW * M + ow * M + j] = 0;
++      }
++    }
++  }
++
++  // Calculate width slice of size FW and handle edge cases
++  int64_t iw = ow * SW - PW;
++  int64_t width_start = std::max(0l, iw);
++  if (iw < 0) {
++    width_start = std::max(0l, modulo(iw, DW));
++  }
++  int64_t width_end = std::min(W, iw + FW * DW);
++  int64_t width_slice = static_cast<int64_t>(ceilf(
++      static_cast<float>(width_end - width_start) / static_cast<float>(DW)));
++
++  if (width_slice > 0) {
++
++    // For every element in the filter height
++    for (int fh = 0; fh < FH; ++fh) {
++      // Calculate height slice of size OH and handle edge cases
++      int64_t height_offset = fh * DH - PH;
++      int64_t height_start = height_offset;
++      if (height_offset < 0) {
++        height_start = std::max(0l, modulo(height_offset, SH));
++      }
++      int64_t height_end = std::min(H, height_offset + OH * SH);
++      int64_t height_slice = static_cast<int64_t>(ceilf(
++          static_cast<float>(height_end - height_start) /
++          static_cast<float>(SH)));
++
++      if (height_slice <= 0)
++        continue;
++
++      // For every group of channels
++      for (int gr = 0; gr < GR; ++gr) {
++        // Copy input slice to image buffer following stride
++        // height, width dilation, and channel grouping
++        int buf_index = 0;
++        for (int64_t h = height_start; h < height_end; h += SH) {
++          for (int64_t w = width_start; w < width_end; w += DW) {
++            for (int64_t c_gr = 0; c_gr < C_GR; ++c_gr) {
++              tmp_input[buf_index++] =
++                  input[h * W * C + w * C + c_gr + gr * C_GR];
++            }
++          }
++        }
++
++        // Start of the filter block of size 1,FW,C_GR,M
++        const scalar_t* b = &filters[fh * FW * C_GR * M + gr * M_GR];
++        if (iw < 0) {
++          int64_t adjusted_iw = static_cast<int64_t>(
++              floorf(static_cast<float>(iw) / static_cast<float>(DW)));
++          b = &filters[fh * FW * C_GR * M - adjusted_iw * C_GR * M + gr * M_GR];
++        }
++
++        // Start of the image block of size OH,FW,C_GR
++        const scalar_t* a = tmp_input;
++
++        // Start of the output block of size 1,OH,M
++        scalar_t* c = &output[ow * M + gr * M_GR];
++        if (height_offset < 0) {
++          int64_t offset = static_cast<int64_t>(
++              floorf(static_cast<float>(height_offset) / static_cast<float>(SH)));
++          c = &output[ow * M - offset * OW * M + gr * M_GR];
++        }
++
++        int64_t M_dim = height_slice;
++        int64_t K_dim = width_slice * C_GR;
++        int64_t N_dim = M_GR;
++        scalar_t alpha = 1.0f;
++        scalar_t beta = 1.0f;
++        int64_t lda = K_dim;
++        int64_t ldb = M;
++        int64_t ldc = M * OW;
++        at::native::cpublas::gemm_row_major(
++            TransposeType::NoTranspose,
++            TransposeType::NoTranspose,
++            M_dim,
++            N_dim,
++            K_dim,
++            alpha,
++            a,
++            lda,
++            b,
++            ldb,
++            beta,
++            c,
++            ldc);
++      }
++    }
++  }
++}
++
+ template <typename scalar_t>
+ static void slow_conv2d_update_output_frame(
+     TensorAccessor<const scalar_t, 3> input,
+@@ -535,6 +833,255 @@ static void slow_conv2d_backward_weight_out_cpu_template(
+ 
+ } // namespace
+ 
++Tensor& zero_copy_conv2d_forward_out_cpu(
++    const Tensor& self,
++    const Tensor& weight_,
++    IntArrayRef kernel_size, const std::optional<Tensor>& bias_opt,
++    IntArrayRef stride,
++    IntArrayRef padding,
++    Tensor& output) {
++  // See [Note: hacky wrapper removal for optional tensor]
++
++  TORCH_CHECK(kernel_size.size() == 2, "2D kernel_size expected");
++  TORCH_CHECK(stride.size() == 2, "2D stride expected");
++  TORCH_CHECK(padding.size() == 2, "2D padding expected");
++  TORCH_CHECK(self.is_contiguous(at::MemoryFormat::ChannelsLast), "Channel last input expected");
++
++  c10::MaybeOwned<Tensor> bias_maybe_owned = at::borrow_from_optional_tensor(bias_opt);
++  const Tensor& bias = *bias_maybe_owned;
++
++  const int64_t kernel_height = kernel_size[0];
++  const int64_t kernel_width = kernel_size[1];
++  const int64_t pad_height = padding[0];
++  const int64_t pad_width = padding[1];
++  const int64_t stride_height = stride[0];
++  const int64_t stride_width = stride[1];
++
++  slow_conv2d_shape_check(
++      self,
++      Tensor(),
++      weight_,
++      bias,
++      kernel_height,
++      kernel_width,
++      stride_height,
++      stride_width,
++      pad_height,
++      pad_width,
++      false);
++
++  const int64_t batch_size = self.size(0);
++  const int64_t input_channels = self.size(1);
++  const int64_t input_height = self.size(2);
++  const int64_t input_width = self.size(3);
++  const int64_t output_channels = weight_.size(0);
++  const int64_t output_height = (input_height + 2 * pad_height - kernel_height) / stride_height + 1;
++  const int64_t output_width = (input_width + 2 * pad_width - kernel_width) / stride_width + 1;
++
++  const Tensor &input = self;
++  // Change weight layout to KH,KW,IC,OC if not already
++  Tensor weight = weight_.permute({2, 3, 1, 0});
++  weight = weight.contiguous();
++
++  // Height and width are swapped, using channel last manually
++  output.resize_({batch_size, output_height, output_width, output_channels});
++  TORCH_CHECK(output.is_contiguous(), "Contiguous output tensor expected");
++
++  AT_DISPATCH_ALL_TYPES_AND2(kBFloat16, kHalf, input.scalar_type(), "zero_copy_conv2d_cpu", [&]{
++    const scalar_t* input_ptr = input.const_data_ptr<scalar_t>();
++    const scalar_t* weight_ptr = weight.const_data_ptr<scalar_t>();
++    scalar_t* output_ptr = output.data_ptr<scalar_t>();
++    std::optional<const scalar_t *> bias_ptr;
++    if (bias.defined()) {
++      bias_ptr = bias.const_data_ptr<scalar_t>();
++    }
++
++    at::parallel_for(0, batch_size*output_width, 0, [&](int64_t start, int64_t end) {
++      for (const auto t : c10::irange(start, end)) {
++        long b_idx = t / output_width;
++        long ow_idx = t % output_width;
++        auto input_t = &input_ptr[b_idx * input_height * input_width * input_channels];
++        auto output_t = &output_ptr[b_idx * output_width * output_height * output_channels];
++
++        zero_copy_conv2d_update_output_frame(
++            input_t,
++            output_t,
++            weight_ptr,
++            bias_ptr,
++            ow_idx,
++            kernel_height,
++            kernel_width,
++            stride_height,
++            stride_width,
++            pad_height,
++            pad_width,
++            input_channels,
++            input_height,
++            input_width,
++            output_channels,
++            output_height,
++            output_width);
++      }
++    });
++  });
++
++  // Make it channels last
++  output = output.permute({0, 3, 1, 2});
++
++  return output;
++}
++
++Tensor zero_copy_conv2d_forward_cpu(
++    const Tensor& self,
++    const Tensor& weight,
++    IntArrayRef kernel_size, const std::optional<Tensor>& bias_opt,
++    IntArrayRef stride,
++    IntArrayRef padding) {
++  // See [Note: hacky wrapper removal for optional tensor]
++  c10::MaybeOwned<Tensor> bias_maybe_owned = at::borrow_from_optional_tensor(bias_opt);
++  const Tensor& bias = *bias_maybe_owned;
++
++  auto output = at::empty({0}, self.options());
++  at::native::zero_copy_conv2d_forward_out_cpu(
++      self,
++      weight,
++      kernel_size,
++      bias,
++      stride,
++      padding,
++      output);
++
++  return output;
++}
++
++Tensor& zero_copy_conv2d_ext_forward_out_cpu(
++    const Tensor& self,
++    const Tensor& weight_,
++    IntArrayRef kernel_size, const std::optional<Tensor>& bias_opt,
++    IntArrayRef stride,
++    IntArrayRef padding,
++    IntArrayRef dilation,
++    int64_t groups,
++    Tensor& output) {
++  // See [Note: hacky wrapper removal for optional tensor]
++
++  TORCH_CHECK(kernel_size.size() == 2, "2D kernel_size expected");
++  TORCH_CHECK(stride.size() == 2, "2D stride expected");
++  TORCH_CHECK(padding.size() == 2, "2D padding expected");
++  TORCH_CHECK(dilation.size() == 2, "2D dilation expected");
++  TORCH_CHECK(self.is_contiguous(at::MemoryFormat::ChannelsLast), "Channel last input expected");
++
++  c10::MaybeOwned<Tensor> bias_maybe_owned = at::borrow_from_optional_tensor(bias_opt);
++  const Tensor& bias = *bias_maybe_owned;
++
++  const int64_t kernel_height = kernel_size[0];
++  const int64_t kernel_width = kernel_size[1];
++  const int64_t pad_height = padding[0];
++  const int64_t pad_width = padding[1];
++  const int64_t stride_height = stride[0];
++  const int64_t stride_width = stride[1];
++  const int64_t dilation_height = dilation[0];
++  const int64_t dilation_width = dilation[1];
++
++  zero_copy_ext_shape_check(self, weight_, bias, padding, stride, dilation, groups);
++
++  const int64_t batch_size = self.size(0);
++  const int64_t input_channels = self.size(1);
++  const int64_t input_height = self.size(2);
++  const int64_t input_width = self.size(3);
++  const int64_t output_channels = weight_.size(0);
++  const int64_t output_height = div_rtn<int64_t>( input_height + 2 * pad_height - (dilation_height * (kernel_height - 1) + 1), stride_height) + 1;
++  const int64_t output_width = div_rtn<int64_t>( input_width + 2 * pad_width - (dilation_width * (kernel_width - 1) + 1), stride_width) + 1;
++
++  const Tensor& input = self;
++  // Change weight layout to KH,KW,IC,OC if not already
++  Tensor weight = weight_.permute({2, 3, 1, 0});
++  weight = weight.contiguous();
++
++  output.resize_({batch_size, output_height, output_width, output_channels});
++  TORCH_CHECK(output.is_contiguous(), "Contiguous output tensor expected");
++
++  AT_DISPATCH_ALL_TYPES_AND2(kBFloat16, kHalf, input.scalar_type(), "zero_copy_conv2d_cpu", [&]{
++    const scalar_t* input_ptr = input.const_data_ptr<scalar_t>();
++    const scalar_t* weight_ptr = weight.const_data_ptr<scalar_t>();
++    scalar_t* output_ptr = output.data_ptr<scalar_t>();
++    std::optional<const scalar_t *> bias_ptr;
++    if (bias.defined()) {
++      bias_ptr = bias.const_data_ptr<scalar_t>();
++    }
++
++    at::parallel_for(0, batch_size * output_width, 0, [&](int64_t start, int64_t end) {
++      Tensor tmp_input = at::empty({output_height, kernel_width, input_channels / groups}, output.options());
++      scalar_t* tmp_input_ptr = tmp_input.data_ptr<scalar_t>();
++
++      for (const auto t : c10::irange(start, end)) {
++        long b_idx = t / output_width;
++        long ow_idx = t % output_width;
++        auto input_t = &input_ptr[b_idx * input_height * input_width * input_channels];
++        auto output_t = &output_ptr[b_idx * output_width * output_height * output_channels];
++
++        zero_copy_conv2d_ext_update_output_frame(
++            input_t,
++            tmp_input_ptr,
++            output_t,
++            weight_ptr,
++            bias_ptr,
++            ow_idx,
++            kernel_height,
++            kernel_width,
++            stride_height,
++            stride_width,
++            pad_height,
++            pad_width,
++            dilation_height,
++            dilation_width,
++            groups,
++            input_channels,
++            input_height,
++            input_width,
++            output_channels,
++            output_height,
++            output_width);
++      }
++    });
++  });
++
++  // Make it channels last
++  output = output.permute({0, 3, 1, 2});
++
++  return output;
++}
++
++Tensor zero_copy_conv2d_ext_forward_cpu(
++    const Tensor& self,
++    const Tensor& weight,
++    IntArrayRef kernel_size,
++    const std::optional<Tensor>& bias_opt,
++    IntArrayRef stride,
++    IntArrayRef padding,
++    IntArrayRef dilation,
++    int64_t groups) {
++  // See [Note: hacky wrapper removal for optional tensor]
++  c10::MaybeOwned<Tensor> bias_maybe_owned =
++      at::borrow_from_optional_tensor(bias_opt);
++  const Tensor& bias = *bias_maybe_owned;
++
++  auto output = at::empty({0}, self.options());
++
++  at::native::zero_copy_conv2d_ext_forward_out_cpu(
++      self,
++      weight,
++      kernel_size,
++      bias,
++      stride,
++      padding,
++      dilation,
++      groups,
++      output);
++
++  return output;
++}
++
+ Tensor& slow_conv2d_forward_out_cpu(
+     const Tensor& self,
+     const Tensor& weight_,
+diff --git a/aten/src/ATen/native/cpu/BlasKernel.cpp b/aten/src/ATen/native/cpu/BlasKernel.cpp
+index dd03756982..04538cdbf7 100644
+--- a/aten/src/ATen/native/cpu/BlasKernel.cpp
++++ b/aten/src/ATen/native/cpu/BlasKernel.cpp
+@@ -497,6 +497,28 @@ void cpublas_gemm_impl(
+       });
+ }
+ 
++void cpublas_gemm_row_major_impl(
++    at::ScalarType type,
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    const Scalar& alpha,
++    const void *a, int64_t lda,
++    const void *b, int64_t ldb,
++    const Scalar& beta,
++    void *c, int64_t ldc) {
++  _AT_DISPATCH_GEMM_TYPES(type, "cpublas_gemm_row_major_impl", [&]{
++        TORCH_CHECK(false, "Row major GEMM does not have a core implementation.")
++        // using opmath_t = at::opmath_type<scalar_t>;
++        // gemm_core_(
++        //     transa, transb, m, n, k,
++        //     alpha.to<opmath_t>(),
++        //     static_cast<const scalar_t *>(a), lda,
++        //     static_cast<const scalar_t *>(b), ldb,
++        //     beta.to<opmath_t>(),
++        //     static_cast<scalar_t *>(c), ldc);
++      });
++}
++
+ void cpublas_axpy_impl(at::ScalarType type, int64_t n, const Scalar& _a, const void *_x, int64_t incx, void *_y, int64_t incy){
+   if (type == at::kBool) {
+       auto a = _a.to<bool>();
+@@ -534,6 +556,7 @@ void cpublas_copy_impl(at::ScalarType type, int64_t n, const void *_x, int64_t i
+ 
+ 
+ REGISTER_DISPATCH(cpublas::gemm_stub, &cpublas::cpublas_gemm_impl);
++REGISTER_DISPATCH(cpublas::gemm_row_major_stub, &cpublas::cpublas_gemm_row_major_impl);
+ REGISTER_DISPATCH(cpublas::axpy_stub, &cpublas::cpublas_axpy_impl);
+ REGISTER_DISPATCH(cpublas::copy_stub, &cpublas::cpublas_copy_impl);
+ 
+diff --git a/aten/src/ATen/native/mkl/LinearAlgebra.cpp b/aten/src/ATen/native/mkl/LinearAlgebra.cpp
+index b64ccfeb03..714dd03581 100644
+--- a/aten/src/ATen/native/mkl/LinearAlgebra.cpp
++++ b/aten/src/ATen/native/mkl/LinearAlgebra.cpp
+@@ -136,6 +136,21 @@ void mkl_gemm_bf16bf16f32(
+ #endif
+ }
+ 
++void mkl_gemm_bf16bf16f32_row_major(
++    TransposeType trans_A, TransposeType trans_B,
++    MKL_INT M, MKL_INT N, MKL_INT K, const float alpha,
++    const c10::BFloat16* A, MKL_INT lda, const c10::BFloat16* B, MKL_INT ldb,
++    const float beta, float* C, MKL_INT ldc) {
++#ifdef MKL_HAS_SBGEMM
++  auto transa_cblas = to_cblas(trans_A);
++  auto transb_cblas = to_cblas(trans_B);
++  cblas_gemm_bf16bf16f32(CblasRowMajor, transa_cblas, transb_cblas, M, N, K, alpha,
++                         (const MKL_BF16*)A, lda, (const MKL_BF16*)B, ldb, beta, C, ldc);
++#else
++  TORCH_INTERNAL_ASSERT(false, "mkl_gemm_bf16bf16f32 requires mkl version > 2021.0");
++#endif
++}
++
+ void mkl_gemm_f16f16f32(
+     TransposeType trans_A, TransposeType trans_B,
+     int M, int N, int K, const float alpha,
+@@ -151,6 +166,21 @@ void mkl_gemm_f16f16f32(
+ #endif
+ }
+ 
++void mkl_gemm_f16f16f32_row_major(
++    TransposeType trans_A, TransposeType trans_B,
++    int M, int N, int K, const float alpha,
++    const c10::Half* A, int lda, const c10::Half* B, int ldb,
++    const float beta, float* C, int ldc) {
++#ifdef MKL_HAS_SHGEMM
++  auto transa_cblas = to_cblas(trans_A);
++  auto transb_cblas = to_cblas(trans_B);
++  cblas_gemm_f16f16f32(CblasRowMajor, transa_cblas, transb_cblas, M, N, K, alpha,
++                         (const MKL_F16*)A, lda, (const MKL_F16*)B, ldb, beta, C, ldc);
++#else
++  TORCH_INTERNAL_ASSERT(false, "mkl_gemm_f16f16f32 requires mkl version >= 2024.0");
++#endif
++}
++
+ }} // namespace at::native
+ 
+ #endif
+diff --git a/aten/src/ATen/native/mkl/LinearAlgebra.h b/aten/src/ATen/native/mkl/LinearAlgebra.h
+index 54a7a5cb2c..f77194c3b1 100644
+--- a/aten/src/ATen/native/mkl/LinearAlgebra.h
++++ b/aten/src/ATen/native/mkl/LinearAlgebra.h
+@@ -43,9 +43,21 @@ void mkl_gemm_bf16bf16f32(
+     const c10::BFloat16* A, MKL_INT lda, const c10::BFloat16* B, MKL_INT ldb,
+     const float beta, float* C, MKL_INT ldc);
+ 
++void mkl_gemm_bf16bf16f32_row_major(
++    TransposeType trans_A, TransposeType trans_B,
++    MKL_INT M, MKL_INT N, MKL_INT K, const float alpha,
++    const c10::BFloat16* A, MKL_INT lda, const c10::BFloat16* B, MKL_INT ldb,
++    const float beta, float* C, MKL_INT ldc);
++
+ void mkl_gemm_f16f16f32(
+     TransposeType trans_A, TransposeType trans_B,
+     int M, int N, int K, const float alpha,
+     const c10::Half* A, int lda, const c10::Half* B, int ldb,
+     const float beta, float* C, int ldc);
++
++void mkl_gemm_f16f16f32_row_major(
++    TransposeType trans_A, TransposeType trans_B,
++    int M, int N, int K, const float alpha,
++    const c10::Half* A, int lda, const c10::Half* B, int ldb,
++    const float beta, float* C, int ldc);
+ }}  // namespace at::native
+diff --git a/aten/src/ATen/native/mkldnn/Matmul.cpp b/aten/src/ATen/native/mkldnn/Matmul.cpp
+index e1fe3b92db..757e1ca346 100644
+--- a/aten/src/ATen/native/mkldnn/Matmul.cpp
++++ b/aten/src/ATen/native/mkldnn/Matmul.cpp
+@@ -224,6 +224,121 @@ bool mkldnn_bf32_gemm(
+       return mkldnn_gemm<float>(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
+     }
+ 
++template<typename scalar_t>
++inline typename std::enable_if_t<
++    std::is_same_v<scalar_t, float> ||
++    std::is_same_v<scalar_t, c10::Half> ||
++    std::is_same_v<scalar_t, c10::BFloat16>,
++    bool>
++mkldnn_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const scalar_t *a_data, int64_t lda,
++    const scalar_t *b_data, int64_t ldb,
++    float beta,
++    scalar_t *c_data, int64_t ldc) {
++  bool bf16_usable = std::is_same_v<scalar_t, c10::BFloat16> && use_mkldnn_bf16_matmul();
++  bool fp16_usable = std::is_same_v<scalar_t, c10::Half> && use_mkldnn_fp16_matmul();
++  bool bf32_usable = std::is_same_v<scalar_t, float> && use_mkldnn_bf32_matmul();
++  if ( !(bf16_usable || fp16_usable || bf32_usable) ||
++      (m * n * k <= 16 * 16 * 16) || (alpha == 0.0f)) {
++    return false;
++  }
++
++  ideep::attr_t op_attr;
++  // Use mkldnn post ops to perform the add.
++  if (beta != 0.0f) {
++    op_attr = ideep::attr_t::fuse_sum();
++  }
++  if (bf32_usable) op_attr.set_fpmath_mode(dnnl_fpmath_mode_bf16); // bf32 path
++
++  // NOTE: View as c-contiguous to avoid extra reordering in mkldnn
++  // Use identity: C = AB <=> C^T = B^T A^T
++  ideep::tensor::dims a_strides{{lda, 1}}, b_strides{{ldb, 1}}, c_strides{{ldc, 1}};
++  if (transa != TransposeType::NoTranspose) {
++    std::swap(a_strides[0], a_strides[1]);
++  }
++  if (transb != TransposeType::NoTranspose) {
++    std::swap(b_strides[0], b_strides[1]);
++  }
++
++  auto idtype = ideep::tensor::data_type::bf16;
++  if constexpr (std::is_same_v<scalar_t, c10::Half>) {
++    idtype = ideep::tensor::data_type::f16;
++  }
++  if constexpr (std::is_same_v<scalar_t, float>) {
++    idtype = ideep::tensor::data_type::f32;
++  }
++
++  ideep::tensor a({
++      /*sizes=*/{m, k},
++      idtype,
++      /*strides=*/a_strides},
++    const_cast<scalar_t*>(a_data));
++  ideep::tensor b({
++      /*sizes=*/{k, n},
++      idtype,
++      /*strides=*/b_strides},
++    const_cast<scalar_t*>(b_data));
++  ideep::tensor c({
++      /*sizes=*/{m, n},
++      idtype,
++      /*strides=*/c_strides},
++    c_data);
++
++  ideep::matmul_forward::compute(
++      a, b, c, alpha, beta,
++      ideep::scale_t(), ideep::scale_t(), ideep::scale_t(), op_attr);
++
++  if (c.get_data_handle() != c_data){
++    // ideep will query onednn expect format of output
++    // if given output format is not expected, ideep will re-init an output buffer
++    // under this case, we need copy the re-inited buffer back to given buffer
++    ideep::tensor real_output({
++        /*sizes=*/{m, n},
++        idtype,
++        /*strides=*/c_strides},
++      c_data);
++    c.reorder_to(real_output);
++  }
++
++  return true;
++}
++
++bool mkldnn_bf16_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const c10::BFloat16 *a, int64_t lda,
++    const c10::BFloat16 *b, int64_t ldb,
++    float beta,
++    c10::BFloat16 *c, int64_t ldc) {
++  return mkldnn_gemm_row_major<c10::BFloat16>(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++bool mkldnn_fp16_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const c10::Half *a, int64_t lda,
++    const c10::Half *b, int64_t ldb,
++    float beta,
++    c10::Half *c, int64_t ldc) {
++  return mkldnn_gemm_row_major<c10::Half>(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++}
++
++bool mkldnn_bf32_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const float *a, int64_t lda,
++    const float *b, int64_t ldb,
++    float beta,
++    float *c, int64_t ldc){
++      return mkldnn_gemm_row_major<float>(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
++    }
++
+ void mkldnn_matmul(
+     const Tensor &mat1,
+     const Tensor &mat2,
+diff --git a/aten/src/ATen/native/mkldnn/Matmul.h b/aten/src/ATen/native/mkldnn/Matmul.h
+index d82bb310ef..7373674f02 100644
+--- a/aten/src/ATen/native/mkldnn/Matmul.h
++++ b/aten/src/ATen/native/mkldnn/Matmul.h
+@@ -62,6 +62,34 @@ bool mkldnn_bf32_gemm(
+     float beta,
+     float *c, int64_t ldc);
+ 
++// Try running mkldnn optimized gemm, or returns false if naive gemm would be faster
++bool mkldnn_bf16_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const c10::BFloat16 *a, int64_t lda,
++    const c10::BFloat16 *b, int64_t ldb,
++    float beta,
++    c10::BFloat16 *c, int64_t ldc);
++
++bool mkldnn_fp16_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const c10::Half *a, int64_t lda,
++    const c10::Half *b, int64_t ldb,
++    float beta,
++    c10::Half *c, int64_t ldc);
++
++bool mkldnn_bf32_gemm_row_major(
++    TransposeType transa, TransposeType transb,
++    int64_t m, int64_t n, int64_t k,
++    float alpha,
++    const float *a, int64_t lda,
++    const float *b, int64_t ldb,
++    float beta,
++    float *c, int64_t ldc);
++
+ bool use_mkldnn_matmul(
+     const Tensor& mat1,
+     const Tensor& mat2,
+diff --git a/aten/src/ATen/native/native_functions.yaml b/aten/src/ATen/native/native_functions.yaml
+index c7533e4ef8..d893c2193d 100644
+--- a/aten/src/ATen/native/native_functions.yaml
++++ b/aten/src/ATen/native/native_functions.yaml
+@@ -12949,6 +12949,26 @@
+ - func: thnn_conv2d(Tensor self, Tensor weight, SymInt[2] kernel_size, Tensor? bias=None, SymInt[2] stride=1, SymInt[2] padding=0) -> Tensor
+   python_module: nn
+ 
++- func: will_use_zero_copy_conv2d_static(int input_channels, int output_channels, Tensor weight, SymInt[2] stride=1, SymInt[2] padding=0, SymInt[2] dilation=1, SymInt groups=1, bool transposed=False) -> bool
++  python_module: nn
++  dispatch:
++    CPU: will_use_zero_copy_conv2d_static
++
++- func: will_use_zero_copy_conv2d_dynamic(Tensor self, Tensor weight, SymInt[2] stride=1, SymInt[2] padding=0, SymInt[2] dilation=1, SymInt groups=1, bool transposed=False) -> bool
++  python_module: nn
++  dispatch:
++    CPU: will_use_zero_copy_conv2d_dynamic
++
++- func: zero_copy_conv2d(Tensor self, Tensor weight, SymInt[2] kernel_size, Tensor? bias=None, SymInt[2] stride=1, SymInt[2] padding=0) -> Tensor
++  python_module: nn
++  dispatch:
++    CPU: zero_copy_conv2d_forward_cpu
++
++- func: zero_copy_conv2d_ext(Tensor self, Tensor weight, SymInt[2] kernel_size, Tensor? bias=None, SymInt[2] stride=1, SymInt[2] padding=0, SymInt[2] dilation=1, SymInt groups=1) -> Tensor
++  python_module: nn
++  dispatch:
++    CPU: zero_copy_conv2d_ext_forward_cpu
++
+ - func: _slow_conv2d_forward.output(Tensor self, Tensor weight, SymInt[2] kernel_size, Tensor? bias, SymInt[2] stride, SymInt[2] padding, *, Tensor(a!) output) -> Tensor(a!)
+   python_module: nn
+   dispatch:
+diff --git a/torch/utils/benchmark/utils/timer.py b/torch/utils/benchmark/utils/timer.py
+index f860d36ce0..48153562d5 100644
+--- a/torch/utils/benchmark/utils/timer.py
++++ b/torch/utils/benchmark/utils/timer.py
+@@ -332,6 +332,8 @@ class Timer:
+         self,
+         callback: Optional[Callable[[int, float], NoReturn]] = None,
+         min_run_time: float = 0.2,
++        min_times: int = 4,
++        min_number: int = 1,
+     ) -> common.Measurement:
+         """Measure many replicates while keeping timer overhead to a minimum.
+ 
+@@ -370,12 +372,13 @@ class Timer:
+             (mean, median, etc.)
+         """
+         number = self._estimate_block_size(min_run_time)
++        number = max(number, min_number)
+ 
+         def time_hook() -> float:
+             return self._timeit(number)
+ 
+         def stop_hook(times: List[float]) -> bool:
+-            return True
++            return len(times) >= min_times
+ 
+         times = self._threaded_measurement_loop(
+             number, time_hook, stop_hook,
+@@ -395,6 +398,7 @@ class Timer:
+             min_run_time: float = 0.01,
+             max_run_time: float = 10.0,
+             callback: Optional[Callable[[int, float], NoReturn]] = None,
++            min_times: int = 4,
+     ) -> common.Measurement:
+         """Similar to `blocked_autorange` but also checks for variablility in measurements
+         and repeats until iqr/median is smaller than `threshold` or `max_run_time` is reached.
+@@ -429,13 +433,13 @@ class Timer:
+             repetition counts, and can be used to compute statistics.
+             (mean, median, etc.)
+         """
+-        number = self._estimate_block_size(min_run_time=0.05)
++        number = self._estimate_block_size(min_run_time)
+ 
+         def time_hook() -> float:
+             return self._timeit(number)
+ 
+         def stop_hook(times: List[float]) -> bool:
+-            if len(times) > 3:
++            if len(times) >= min_times:
+                 return common.Measurement(
+                     number_per_run=number,
+                     raw_times=times,
+diff --git a/torchgen/native_function_generation.py b/torchgen/native_function_generation.py
+index a44efab684..6c78140877 100644
+--- a/torchgen/native_function_generation.py
++++ b/torchgen/native_function_generation.py
+@@ -85,6 +85,8 @@ FUNCTIONAL_OPS_THAT_CANNOT_GET_AN_OUT_VARIANT = [
+     "_print",  # no return
+     "_sink_tokens",  # no return
+     "_nested_get_ragged_idx",  # returns an int
++    "will_use_zero_copy_conv2d_static",  # returns a boolean
++    "will_use_zero_copy_conv2d_dynamic"  # returns a boolean
+ ]
+ 
+ INPLACE_OPS_THAT_DONT_GET_GROUPED_PROPERLY = [

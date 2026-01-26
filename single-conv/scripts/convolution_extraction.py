@@ -5,7 +5,6 @@ from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
-import sys
 import timm
 import torch
 import torchvision.models as models

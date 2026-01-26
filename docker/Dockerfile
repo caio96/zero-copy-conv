@@ -175,26 +175,27 @@ RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
           -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
           -DUSE_MKL="ON"                                           \
           -DUSE_MKL_JIT="ON"                                       \
-          -DBUILD_ZCONV_BLIS="ON"                                  \
+          -DBUILD_ZCONV_BLIS="OFF"                                 \
           -DUSE_FIXED_ITERATIONS="OFF"                             \
           .. && \
     make -j && \
     mkdir "${HOME}/install/single-conv" && \
-    cmake --install . --prefix "${HOME}/install/single-conv" && \
+    cmake --install . --prefix "${HOME}/install/single-conv" &&    \
     cmake -DCMAKE_C_COMPILER=clang                                 \
           -DCMAKE_CXX_COMPILER=clang++                             \
           -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
           -DTORCH_INSTALL="${HOME}/install/libtorch"               \
           -DBLIS_INSTALL="${HOME}/install/blis"                    \
           -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
-          -DUSE_MKL="ON"                                           \
-          -DUSE_MKL_JIT="ON"                                       \
-          -DBUILD_ZCONV_BLIS="ON"                                  \
-          -DUSE_FIXED_ITERATIONS="ON"                             \
+          -DUSE_MKL="OFF"                                           \
+          -DUSE_MKL_JIT="OFF"                                       \
+          -DBUILD_ZCONV_BLIS="OFF"                                  \
+          -DUSE_FIXED_ITERATIONS="OFF"                              \
           .. && \
     make -j && \
-    mkdir "${HOME}/install/single-conv-fixed" && \
-    cmake --install . --prefix "${HOME}/install/single-conv-fixed" && \
+    mkdir "${HOME}/install/single-conv-yaconv" && \
+    cmake --install . --prefix "${HOME}/install/single-conv-yaconv" && \
+    rm "${HOME}/install/single-conv-yaconv/benchmark_libtorch*" "${HOME}/install/single-conv-yaconv/benchmark_im2col" && \
     cd .. && rm -r build
 
 WORKDIR ${HOME}

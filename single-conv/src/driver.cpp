@@ -3,17 +3,6 @@
 #include <iterator>
 #include <sstream>
 
-#if defined NAIVE
-extern "C" void
-conv_2d_naive(float *__restrict__ input, float *__restrict__ output,
-              float *__restrict__ filters, int batch, int input_height,
-              int input_width, int input_channels, int filter_height,
-              int filter_width, int output_height, int output_width,
-              int output_channels, int padding_height, int padding_width,
-              int stride_h, int stride_w, int dilation_h, int dilation_w,
-              int groups, float *__restrict__ bias);
-#endif
-
 #if defined IM2COL
 extern "C" void
 conv_2d_im2col(float *__restrict__ input, float *__restrict__ output,
@@ -165,12 +154,7 @@ auto BENCHMARK_CONV2D = [](benchmark::State &state,
 #endif
 
   for (auto _ : state) {
-#ifdef NAIVE
-    conv_2d_naive(input, output, filters, batch, input_height, input_width,
-                  input_channels, filter_height, filter_width, output_height,
-                  output_width, output_channels, padding_top, padding_right,
-                  stride_h, stride_w, dilation_h, dilation_w, groups, bias);
-#elif defined IM2COL
+#if defined IM2COL
     conv_2d_im2col(input, output, filters, batch, input_height, input_width,
                    input_channels, filter_height, filter_width, output_height,
                    output_width, output_channels, padding_top, padding_right,
@@ -211,9 +195,7 @@ int main(int argc, char **argv) {
   if (ret != 0)
     return ret;
 
-#ifdef NAIVE
-  std::string name{"Naive"};
-#elif defined IM2COL
+#if defined IM2COL
   std::string name{"Im2col"};
 #elif defined YACONV
   std::string name{"Yaconv"};
