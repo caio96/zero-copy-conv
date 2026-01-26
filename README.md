@@ -1,6 +1,6 @@
 # Zero-Copy GEMM-Based Fast Convolution :zap:
 
-This repository is designed to test the Zero-Copy GEMM-based convolution (in CPUs).
+This repository is designed to test the Zero-Copy GEMM-based convolution on CPUs.
 The repository is divided into:
 - [Docker](#docker)
 - [Single convolution testing](#single-convolution-testing)
@@ -10,11 +10,11 @@ The repository is divided into:
 
 # Docker
 
-This docker builds all tools required to run and evaluate ZConv.
+This Docker configuration builds the tools required to run and evaluate ZConv.
 
 ## Requirements
 
-The built docker image uses about 8 GB.
+The built Docker image requires about 8 GB of disk space.
 
 ## Files
 
@@ -26,14 +26,14 @@ The built docker image uses about 8 GB.
 
 ## Build
 
-To build the image, add the following files to the `./docker` directory.
+Before building, add the following files to the `./docker` directory:
 
 - `VOCtrainval_11-May-2012.tar`: Pascal VOC 2012 train/val archive (images and annotations). This dataset is used by deeplabv3plus in the end-to-end evaluation. Original host: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
 - `zero-copy-conv.zip`: this repository, archived into a zip file.
 
-You can download the Pascal VOC 2012 train/val archive (`VOCtrainval_11-May-2012.tar`) using either the official Pascal host or a commonly used mirror.
+You can download the Pascal VOC 2012 train/val archive (`VOCtrainval_11-May-2012.tar`) from the official Pascal host or a mirror.
 
-Then, build the docker image with:
+Then build the Docker image with:
 
 ```bash
 cd ./docker
@@ -70,17 +70,15 @@ To run the evaluation script in the docker container automatically, run:
 ```bash
 # 1. Attach to the container
 docker exec -it artifact bash
-# 2. Go to the auto-run.sh
-cd zero-copy-conv/docker/
-# 3. (optional but recommended) Set the configuration parameter at the top of the script
-# CORE_RANGE -> limits the cores used by the runs
-# THREADS -> number of threads used by multithread runs
-# CONV_LAYERS_MAX -> max number of layers to run, set to -1 to run all available
-# REPEAT_COUNT_CONV -> how many times to repeat the standanlone convolution measurements
-# MODEL_MAX -> max number of end-to-end models to run, set to -1 to run all available
-# REPEAT_COUNT_MODEL -> how many times to repeat the end-to-end model measurements
-vim auto-run.sh # vim or any terminal editor
-# 4. Run it
+# 2. (optional but recommended) Update the variables at the top of `auto-run.sh` to suit your environment:
+# - `CORE_RANGE` limits the cores used by the runs
+# - `THREADS` sets the number of threads for multithreaded runs
+# - `CONV_LAYERS_MAX` sets a maximum number of convolution layers to run (use `-1` to run all)
+# - `REPEAT_COUNT_CONV` controls repeats for standalone convolution measurements
+# - `MODEL_MAX` sets a maximum number of end-to-end models to run (use `-1` to run all)
+# - `REPEAT_COUNT_MODEL` controls repeats for end-to-end model measurements
+vim auto-run.sh # edit with your preferred terminal editor
+# 3. Run it
 ./auto-run.sh
 ```
 
