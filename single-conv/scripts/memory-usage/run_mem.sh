@@ -18,14 +18,14 @@ conv_params=(
     "1 960 33 33 256 3 3 12 12 12 12 1 1 12 12 1 0 0"
 )
 
-N_RUNS=20   # <-- change this
+N_RUNS=40   # <-- change this
 
 output_dir="benchmark_results"
 mkdir -p "$output_dir"
 
 for exe in "${executables[@]}"; do
     log_file="${output_dir}/${exe}.log"
-    # echo "==== $exe ====" > "$log_file"
+    echo "==== $exe ====" > "$log_file"
 
     for params in "${conv_params[@]}"; do
         for ((i=1; i<=N_RUNS; i++)); do
