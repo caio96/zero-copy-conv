@@ -41,9 +41,9 @@ EXECUTABLES=(
     "benchmark_libtorch_zerocopy"
 )
 
-# Optional executables (included only if present)
+# Optional executables (included only if present anywhere in BUILD_DIR)
 for OPT in "benchmark_yaconv" "benchmark_zero_copy_blis"; do
-    if [[ -f "${BUILD_DIR}/${OPT}" ]]; then
+    if find "$BUILD_DIR" -type f -name "${OPT}" 2>/dev/null | grep -q .; then
         EXECUTABLES+=("$OPT")
         echo "Found optional executable: $OPT"
     fi
@@ -56,9 +56,10 @@ total=$(( ${#EXECUTABLES[@]} * ${#LAYERS[@]} * REPEATS ))
 current=0
 
 for EXECUTABLE in "${EXECUTABLES[@]}"; do
-    EXE_PATH="${BUILD_DIR}/${EXECUTABLE}"
-    if [[ ! -f "$EXE_PATH" ]]; then
-        echo "Warning: $EXE_PATH not found — skipping."
+    # Search recursively like benchmark_runner.sh does
+    EXE_PATH=$(find "$BUILD_DIR" -type f -name "${EXECUTABLE}" 2>/dev/null | head -1)
+    if [[ -z "$EXE_PATH" ]]; then
+        echo "Warning: ${EXECUTABLE} not found in $BUILD_DIR — skipping."
         continue
     fi
 

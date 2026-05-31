@@ -2,9 +2,8 @@
 """
 Generate the scalability figure for the paper.
 
-Layout: 3 rows x 2 cols so each panel matches the size of the original
-2-panel figure when scaled to columnwidth. The bottom-right slot holds
-the legend instead of a data panel.
+Layout: 3 rows x 2 cols, one panel per layer (6 data panels, no empty slot).
+Legend is placed below the subplots via fig.legend().
 
 Usage:
     python plot_scalability.py [--data PATH] [--output PATH]
@@ -36,10 +35,11 @@ PANELS = [
     (3, r"Layer~\#3 (small $IH$)"),
     (4, r"Layer~\#4 (strided)"),
     (5, r"Layer~\#5 (depthwise)"),
+    (6, r"Layer~\#6 (dilated)"),
 ]
 
 N_COLS = 2
-N_ROWS = (len(PANELS) + N_COLS - 1) // N_COLS  # ceil(5/2) = 3
+N_ROWS = len(PANELS) // N_COLS  # 6 / 2 = 3, no empty slot
 
 
 def main():
@@ -74,10 +74,6 @@ def main():
         sharey=True,
     )
 
-    # Unused bottom-right slot holds the legend; hide any slots beyond that
-    for i in range(len(PANELS) + 1, N_ROWS * N_COLS):
-        axes.flat[i].set_visible(False)
-
     ideal_x = np.array(CORES)
     ideal_y = ideal_x / ideal_x[0]
 
@@ -105,14 +101,12 @@ def main():
         if idx % N_COLS == 0:
             ax.set_ylabel("Speedup over 1 core")
 
-    # Place legend in the empty bottom-right slot
+    # Legend below all subplots (5 entries fit in one row at ncol=5)
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    legend_ax = axes.flat[len(PANELS)]
-    legend_ax.axis("off")
-    legend_ax.legend(handles, labels, loc="center", frameon=True,
-                     framealpha=1, edgecolor="black", handlelength=1.5)
-
     plt.tight_layout()
+    fig.legend(handles, labels, loc="lower center", ncol=len(handles),
+               bbox_to_anchor=(0.5, -0.06), frameon=True,
+               framealpha=1, edgecolor="black", handlelength=1.5)
     plt.savefig(output_path, bbox_inches="tight", dpi=200)
     plt.close()
     print(f"Saved: {output_path}")
