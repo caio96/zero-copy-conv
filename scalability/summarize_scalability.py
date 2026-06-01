@@ -10,6 +10,7 @@ Usage: python summarize_scalability.py RAW_DIR [--out PATH]
 import argparse
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import scipy.stats as st
 
@@ -66,7 +67,6 @@ def aggregate(df: pd.DataFrame) -> pd.DataFrame:
     )
     ci = st.norm.interval(0.95, loc=agg["mean"], scale=agg["sem"].clip(lower=1e-12))
     agg["ci95"] = (ci[1] - ci[0]) / 2
-    agg["significant"] = True  # single-thread baseline is always significant vs itself
     return agg
 
 
@@ -93,12 +93,11 @@ def main():
     if 1 not in agg_by_cores:
         raise SystemExit("Error: raw_1threads.csv is required as the baseline.")
 
-    baseline = (
-        agg_by_cores[1]
-        .set_index(["method", "params"])["mean"]
-    )
+    baseline = agg_by_cores[1].set_index(["method", "params"])["mean"]
+    baseline_ci = agg_by_cores[1].set_index(["method", "params"])["ci95"]
 
     rows = []
+    non_sig = []
     for n, df in sorted(agg_by_cores.items()):
         for _, row in df.iterrows():
             method_raw = row["method"]
@@ -109,10 +108,24 @@ def main():
                 print(f"Warning: unrecognized params, skipping: {params!r}")
                 continue
             base = baseline.get((method_raw, params))
+            bci = baseline_ci.get((method_raw, params))
             if base is None or base == 0:
                 print(f"Warning: missing baseline for {method_raw} / layer {layer}")
                 continue
             speedup = round(base / row["mean"], 2)
+            if n == 1:
+                # Baseline is its own reference; speedup = 1.0 by definition.
+                sig = True
+            else:
+                # Error propagation for ratio of two independent measurements.
+                rel_err = np.sqrt((bci / base) ** 2 + (row["ci95"] / row["mean"]) ** 2)
+                speedup_ci = speedup * rel_err
+                sig = (speedup - speedup_ci) > 1.0 or (speedup + speedup_ci) < 1.0
+                if not sig:
+                    non_sig.append({
+                        "cores": n, "layer": layer, "method": col,
+                        "speedup": speedup, "ci95": round(speedup_ci, 3),
+                    })
             rows.append({"cores": n, "layer": layer, "method": col,
                          "speedup": speedup})
 
@@ -139,6 +152,18 @@ def main():
 
     print(f"Saved: {out_path}")
     print(df_wide.to_string(index=False))
+
+    total_non_baseline = sum(
+        len(agg_by_cores[n]) for n in agg_by_cores if n > 1
+    )
+    if non_sig:
+        print(f"\n95% CI significance check ({len(non_sig)}/{total_non_baseline} speedups NOT significant):")
+        for r in non_sig:
+            print(f"  Layer {r['layer']}, {r['method']:10s}, {r['cores']}c: "
+                  f"speedup={r['speedup']:.2f} (CI lower bound ≤ 1.0)")
+    else:
+        print(f"\nAll {total_non_baseline} speedups at N>1 cores are statistically significant "
+              f"(95% CI lower bound > 1.0).")
 
 
 if __name__ == "__main__":

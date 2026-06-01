@@ -77,19 +77,24 @@ def print_comparison(agg: pd.DataFrame, method_a: str, method_b: str,
     for layer_id, params in LAYER_PARAMS:
         if layer_id not in layers:
             continue
-        ma = a.loc[layer_id, "mean_mb"]
-        mb = b.loc[layer_id, "mean_mb"]
+        ma, ci_a = a.loc[layer_id, "mean_mb"], a.loc[layer_id, "ci95"]
+        mb, ci_b = b.loc[layer_id, "mean_mb"], b.loc[layer_id, "ci95"]
+        # Significance: CIs do not overlap (conservative test, same as summarize_performance.py)
+        significant = (ma - ci_a > mb + ci_b) or (mb - ci_b > ma + ci_a)
         rows.append({
             "Layer": layer_id,
             "Params": params,
             f"{method_a} (MB)": round(ma, 2),
             f"{method_b} (MB)": round(mb, 2),
             ratio_label: round(mb / ma, 2),
+            "Sig?": "Yes" if significant else "No",
         })
 
     result = pd.DataFrame(rows)
     if not result.empty:
+        n_sig = result["Sig?"].eq("Yes").sum()
         print(result.to_string(index=False))
+        print(f"  → {n_sig}/{len(result)} differences statistically significant (95% CI, non-overlapping intervals)")
     return result
 
 
