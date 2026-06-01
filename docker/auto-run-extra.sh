@@ -4,24 +4,29 @@ set -x
 
 # System configuration (edit these values as needed) ---
 # - CORE_RANGE   : CPU core range passed to `numactl` (example: "0-7")
-# - THREADS      : maximum number of OpenMP threads (used as the upper
-#                  bound; scalability runs 1, 2, 4, and 8 threads)
+# - THREADS      : maximum number of OpenMP threads; scalability runs
+#                  1, 2, 4, and 8 threads up to this limit
 # - REPEAT_COUNT_SCALABILITY: repetitions per (layer, thread-count) pair
 # - REPEAT_COUNT_MEMORY     : repetitions per (executable, layer) pair
 CORE_RANGE="0-7"
 THREADS="8"
-REPEAT_COUNT_SCALABILITY="40"
-REPEAT_COUNT_MEMORY="40"
+REPEAT_COUNT_SCALABILITY="10"
+REPEAT_COUNT_MEMORY="10"
 # ------------------------------------------
 
 WORKDIR="${HOME}/zero-copy-conv"
+
+# Scalability uses the standard builds (variable-time benchmarks)
 BUILD_DIR_MAIN="${HOME}/install/single-conv"
 BUILD_DIR_YACONV="${HOME}/install/single-conv-yaconv"
 
+# Memory uses fixed-iteration builds so that Im2col allocates its buffer
+# a consistent number of times and the allocator pool reaches a steady state
+BUILD_DIR_MAIN_FIXED="${HOME}/install/single-conv-fixed"
+BUILD_DIR_YACONV_FIXED="${HOME}/install/single-conv-yaconv-fixed"
+
 #
 # Scalability benchmarks (Layers 1-6, 1/2/4/8 cores)
-# Uses the main build dir; benchmark_runner.sh handles per-thread pinning.
-# Yaconv is excluded automatically (unsupported in multithreaded mode).
 #
 
 mkdir -p "${HOME}/results/scalability/raw"
@@ -36,27 +41,29 @@ python3 "${WORKDIR}/scalability/summarize_scalability.py" \
     --out "${HOME}/results/scalability/data.csv"
 
 #
-# Memory benchmarks (Layers 1-6, single core)
-# Run twice: once for the main build (im2col, zconv, libtorch, libtorch-zconv)
-# and once for the yaconv build (yaconv, zconv-blis). Results are merged.
+# Memory benchmarks (Layers 1-6, single core, fixed iterations)
+# Run main build (im2col, zconv/mkl, libtorch, libtorch-zconv) then
+# yaconv build (benchmark_zero_copy here is the BLIS variant).
 #
 
 mkdir -p "${HOME}/results/memory/main"
 mkdir -p "${HOME}/results/memory/yaconv"
 
 "${WORKDIR}/memory/run_memory.sh" \
-    "${BUILD_DIR_MAIN}" \
+    "${BUILD_DIR_MAIN_FIXED}" \
     "${HOME}/results/memory/main" \
     "${REPEAT_COUNT_MEMORY}"
 
 "${WORKDIR}/memory/run_memory.sh" \
-    "${BUILD_DIR_YACONV}" \
+    "${BUILD_DIR_YACONV_FIXED}" \
     "${HOME}/results/memory/yaconv" \
     "${REPEAT_COUNT_MEMORY}"
 
-# Merge the two raw CSVs (header from main only)
-cat "${HOME}/results/memory/main/memory_raw.csv" > "${HOME}/results/memory/memory_raw.csv"
-tail -n +2 "${HOME}/results/memory/yaconv/memory_raw.csv" >> "${HOME}/results/memory/memory_raw.csv"
+# Merge: rename the yaconv build's benchmark_zero_copy → benchmark_zero_copy_blis
+# so the summarize script correctly separates MKL and BLIS ZConv variants
+cat    "${HOME}/results/memory/main/memory_raw.csv" >  "${HOME}/results/memory/memory_raw.csv"
+sed 's/^benchmark_zero_copy,/benchmark_zero_copy_blis,/' \
+       "${HOME}/results/memory/yaconv/memory_raw.csv" | tail -n +2 >> "${HOME}/results/memory/memory_raw.csv"
 
 python3 "${WORKDIR}/memory/summarize_memory.py" \
     "${HOME}/results/memory/memory_raw.csv" \

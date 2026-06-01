@@ -122,6 +122,7 @@ RUN apt-get update && \
       linux-headers-$(uname -r)                          \
       nano                                               \
       numactl                                            \
+      time                                               \
       unzip                                              \
       vim                                                \
       wget &&                                            \
@@ -197,6 +198,29 @@ RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
     mkdir "${HOME}/install/single-conv-yaconv" && \
     cmake --install . --prefix "${HOME}/install/single-conv-yaconv" && \
     rm "${HOME}/install/single-conv-yaconv/bin/benchmark_libtorch" "${HOME}/install/single-conv-yaconv/bin/benchmark_libtorch_zerocopy" "${HOME}/install/single-conv-yaconv/bin/benchmark_im2col" && \
+    cmake -DCMAKE_C_COMPILER=clang                                 \
+          -DCMAKE_CXX_COMPILER=clang++                             \
+          -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
+          -DTORCH_INSTALL="${HOME}/install/libtorch"               \
+          -DBLIS_INSTALL="${HOME}/install/blis"                    \
+          -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
+          -DUSE_MKL="ON"                                           \
+          -DUSE_MKL_JIT="ON"                                       \
+          -DBUILD_ZCONV_BLIS="OFF"                                 \
+          -DUSE_FIXED_ITERATIONS="ON"                              \
+          . && \
+    make -j && \
+    mkdir "${HOME}/install/single-conv-fixed" && \
+    cmake --install . --prefix "${HOME}/install/single-conv-fixed" && \
+    rm "${HOME}/install/single-conv-fixed/bin/benchmark_yaconv" && \
+    cmake -DUSE_MKL="OFF"                                          \
+          -DUSE_MKL_JIT="OFF"                                      \
+          -DUSE_FIXED_ITERATIONS="ON"                              \
+          . && \
+    make -j && \
+    mkdir "${HOME}/install/single-conv-yaconv-fixed" && \
+    cmake --install . --prefix "${HOME}/install/single-conv-yaconv-fixed" && \
+    rm "${HOME}/install/single-conv-yaconv-fixed/bin/benchmark_libtorch" "${HOME}/install/single-conv-yaconv-fixed/bin/benchmark_libtorch_zerocopy" "${HOME}/install/single-conv-yaconv-fixed/bin/benchmark_im2col" && \
     cd .. && rm -r build
 
 WORKDIR ${HOME}
@@ -209,6 +233,7 @@ RUN git clone https://github.com/VainF/DeepLabV3Plus-Pytorch.git deeplabv3plus &
     mv ${HOME}/deeplabv3plus-zconv.patch ${HOME}/deeplabv3plus
 
 COPY auto-run.sh ${HOME}/auto-run.sh
+COPY auto-run-extra.sh ${HOME}/auto-run-extra.sh
 
 # Set home
 WORKDIR ${HOME}
