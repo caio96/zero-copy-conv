@@ -171,7 +171,7 @@ void set_zero_copy_2d_env_vars(bool &weights_HWIO) {
       std::cerr << "Invalid value for ZC_WEIGHTS_LAYOUT: " << env_str
                 << std::endl;
     }
-  // If the environment variable is not set, use default
+    // If the environment variable is not set, use default
   } else {
     weights_HWIO = true;
     std::string hwio_str{"HWIO"};

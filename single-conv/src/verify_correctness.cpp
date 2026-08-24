@@ -214,7 +214,8 @@ void print_error_for_all(std::vector<std::string> &methods,
   }
 }
 
-void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO) {
+void verify_correctness(const std::vector<int> &arguments,
+                        bool zc_weights_HWIO) {
   // Convolution parameters
   int batch = arguments[0];
   int input_channels = arguments[1];
@@ -319,11 +320,13 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO)
                input_channels / groups, filter_height, filter_width);
 
   // Run PyTorch reference
-  torch::Tensor output_tensor_nhwc = conv_2d_torch(
-      input_NCHW, filters_OIHW, batch, input_height, input_width,
-      input_channels, filter_height, filter_width, output_height, output_width,
-      output_channels, padding_height, padding_width, stride_h, stride_w,
-      dilation_h, dilation_w, groups, bias).contiguous(torch::MemoryFormat::ChannelsLast);
+  torch::Tensor output_tensor_nhwc =
+      conv_2d_torch(input_NCHW, filters_OIHW, batch, input_height, input_width,
+                    input_channels, filter_height, filter_width, output_height,
+                    output_width, output_channels, padding_height,
+                    padding_width, stride_h, stride_w, dilation_h, dilation_w,
+                    groups, bias)
+          .contiguous(torch::MemoryFormat::ChannelsLast);
   output_torch_NHWC = output_tensor_nhwc.const_data_ptr<float>();
 
   // PyTorch reference output in NCHW layout
@@ -386,7 +389,8 @@ void verify_correctness(const std::vector<int> &arguments, bool zc_weights_HWIO)
   } else if (groups > 1) {
     print_error("Yaconv", conv_parameters, "Grouped convolution not supported");
   } else if (filter_width > input_width) {
-    print_error("Yaconv", conv_parameters, "Filter width > input width not supported");
+    print_error("Yaconv", conv_parameters,
+                "Filter width > input width not supported");
   } else {
     diff = get_max_diff(output_torch_NHWC, output_yaconv_NHWC, output_size);
     print_diff("Yaconv", conv_parameters, diff);

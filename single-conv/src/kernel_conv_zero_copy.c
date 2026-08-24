@@ -104,11 +104,11 @@ void conv_2d_zero_copy(float *__restrict__ input, float *__restrict__ output,
         } else {
 #endif
           cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M_dim, N_dim,
-                      K_dim, alpha, a, W * C * SH, b, N_dim, beta, c, N_dim * OW);
+                      K_dim, alpha, a, W * C * SH, b, N_dim, beta, c,
+                      N_dim * OW);
 #if defined USE_MKL_JIT
         }
 #endif
-
       }
     }
   }

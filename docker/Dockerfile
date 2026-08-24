@@ -7,17 +7,17 @@ RUN mkdir -p ${BUILD_DIR}
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt-get update &&                                    \
     apt-get install --assume-yes --no-install-recommends \
-      build-essential                                    \
-      ca-certificates                                    \
-      clang-15                                           \
-      cmake                                              \
-      curl                                               \
-      git                                                \
-      libomp-15-dev                                      \
-      ninja-build                                        \
-      openssh-client                                     \
-      wget &&                                            \
-      rm -rf /var/lib/apt/lists/*
+    build-essential                                    \
+    ca-certificates                                    \
+    clang-15                                           \
+    cmake                                              \
+    curl                                               \
+    git                                                \
+    libomp-15-dev                                      \
+    ninja-build                                        \
+    openssh-client                                     \
+    wget &&                                            \
+    rm -rf /var/lib/apt/lists/*
 
 # Set clang 15 tools
 RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 100 && \
@@ -61,10 +61,10 @@ RUN git clone https://github.com/google/benchmark.git benchmark && \
     git checkout v1.9.0 && \
     cmake -E make_directory "build" && \
     cmake -E chdir "build" cmake -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on \
-                                 -DCMAKE_BUILD_TYPE=Release           \
-                                 -DCMAKE_C_COMPILER=clang     \
-                                 -DCMAKE_CXX_COMPILER=clang++ \
-                                 ../ && \
+    -DCMAKE_BUILD_TYPE=Release           \
+    -DCMAKE_C_COMPILER=clang     \
+    -DCMAKE_CXX_COMPILER=clang++ \
+    ../ && \
     cmake --build "build" --config Release && \
     mkdir ${BUILD_DIR}/benchmark-install && \
     cmake --install build --config Release --prefix ${BUILD_DIR}/benchmark-install
@@ -76,10 +76,10 @@ RUN git clone https://github.com/flame/blis.git blis && \
     git checkout 1.0 && \
     mkdir ${BUILD_DIR}/blis-install && \
     ./configure --prefix="${BUILD_DIR}/blis-install" \
-                --enable-threading=openmp            \
-                --enable-cblas                       \
-                CC=clang CXX=clang++                 \
-                auto && \
+    --enable-threading=openmp            \
+    --enable-cblas                       \
+    CC=clang CXX=clang++                 \
+    auto && \
     make install -j
 
 # Install BLIS with Yaconv
@@ -90,11 +90,11 @@ RUN cp -r ${BUILD_DIR}/blis ${BUILD_DIR}/blis-yaconv && \
     git apply ${BUILD_DIR}/blis-yaconv.patch && \
     mkdir ${BUILD_DIR}/blis-yaconv-install && \
     ./configure --prefix="${BUILD_DIR}/blis-yaconv-install" \
-                --enable-threading=openmp            \
-                --enable-cblas                       \
-                -a yaconv                            \
-                CC=clang CXX=clang++                 \
-                auto && \
+    --enable-threading=openmp            \
+    --enable-cblas                       \
+    -a yaconv                            \
+    CC=clang CXX=clang++                 \
+    auto && \
     make install -j
 
 FROM ubuntu:22.04 AS test
@@ -108,24 +108,24 @@ ENV PATH="/opt/conda/bin:${PATH}"
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt-get update && \
     apt-get install --assume-yes --no-install-recommends \
-      bc                                                 \
-      build-essential                                    \
-      ca-certificates                                    \
-      clang-15                                           \
-      cmake                                              \
-      git                                                \
-      libomp-15-dev                                      \
-      linux-tools-common                                 \
-      linux-tools-generic                                \
-      linux-tools-$(uname -r)                            \
-      linux-headers-generic                              \
-      linux-headers-$(uname -r)                          \
-      nano                                               \
-      numactl                                            \
-      time                                               \
-      unzip                                              \
-      vim                                                \
-      wget &&                                            \
+    bc                                                 \
+    build-essential                                    \
+    ca-certificates                                    \
+    clang-15                                           \
+    cmake                                              \
+    git                                                \
+    libomp-15-dev                                      \
+    linux-tools-common                                 \
+    linux-tools-generic                                \
+    linux-tools-$(uname -r)                            \
+    linux-headers-generic                              \
+    linux-headers-$(uname -r)                          \
+    nano                                               \
+    numactl                                            \
+    time                                               \
+    unzip                                              \
+    vim                                                \
+    wget &&                                            \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p ~/.vim/pack/tpope/start && \
     cd ~/.vim/pack/tpope/start && \
@@ -169,54 +169,54 @@ RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
     cd zero-copy-conv/single-conv && \
     mkdir build && cd build && \
     cmake -DCMAKE_C_COMPILER=clang                                 \
-          -DCMAKE_CXX_COMPILER=clang++                             \
-          -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
-          -DTORCH_INSTALL="${HOME}/install/libtorch"               \
-          -DBLIS_INSTALL="${HOME}/install/blis"                    \
-          -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
-          -DUSE_MKL="ON"                                           \
-          -DUSE_MKL_JIT="ON"                                       \
-          -DBUILD_ZCONV_BLIS="OFF"                                 \
-          -DUSE_FIXED_ITERATIONS="OFF"                             \
-          .. && \
+    -DCMAKE_CXX_COMPILER=clang++                             \
+    -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
+    -DTORCH_INSTALL="${HOME}/install/libtorch"               \
+    -DBLIS_INSTALL="${HOME}/install/blis"                    \
+    -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
+    -DUSE_MKL="ON"                                           \
+    -DUSE_MKL_JIT="ON"                                       \
+    -DBUILD_ZCONV_BLIS="OFF"                                 \
+    -DUSE_FIXED_ITERATIONS="OFF"                             \
+    .. && \
     make -j && \
     mkdir "${HOME}/install/single-conv" && \
     cmake --install . --prefix "${HOME}/install/single-conv" &&    \
     rm "${HOME}/install/single-conv/bin/benchmark_yaconv" && \
     cmake -DCMAKE_C_COMPILER=clang                                 \
-          -DCMAKE_CXX_COMPILER=clang++                             \
-          -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
-          -DTORCH_INSTALL="${HOME}/install/libtorch"               \
-          -DBLIS_INSTALL="${HOME}/install/blis"                    \
-          -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
-          -DUSE_MKL="OFF"                                           \
-          -DUSE_MKL_JIT="OFF"                                       \
-          -DBUILD_ZCONV_BLIS="OFF"                                  \
-          -DUSE_FIXED_ITERATIONS="OFF"                              \
-          .. && \
+    -DCMAKE_CXX_COMPILER=clang++                             \
+    -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
+    -DTORCH_INSTALL="${HOME}/install/libtorch"               \
+    -DBLIS_INSTALL="${HOME}/install/blis"                    \
+    -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
+    -DUSE_MKL="OFF"                                           \
+    -DUSE_MKL_JIT="OFF"                                       \
+    -DBUILD_ZCONV_BLIS="OFF"                                  \
+    -DUSE_FIXED_ITERATIONS="OFF"                              \
+    .. && \
     make -j && \
     mkdir "${HOME}/install/single-conv-yaconv" && \
     cmake --install . --prefix "${HOME}/install/single-conv-yaconv" && \
     rm "${HOME}/install/single-conv-yaconv/bin/benchmark_libtorch" "${HOME}/install/single-conv-yaconv/bin/benchmark_libtorch_zerocopy" "${HOME}/install/single-conv-yaconv/bin/benchmark_im2col" && \
     cmake -DCMAKE_C_COMPILER=clang                                 \
-          -DCMAKE_CXX_COMPILER=clang++                             \
-          -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
-          -DTORCH_INSTALL="${HOME}/install/libtorch"               \
-          -DBLIS_INSTALL="${HOME}/install/blis"                    \
-          -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
-          -DUSE_MKL="ON"                                           \
-          -DUSE_MKL_JIT="ON"                                       \
-          -DBUILD_ZCONV_BLIS="OFF"                                 \
-          -DUSE_FIXED_ITERATIONS="ON"                              \
-          . && \
+    -DCMAKE_CXX_COMPILER=clang++                             \
+    -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
+    -DTORCH_INSTALL="${HOME}/install/libtorch"               \
+    -DBLIS_INSTALL="${HOME}/install/blis"                    \
+    -DBLIS_YACONV_INSTALL="${HOME}/install/blis-yaconv"      \
+    -DUSE_MKL="ON"                                           \
+    -DUSE_MKL_JIT="ON"                                       \
+    -DBUILD_ZCONV_BLIS="OFF"                                 \
+    -DUSE_FIXED_ITERATIONS="ON"                              \
+    . && \
     make -j && \
     mkdir "${HOME}/install/single-conv-fixed" && \
     cmake --install . --prefix "${HOME}/install/single-conv-fixed" && \
     rm "${HOME}/install/single-conv-fixed/bin/benchmark_yaconv" && \
     cmake -DUSE_MKL="OFF"                                          \
-          -DUSE_MKL_JIT="OFF"                                      \
-          -DUSE_FIXED_ITERATIONS="ON"                              \
-          . && \
+    -DUSE_MKL_JIT="OFF"                                      \
+    -DUSE_FIXED_ITERATIONS="ON"                              \
+    . && \
     make -j && \
     mkdir "${HOME}/install/single-conv-yaconv-fixed" && \
     cmake --install . --prefix "${HOME}/install/single-conv-yaconv-fixed" && \
