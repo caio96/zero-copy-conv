@@ -30,7 +30,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
     bash ~/miniconda.sh -b -p /opt/conda && \
     rm ~/miniconda.sh && \
     conda install -y python=3.12 && \
-    conda install -y -c conda-forge mkl-static==2025.0.0 mkl-include==2025.0.0 onednn==3.5.3 mkl-devel==2025.0.0 && \
+    conda install -y -c conda-forge mkl-static==2025.0.0 mkl-include==2025.0.0 mkl-devel==2025.0.0 && \
     conda install -y -c pytorch libpng libjpeg-turbo
 
 # Install pytorch and libtorch

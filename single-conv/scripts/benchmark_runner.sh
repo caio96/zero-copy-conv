@@ -306,8 +306,6 @@ if [[ "$PARALLEL_SINGLE_THREAD_MODE" == "true" ]]; then
               executable="$BUILD_DIR/benchmark_libtorch_zerocopy"
             elif [[ "$method" == "LibTorch" ]]; then
               executable="$BUILD_DIR/benchmark_libtorch"
-            elif [[ "$method" == "OneDNN_any" ]]; then
-              executable="$BUILD_DIR/benchmark_onednn_any"
             else
               echo "[Error] Unknown method: $method"
               continue
@@ -383,8 +381,6 @@ for repeat in $(seq "$REPEATS"); do
           executable="$BUILD_DIR/benchmark_libtorch_zerocopy"
         elif [[ "$method" == "LibTorch" ]]; then
           executable="$BUILD_DIR/benchmark_libtorch"
-        elif [[ "$method" == "OneDNN_any" ]]; then
-          executable="$BUILD_DIR/benchmark_onednn_any"
         else
           echo "Unknown method: $method"
           continue

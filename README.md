@@ -160,7 +160,7 @@ The executables can be run with `--help` to show the parameters they take. If ru
 ### Multithreading
 
 To control the number of threads, set the environment variable `OMP_NUM_THREADS`.
-`LibTorch`, `OneDNN`, and `Zero-Copy` will automatically parallelize, `Im2col` may require the environment variable be set to the number of threads.
+`LibTorch` and `Zero-Copy` will automatically parallelize; `Im2col` may require the environment variable be set to the number of threads.
 It is also recommended to disable Hyper-Threading or to use numactl to set which cores are used.
 
 To set it, run:
