@@ -4,8 +4,8 @@ import argparse
 import sys
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def split_parameters(df):
@@ -65,12 +65,28 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
 
     if "not-padded" in conv_types:
         filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["padding top"] == 0) & (df["padding bottom"] == 0) & (df["padding left"] == 0) & (df["padding right"] == 0)]]
+            [
+                filtered_df,
+                df.loc[
+                    (df["padding top"] == 0)
+                    & (df["padding bottom"] == 0)
+                    & (df["padding left"] == 0)
+                    & (df["padding right"] == 0)
+                ],
+            ]
         )
 
     if "padded" in conv_types:
         filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["padding top"] != 0) | (df["padding bottom"] != 0) | (df["padding left"] != 0) | (df["padding right"] != 0)]]
+            [
+                filtered_df,
+                df.loc[
+                    (df["padding top"] != 0)
+                    | (df["padding bottom"] != 0)
+                    | (df["padding left"] != 0)
+                    | (df["padding right"] != 0)
+                ],
+            ]
         )
 
     if "pointwise" in conv_types:
@@ -80,7 +96,15 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
 
     if "small-kernel" in conv_types:
         filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["filter height"] > 1) & (df["filter width"] > 1) & (df["filter height"] <= 3) & (df["filter width"] <= 3)]]
+            [
+                filtered_df,
+                df.loc[
+                    (df["filter height"] > 1)
+                    & (df["filter width"] > 1)
+                    & (df["filter height"] <= 3)
+                    & (df["filter width"] <= 3)
+                ],
+            ]
         )
 
     if "large-kernel" in conv_types:
@@ -89,34 +113,70 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
         )
 
     if "asymmetric-kernel" in conv_types:
-        filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["filter height"] != df["filter width"])]]
-        )
+        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] != df["filter width"])]])
 
     if "pixel-input" in conv_types:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]])
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["image height"] == 1) & (df["image width"] == 1)]]
+        )
 
     if "global" in conv_types:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["image height"] == df["filter height"]) & (df["image width"] == df["filter width"])]])
+        filtered_df = pd.concat(
+            [
+                filtered_df,
+                df.loc[
+                    (df["image height"] == df["filter height"])
+                    & (df["image width"] == df["filter width"])
+                ],
+            ]
+        )
 
     if "direct-gemm" in conv_types:
         filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["filter height"] == 1) & (df["filter width"] == 1) & (df["stride height"] == 1) & (df["stride width"] == 1) & (df["padding top"] == 0) & (df["padding bottom"] == 0) & (df["padding left"] == 0) & (df["padding right"] == 0)]]
+            [
+                filtered_df,
+                df.loc[
+                    (df["filter height"] == 1)
+                    & (df["filter width"] == 1)
+                    & (df["stride height"] == 1)
+                    & (df["stride width"] == 1)
+                    & (df["padding top"] == 0)
+                    & (df["padding bottom"] == 0)
+                    & (df["padding left"] == 0)
+                    & (df["padding right"] == 0)
+                ],
+            ]
         )
 
     if "overlapped" in conv_types:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] > df["stride height"]) | (df["filter width"] > df["stride width"])]])
-
-    if "not-overlapped" in conv_types:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["filter height"] == df["stride height"]) & (df["filter width"] == df["stride width"])]])
-
-    if "grouped" in conv_types:
         filtered_df = pd.concat(
-            [filtered_df, df.loc[(df["groups"] > 1)]]
+            [
+                filtered_df,
+                df.loc[
+                    (df["filter height"] > df["stride height"])
+                    | (df["filter width"] > df["stride width"])
+                ],
+            ]
         )
 
+    if "not-overlapped" in conv_types:
+        filtered_df = pd.concat(
+            [
+                filtered_df,
+                df.loc[
+                    (df["filter height"] == df["stride height"])
+                    & (df["filter width"] == df["stride width"])
+                ],
+            ]
+        )
+
+    if "grouped" in conv_types:
+        filtered_df = pd.concat([filtered_df, df.loc[(df["groups"] > 1)]])
+
     if "depthwise" in conv_types:
-        filtered_df = pd.concat([filtered_df, df.loc[(df["groups"] > 1) & (df["image channel"] == df["groups"])]])
+        filtered_df = pd.concat(
+            [filtered_df, df.loc[(df["groups"] > 1) & (df["image channel"] == df["groups"])]]
+        )
 
     if "dilated" in conv_types:
         filtered_df = pd.concat(
@@ -135,7 +195,8 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
         df["output height"] = np.floor(
             (
                 df["image height"]
-                + df["padding top"] + df["padding bottom"]
+                + df["padding top"]
+                + df["padding bottom"]
                 - df["dilation height"] * (df["filter height"] - 1)
                 - 1
             )
@@ -145,32 +206,45 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
         df["output width"] = np.floor(
             (
                 df["image width"]
-                + df["padding left"] + df["padding right"]
+                + df["padding left"]
+                + df["padding right"]
                 - df["dilation width"] * (df["filter width"] - 1)
                 - 1
             )
             / df["stride width"]
             + 1
         )
-        df["dim k im2col"] = df["filter width"] * df["filter height"] * df["image channel"]  / df["groups"]
+        df["dim k im2col"] = (
+            df["filter width"] * df["filter height"] * df["image channel"] / df["groups"]
+        )
         df["dim m im2col"] = df["output channel"] / df["groups"]
         df["dim n im2col"] = df["output height"] * df["output width"]
         df["dim m"] = df["output height"]
         df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
         df["dim n"] = df["output channel"] / df["groups"]
-        df["squareness im2col"] = df[["dim m im2col", "dim n im2col", "dim k im2col"]].max(axis=1) / df[["dim m im2col", "dim n im2col", "dim k im2col"]].min(axis=1)
-        df["squareness"] = df[["dim m", "dim n", "dim k"]].max(axis=1) / df[["dim m", "dim n", "dim k"]].min(axis=1)
-        filtered_df = pd.concat([filtered_df, df.loc[
-                                 ((df["filter height"] != 1) | (df["filter width"] != 1))        # not pointwise
-                                 & (df["groups"] == 1)                                           # not grouped
-                                 & (df["squareness"] < df["squareness im2col"])
-                                 ]])
+        df["squareness im2col"] = df[["dim m im2col", "dim n im2col", "dim k im2col"]].max(
+            axis=1
+        ) / df[["dim m im2col", "dim n im2col", "dim k im2col"]].min(axis=1)
+        df["squareness"] = df[["dim m", "dim n", "dim k"]].max(axis=1) / df[
+            ["dim m", "dim n", "dim k"]
+        ].min(axis=1)
+        filtered_df = pd.concat(
+            [
+                filtered_df,
+                df.loc[
+                    ((df["filter height"] != 1) | (df["filter width"] != 1))  # not pointwise
+                    & (df["groups"] == 1)  # not grouped
+                    & (df["squareness"] < df["squareness im2col"])
+                ],
+            ]
+        )
 
     if "torch-heuristic" in conv_types:
         df["output height"] = np.floor(
             (
                 df["image height"]
-                + df["padding top"] + df["padding bottom"]
+                + df["padding top"]
+                + df["padding bottom"]
                 - df["dilation height"] * (df["filter height"] - 1)
                 - 1
             )
@@ -180,7 +254,8 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
         df["output width"] = np.floor(
             (
                 df["image width"]
-                + df["padding left"] + df["padding right"]
+                + df["padding left"]
+                + df["padding right"]
                 - df["dilation width"] * (df["filter width"] - 1)
                 - 1
             )
@@ -188,12 +263,17 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
             + 1
         )
         df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
-        filtered_df = pd.concat([filtered_df, df.loc[
-                                 (df["groups"] == 1)                     # not grouped
-                                 & ((df["filter height"] != 1) | (df["filter width"] != 1)) # not pointwise
-                                 & (df["output height"] < df["image channel"])
-                                 & (df["output width"] < df["image channel"])
-                                 ]])
+        filtered_df = pd.concat(
+            [
+                filtered_df,
+                df.loc[
+                    (df["groups"] == 1)  # not grouped
+                    & ((df["filter height"] != 1) | (df["filter width"] != 1))  # not pointwise
+                    & (df["output height"] < df["image channel"])
+                    & (df["output width"] < df["image channel"])
+                ],
+            ]
+        )
 
     # Drop duplicates to avoid duplicating rows if they match multiple types
     return filtered_df.drop_duplicates().reset_index(drop=True)
@@ -205,33 +285,33 @@ def exclude_from_df(df: pd.DataFrame, conv_types: list):
         return df
 
     included_df = include_only_in_df(df, conv_types)
-    excluded_df = df.loc[~df['conv_parameters'].isin(included_df['conv_parameters'])]
+    excluded_df = df.loc[~df["conv_parameters"].isin(included_df["conv_parameters"])]
     return excluded_df.reset_index(drop=True)
 
 
 def get_categories():
     return [
-            "unit-stride",
-            "strided",
-            "not-padded",
-            "padded",
-            "pointwise",
-            "small-kernel",
-            "large-kernel",
-            "asymmetric-kernel",
-            "pixel-input",
-            "global",
-            "direct-gemm",
-            "overlapped",
-            "not-overlapped",
-            "grouped",
-            "depthwise",
-            "dilated",
-            "not-dilated",
-            "transposed",
-            "im2col-extra-heuristic",
-            "torch-heuristic",
-        ]
+        "unit-stride",
+        "strided",
+        "not-padded",
+        "padded",
+        "pointwise",
+        "small-kernel",
+        "large-kernel",
+        "asymmetric-kernel",
+        "pixel-input",
+        "global",
+        "direct-gemm",
+        "overlapped",
+        "not-overlapped",
+        "grouped",
+        "depthwise",
+        "dilated",
+        "not-dilated",
+        "transposed",
+        "im2col-extra-heuristic",
+        "torch-heuristic",
+    ]
 
 
 if __name__ == "__main__":

@@ -9,7 +9,13 @@ import pandas as pd
 # Import from single-conv scripts
 script_dir = Path(__file__).resolve().absolute().parent
 sys.path.append(Path(script_dir / "../single-conv/scripts/").resolve().absolute().as_posix())
-from filter_csv import exclude_from_df, include_only_in_df, split_parameters, get_categories, remove_problem_parameters
+from filter_csv import (
+    exclude_from_df,
+    get_categories,
+    include_only_in_df,
+    remove_problem_parameters,
+    split_parameters,
+)
 
 
 def print_models(df: pd.DataFrame):
@@ -23,7 +29,9 @@ def print_models(df: pd.DataFrame):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Print models that contain the specified convolution types")
+    parser = argparse.ArgumentParser(
+        description="Print models that contain the specified convolution types"
+    )
 
     parser.add_argument("Input_CSV", type=str, help="Path to the input CSV file.")
     parser.add_argument(

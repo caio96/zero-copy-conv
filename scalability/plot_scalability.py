@@ -12,21 +12,22 @@ Defaults:
     --data   : data.csv next to this script
     --output : scalability.png next to this script
 """
+
 import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib import rc
 import numpy as np
 import pandas as pd
+from matplotlib import rc
 
 CORES = [1, 2, 4, 8]
 
 METHODS = [
-    ("im2col",   "Im2col",         "#ca0020", "o", "-"),
-    ("libtorch", "LibTorch",       "#555555", "s", "--"),
+    ("im2col", "Im2col", "#ca0020", "o", "-"),
+    ("libtorch", "LibTorch", "#555555", "s", "--"),
     ("lt_zconv", "LibTorch-ZConv", "#f4a582", "^", "-."),
-    ("zconv",    "ZConv",          "#0571b0", "D", "-"),
+    ("zconv", "ZConv", "#0571b0", "D", "-"),
 ]
 
 PANELS = [
@@ -44,10 +45,18 @@ N_ROWS = len(PANELS) // N_COLS  # 6 / 2 = 3, no empty slot
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=Path, default=None,
-                        help="Path to data.csv (default: data.csv next to this script)")
-    parser.add_argument("--output", type=Path, default=None,
-                        help="Output PNG path (default: scalability.png next to this script)")
+    parser.add_argument(
+        "--data",
+        type=Path,
+        default=None,
+        help="Path to data.csv (default: data.csv next to this script)",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output PNG path (default: scalability.png next to this script)",
+    )
     args = parser.parse_args()
 
     script_dir = Path(__file__).parent
@@ -56,20 +65,26 @@ def main():
 
     rc("font", **{"family": "serif", "serif": ["Libertine"]})
     rc("text", usetex=True)
-    rc("text.latex", preamble="\n".join([
-        r"\usepackage[utf8]{inputenc}",
-        r"\usepackage[T1]{fontenc}",
-        r"\usepackage{libertine}",
-        r"\usepackage{newtxtext,newtxmath}",
-        r"\usepackage{amsmath}",
-    ]))
+    rc(
+        "text.latex",
+        preamble="\n".join(
+            [
+                r"\usepackage[utf8]{inputenc}",
+                r"\usepackage[T1]{fontenc}",
+                r"\usepackage{libertine}",
+                r"\usepackage{newtxtext,newtxmath}",
+                r"\usepackage{amsmath}",
+            ]
+        ),
+    )
     plt.rcParams.update({"font.size": 14, "legend.fontsize": 12})
 
     data = pd.read_csv(data_path, comment="#")
 
     panel_w, panel_h = 7.5 / 2, 3.0
     fig, axes = plt.subplots(
-        N_ROWS, N_COLS,
+        N_ROWS,
+        N_COLS,
         figsize=(panel_w * N_COLS, panel_h * N_ROWS),
         sharey=True,
     )
@@ -81,15 +96,30 @@ def main():
         ax = axes.flat[idx]
         df = data[data["layer"] == layer_id].sort_values("cores")
 
-        ax.plot(CORES, ideal_y, color="lightgray", linestyle="--",
-                linewidth=1.2, label="Ideal", zorder=1)
+        ax.plot(
+            CORES,
+            ideal_y,
+            color="lightgray",
+            linestyle="--",
+            linewidth=1.2,
+            label="Ideal",
+            zorder=1,
+        )
 
         for col, label, color, marker, linestyle in METHODS:
             if col not in df.columns:
                 continue
-            ax.plot(CORES, df[col].values, label=label, color=color,
-                    marker=marker, markersize=6, linestyle=linestyle,
-                    linewidth=1.8, zorder=2)
+            ax.plot(
+                CORES,
+                df[col].values,
+                label=label,
+                color=color,
+                marker=marker,
+                markersize=6,
+                linestyle=linestyle,
+                linewidth=1.8,
+                zorder=2,
+            )
 
         ax.set_xticks(CORES)
         ax.set_xticklabels([str(c) for c in CORES])
@@ -104,9 +134,17 @@ def main():
     # Legend below all subplots (5 entries fit in one row at ncol=5)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     plt.tight_layout()
-    fig.legend(handles, labels, loc="lower center", ncol=len(handles),
-               bbox_to_anchor=(0.5, -0.06), frameon=True,
-               framealpha=1, edgecolor="black", handlelength=1.5)
+    fig.legend(
+        handles,
+        labels,
+        loc="lower center",
+        ncol=len(handles),
+        bbox_to_anchor=(0.5, -0.06),
+        frameon=True,
+        framealpha=1,
+        edgecolor="black",
+        handlelength=1.5,
+    )
     plt.savefig(output_path, bbox_inches="tight", dpi=200)
     plt.close()
     print(f"Saved: {output_path}")

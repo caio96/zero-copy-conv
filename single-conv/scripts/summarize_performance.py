@@ -8,13 +8,24 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from filter_csv import exclude_from_df, include_only_in_df, split_parameters, get_categories
-from tabulate import tabulate
 import scipy.stats as st
+from filter_csv import (
+    exclude_from_df,
+    get_categories,
+    include_only_in_df,
+    split_parameters,
+)
 from matplotlib.ticker import FuncFormatter
+from tabulate import tabulate
 
 
-def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, only_stats=False, incorrect_convs: pd.DataFrame=None):
+def merge_results(
+    df: pd.DataFrame,
+    occurrences_df: pd.DataFrame,
+    output_dir,
+    only_stats=False,
+    incorrect_convs: pd.DataFrame = None,
+):
 
     # Split the 'name' column into 'conv_type' and 'conv_parameters'
     df[["conv_type", "conv_parameters"]] = df["name"].str.split(" ", n=1, expand=True)
@@ -26,7 +37,9 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
 
     # Removes the rows from df if the conv_type and conv_parameters are present in incorrect_convs
     if incorrect_convs is not None:
-        df = df.merge(incorrect_convs, how="left", on=["conv_type", "conv_parameters"], indicator=True)
+        df = df.merge(
+            incorrect_convs, how="left", on=["conv_type", "conv_parameters"], indicator=True
+        )
         df = df.loc[df["_merge"] == "left_only"]
         df = df.drop(columns=["_merge", "max_diff", "tolerance"])
 
@@ -88,9 +101,7 @@ def merge_results(df: pd.DataFrame, occurrences_df: pd.DataFrame, output_dir, on
     return joined_results
 
 
-def get_speedup(
-    joined_results: pd.DataFrame, old_method_name, new_method_name
-):
+def get_speedup(joined_results: pd.DataFrame, old_method_name, new_method_name):
     # Remove rows where an error occurred in either method
     joined_results = joined_results.loc[
         (joined_results["error_occurred_" + old_method_name] == False)
@@ -100,19 +111,32 @@ def get_speedup(
     speedup_results = pd.DataFrame()
     speedup_results["conv_parameters"] = joined_results["conv_parameters"]
     speedup_results["occurrences"] = joined_results["occurrences"]
-    speedup_results["speedup"] = joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name]
-    speedup_results["slowdown"] = joined_results["mean_time_" + new_method_name] / joined_results["mean_time_" + old_method_name]
+    speedup_results["speedup"] = (
+        joined_results["mean_time_" + old_method_name]
+        / joined_results["mean_time_" + new_method_name]
+    )
+    speedup_results["slowdown"] = (
+        joined_results["mean_time_" + new_method_name]
+        / joined_results["mean_time_" + old_method_name]
+    )
 
     # Compute speedup and slowdown -> results in asymmetric speedup and slowdown where 0 means no change
     speedup_results["relative_change"] = speedup_results.apply(
-        lambda row: row["speedup"]-1 if row["speedup"] >= 1 else (row["slowdown"]-1)*-1, axis=1
+        lambda row: row["speedup"] - 1 if row["speedup"] >= 1 else (row["slowdown"] - 1) * -1,
+        axis=1,
     )
 
     # Compute log2 speedup -> results in symmetric speedup and slowdown
-    speedup_results["log2_speedup"] = np.log2(joined_results["mean_time_" + old_method_name] / joined_results["mean_time_" + new_method_name])
+    speedup_results["log2_speedup"] = np.log2(
+        joined_results["mean_time_" + old_method_name]
+        / joined_results["mean_time_" + new_method_name]
+    )
 
     # Compute time difference between methods
-    speedup_results["time_diff"] = joined_results["mean_time_" + old_method_name] - joined_results["mean_time_" + new_method_name]
+    speedup_results["time_diff"] = (
+        joined_results["mean_time_" + old_method_name]
+        - joined_results["mean_time_" + new_method_name]
+    )
     speedup_results["time_unit"] = joined_results["time_unit"]
 
     old_means = joined_results["mean_time_" + old_method_name]
@@ -171,9 +195,13 @@ def plot_speedup(
     # Save non-significant models to csv if the performance change is greater than 1%
     try_rerun_layers = pd.DataFrame()
     if not only_stats:
-        try_rerun_layers["conv_parameters"] = non_significant_results.loc[lambda x: np.abs(x.relative_change) > 0.01]["conv_parameters"]
+        try_rerun_layers["conv_parameters"] = non_significant_results.loc[
+            lambda x: np.abs(x.relative_change) > 0.01
+        ]["conv_parameters"]
         try_rerun_layers["rerun_methods"] = f"{old_method_name},{new_method_name}"
-        try_rerun_layers.to_csv(output_dir / f"{new_method_name}_vs_{old_method_name}_try_rerun.csv", index=False)
+        try_rerun_layers.to_csv(
+            output_dir / f"{new_method_name}_vs_{old_method_name}_try_rerun.csv", index=False
+        )
 
     if speedup_results.empty:
         print("No data to plot after removing non-significant results.", file=sys.stderr)
@@ -184,7 +212,10 @@ def plot_speedup(
 
     inflection = num_points
     for i in range(0, num_points - 1):
-        if speedup_results["relative_change"].iloc[i] >= 0 and speedup_results["relative_change"].iloc[i + 1] < 0:
+        if (
+            speedup_results["relative_change"].iloc[i] >= 0
+            and speedup_results["relative_change"].iloc[i + 1] < 0
+        ):
             inflection = i + 0.5
 
     pos = speedup_results.loc[lambda x: x.relative_change >= 0]
@@ -201,7 +232,10 @@ def plot_speedup(
         f"Time Difference ({unit})": [(pos["time_diff"]).sum(), (neg["time_diff"]).sum()],
         "Occurrences": [int(pos["occurrences"].sum()), int(neg["occurrences"].sum())],
         "Weighted Median": [weighted_median(pos), weighted_median(neg)],
-        f"Weighted Time Difference ({unit})": [(pos["time_diff"] * pos["occurrences"]).sum(), (neg["time_diff"] * neg["occurrences"]).sum()],
+        f"Weighted Time Difference ({unit})": [
+            (pos["time_diff"] * pos["occurrences"]).sum(),
+            (neg["time_diff"] * neg["occurrences"]).sum(),
+        ],
         "No significant change": [non_significant_count, ""],
     }
     df_stats = pd.DataFrame(stats).fillna(0).set_index(f"{new_method_name} vs {old_method_name}")
@@ -234,18 +268,20 @@ def plot_speedup(
     fig, ax = plt.subplots(figsize=(9.6, 4.8))
 
     if plot_type == "log2_speedup":
+
         def custom_formatter(x, pos):
             x = 2**x
-            if (x < 1):
-                x = 1/x
+            if x < 1:
+                x = 1 / x
                 return f"$\\frac{{1}}{{{x:.2g}}}$"
             return f"{x:.2g}"
 
         # Apply the custom formatter to the y-axis
         ax.yaxis.set_major_formatter(FuncFormatter(custom_formatter))
     elif plot_type == "speedup":
+
         def custom_formatter(x, pos):
-            if (x >= 0):
+            if x >= 0:
                 x += 1
                 return f"{x:.3g}"
             else:
@@ -266,7 +302,7 @@ def plot_speedup(
             range(pos_speedup.shape[0], pos_speedup.shape[0] + neg_speedup.shape[0], 1),
             neg_speedup.values,
             color="#ca0020",
-            label=label
+            label=label,
         )
 
     # Add line showing that positive outliers clipped
@@ -302,7 +338,7 @@ def plot_speedup(
         # Annotate clipped value
         text = ""
         if plot_type == "log2_speedup":
-            min_neg = 1/(2**min_neg)
+            min_neg = 1 / (2**min_neg)
             text = f"Min: $\\frac{{1}}{{{min_neg:.1f}}}$"
         elif plot_type == "speedup":
             min_neg -= 1
@@ -334,13 +370,13 @@ def plot_speedup(
         )
     else:
         x_total = pos_speedup.shape[0] + neg_speedup.shape[0]
-        ax.set_xlim(left=-x_total*0.02, right=x_total*1.02)
+        ax.set_xlim(left=-x_total * 0.02, right=x_total * 1.02)
 
     if not pos_speedup.empty and not neg_speedup.empty:
         legend = plt.legend(frameon=True, framealpha=1, handlelength=1)
         frame = legend.get_frame()
-        frame.set_facecolor('white')
-        frame.set_edgecolor('black')
+        frame.set_facecolor("white")
+        frame.set_edgecolor("black")
 
     if plot_type == "time_diff":
         ax.set_ylabel(f"Time Difference ({unit})")
@@ -410,7 +446,7 @@ def plot_speedup(
     plt.close()
 
 
-def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_stats: bool=False):
+def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_stats: bool = False):
     speedup_results = split_parameters(speedup_results)
     unit = speedup_results["time_unit"].iloc[0]
     stats = {
@@ -438,14 +474,16 @@ def speedup_per_category(speedup_results: pd.DataFrame, output_csv: Path, only_s
         stats["Count Ratio"].append(pos.shape[0] / neg.shape[0] if neg.shape[0] != 0 else 0)
         stats[f"Speedup Time ({unit})"].append(pos["time_diff"].sum())
         stats[f"Slowdown Time ({unit})"].append(neg["time_diff"].sum())
-        stats["Time Ratio"].append(pos["time_diff"].sum() / neg["time_diff"].sum() * -1 if neg["time_diff"].sum() != 0 else 0)
+        stats["Time Ratio"].append(
+            pos["time_diff"].sum() / neg["time_diff"].sum() * -1
+            if neg["time_diff"].sum() != 0
+            else 0
+        )
 
     df_stats = pd.DataFrame(stats).fillna(0).set_index("Category")
     print(tabulate(df_stats, headers="keys", tablefmt="psql", floatfmt=".2f"))
     if not only_stats:
-        df_stats.to_csv(
-            output_csv
-        )
+        df_stats.to_csv(output_csv)
 
 
 # Saves a csv with results and produces an speedup graph
@@ -465,7 +503,9 @@ def compare_methods(
 
     if not only_stats:
         # Add graph with execution times for comparison
-        methods = [col.replace("mean_time_", "") for col in joined_results.columns if "mean_time" in col]
+        methods = [
+            col.replace("mean_time_", "") for col in joined_results.columns if "mean_time" in col
+        ]
         graph_execution_times(joined_results, methods, output_dir, old_method, new_method)
 
         if plot_type == "time_diff":
@@ -478,7 +518,11 @@ def compare_methods(
             output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}.csv", index=False
         )
 
-    speedup_per_category(speedup_results, output_dir/f"conv2d_{new_method_name}_vs_{old_method_name}_categories.csv", only_stats)
+    speedup_per_category(
+        speedup_results,
+        output_dir / f"conv2d_{new_method_name}_vs_{old_method_name}_categories.csv",
+        only_stats,
+    )
 
     plot_speedup(
         speedup_results,
@@ -496,18 +540,40 @@ def compare_methods(
 # Function to estimate the FLOPs of a convolution
 # Used to sort the convolutions by complexity
 def compute_conv_flops(
-    input_channels, input_height, input_width,
-    output_channels, kernel_height, kernel_width,
-    stride_height=1, stride_width=1, padding_height=0, padding_width=0,
-    dilation_height=1, dilation_width=1, groups=1
+    input_channels,
+    input_height,
+    input_width,
+    output_channels,
+    kernel_height,
+    kernel_width,
+    stride_height=1,
+    stride_width=1,
+    padding_height=0,
+    padding_width=0,
+    dilation_height=1,
+    dilation_width=1,
+    groups=1,
 ):
     # Compute output dimensions
-    output_height = ((input_height + 2 * padding_height - (dilation_height * (kernel_height - 1) + 1)) // stride_height) + 1
-    output_width = ((input_width + 2 * padding_width - (dilation_width * (kernel_width - 1) + 1)) // stride_width) + 1
+    output_height = (
+        (input_height + 2 * padding_height - (dilation_height * (kernel_height - 1) + 1))
+        // stride_height
+    ) + 1
+    output_width = (
+        (input_width + 2 * padding_width - (dilation_width * (kernel_width - 1) + 1))
+        // stride_width
+    ) + 1
     # Channels per group
     input_channels_per_group = input_channels // groups
     # Compute FLOPs
-    flops = output_channels * output_height * output_width * input_channels_per_group * kernel_height * kernel_width
+    flops = (
+        output_channels
+        * output_height
+        * output_width
+        * input_channels_per_group
+        * kernel_height
+        * kernel_width
+    )
     return flops
 
 
@@ -515,21 +581,32 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
     fig, ax = plt.subplots()
 
     df = split_parameters(df)
-    df["flops"] = compute_conv_flops(df["image channel"], df["image height"], df["image width"],
-                                     df["output channel"], df["filter height"], df["filter width"],
-                                     df["stride height"], df["stride width"], df["padding top"], df["padding left"],
-                                     df["dilation height"], df["dilation width"], df["groups"])
+    df["flops"] = compute_conv_flops(
+        df["image channel"],
+        df["image height"],
+        df["image width"],
+        df["output channel"],
+        df["filter height"],
+        df["filter width"],
+        df["stride height"],
+        df["stride width"],
+        df["padding top"],
+        df["padding left"],
+        df["dilation height"],
+        df["dilation width"],
+        df["groups"],
+    )
     df = df.sort_values(by=["flops"])
-    marker=['o', 'v', '^', '<', '>', 's', 'p', '*', 'X']
+    marker = ["o", "v", "^", "<", ">", "s", "p", "*", "X"]
 
     name_translation = {
-            "ZeroCopy_jit": "ZConv_T", # transposed HW
-            "ZeroCopy_no_transpose_mkl_jit": "ZConv", # transposed HW
-            "LibTorch_ZeroCopy2D_HWIO_TransformOutput": "Torch_ZConv_T", # transposed HW
-            "LibTorch_ZeroCopy2D_no_transpose_HWIO": "Torch_ZConv",
-            "LibTorch": "Torch",
-            "Im2col": "Im2col",
-            "Yaconv": "Yaconv",
+        "ZeroCopy_jit": "ZConv_T",  # transposed HW
+        "ZeroCopy_no_transpose_mkl_jit": "ZConv",  # transposed HW
+        "LibTorch_ZeroCopy2D_HWIO_TransformOutput": "Torch_ZConv_T",  # transposed HW
+        "LibTorch_ZeroCopy2D_no_transpose_HWIO": "Torch_ZConv",
+        "LibTorch": "Torch",
+        "Im2col": "Im2col",
+        "Yaconv": "Yaconv",
     }
 
     for idx, method in enumerate(sorted(methods)):
@@ -539,12 +616,24 @@ def graph_execution_times(df: pd.DataFrame, methods, output_dir, old_method=None
         method_means = df[f"mean_time_{method}"]
         conf = df[f"95_confidence_{method}"]
 
-        ax.errorbar(range(df.shape[0]), method_means, yerr=conf, label=label_name, markersize=2, markeredgecolor='black', markeredgewidth=0.1, fmt=marker[idx%len(marker)], alpha=0.8, ecolor='black', elinewidth=0.5)
+        ax.errorbar(
+            range(df.shape[0]),
+            method_means,
+            yerr=conf,
+            label=label_name,
+            markersize=2,
+            markeredgecolor="black",
+            markeredgewidth=0.1,
+            fmt=marker[idx % len(marker)],
+            alpha=0.8,
+            ecolor="black",
+            elinewidth=0.5,
+        )
 
     legend = plt.legend(frameon=True, framealpha=1, markerscale=3)
     frame = legend.get_frame()
-    frame.set_facecolor('white')
-    frame.set_edgecolor('black')
+    frame.set_facecolor("white")
+    frame.set_edgecolor("black")
 
     unit = df["time_unit"].iloc[0]
     ax.set_ylabel(f"Execution time ({unit})")
@@ -694,7 +783,12 @@ if __name__ == "__main__":
                 sys.exit(-1)
             incorrect_conv_df = pd.read_csv(incorrect_convs, header=0, index_col=False)
 
-        df = pd.read_csv(csv_input, header=0, index_col=False, dtype={"error_occurred": "boolean", "error_message": str})
+        df = pd.read_csv(
+            csv_input,
+            header=0,
+            index_col=False,
+            dtype={"error_occurred": "boolean", "error_message": str},
+        )
         df["error_occurred"] = df["error_occurred"].fillna(False)
         occurrences_df = pd.read_csv(occurrences_csv, header=0, index_col=False)
 
@@ -702,7 +796,10 @@ if __name__ == "__main__":
         df = merge_results(df, occurrences_df, output_dir, only_stats, incorrect_conv_df)
     else:
         if incorrect_convs:
-            print("Incorrect convolutions cannot be used with already merged results.", file=sys.stderr)
+            print(
+                "Incorrect convolutions cannot be used with already merged results.",
+                file=sys.stderr,
+            )
             sys.exit(-1)
         df = pd.read_csv(csv_input, header=0, index_col=False)
 
@@ -723,10 +820,12 @@ if __name__ == "__main__":
     methods = [col.replace("mean_time_", "") for col in df.columns if "mean_time" in col]
 
     if not only_stats:
-        plt.rcParams.update({
-            "font.size": 22,
-            "legend.fontsize": 20,
-        })
+        plt.rcParams.update(
+            {
+                "font.size": 22,
+                "legend.fontsize": 20,
+            }
+        )
 
         # Add graph with execution times for all methods
         graph_execution_times(df, methods, output_dir)
@@ -743,35 +842,79 @@ if __name__ == "__main__":
 
     if old_method and new_method:
         compare_methods(
-            df, old_method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
+            df,
+            old_method,
+            new_method,
+            output_dir,
+            only_stats,
+            clip_pos,
+            clip_neg,
+            plot_type,
+            ignore_significance,
         )
     elif old_method:
         for method in methods:
             if method == old_method:
                 continue
             compare_methods(
-                df, old_method, method, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
+                df,
+                old_method,
+                method,
+                output_dir,
+                only_stats,
+                clip_pos,
+                clip_neg,
+                plot_type,
+                ignore_significance,
             )
     elif new_method:
         for method in methods:
             if method == new_method:
                 continue
             compare_methods(
-                df, method, new_method, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
+                df,
+                method,
+                new_method,
+                output_dir,
+                only_stats,
+                clip_pos,
+                clip_neg,
+                plot_type,
+                ignore_significance,
             )
     else:
         if preset_comparisons:
-            comparisons = [("Im2col", "ZeroCopy_no_transpose_mkl_jit"), ("Yaconv", "ZeroCopy_no_transpose_mkl_jit"), ("LibTorch", "LibTorch_ZeroCopy2D_no_transpose_HWIO")]
+            comparisons = [
+                ("Im2col", "ZeroCopy_no_transpose_mkl_jit"),
+                ("Yaconv", "ZeroCopy_no_transpose_mkl_jit"),
+                ("LibTorch", "LibTorch_ZeroCopy2D_no_transpose_HWIO"),
+            ]
             for method1, method2 in comparisons:
                 if method1 not in methods or method2 not in methods:
                     continue
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
+                    df,
+                    method1,
+                    method2,
+                    output_dir,
+                    only_stats,
+                    clip_pos,
+                    clip_neg,
+                    plot_type,
+                    ignore_significance,
                 )
         else:
             for method1, method2 in itertools.combinations(methods, 2):
                 compare_methods(
-                    df, method1, method2, output_dir, only_stats, clip_pos, clip_neg, plot_type, ignore_significance
+                    df,
+                    method1,
+                    method2,
+                    output_dir,
+                    only_stats,
+                    clip_pos,
+                    clip_neg,
+                    plot_type,
+                    ignore_significance,
                 )
 
     # Merge try_rerun csvs
@@ -781,7 +924,12 @@ if __name__ == "__main__":
             rerun_df = pd.read_csv(file)
             rerun_df_merge = pd.concat([rerun_df_merge, rerun_df], ignore_index=True)
         # Aggregate rerun results by conv_params
-        aggregated_rerun_df = rerun_df_merge.groupby("conv_parameters").agg(conv_parameters=("conv_parameters", "first"), rerun_methods=("rerun_methods", lambda x: ",".join(x)))
+        aggregated_rerun_df = rerun_df_merge.groupby("conv_parameters").agg(
+            conv_parameters=("conv_parameters", "first"),
+            rerun_methods=("rerun_methods", lambda x: ",".join(x)),
+        )
         # Remove duplicates from rerun methods
-        aggregated_rerun_df["rerun_methods"] = aggregated_rerun_df["rerun_methods"].apply(lambda x: ",".join(set(x.split(","))))
+        aggregated_rerun_df["rerun_methods"] = aggregated_rerun_df["rerun_methods"].apply(
+            lambda x: ",".join(set(x.split(",")))
+        )
         aggregated_rerun_df.to_csv(output_dir / "try_rerun.csv", index=False)

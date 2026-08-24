@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 import argparse
-import os
-import sys
-import timm
-import time
-import random
-import numpy as np
-from tabulate import tabulate
 import csv
+import os
+import random
+import sys
+import time
 from pathlib import Path
 
+import numpy as np
+import timm
 import torch
 import torch.utils.benchmark as benchmark
 import torchvision.models as models
+from tabulate import tabulate
 
 
 def get_model_and_input(model_name, source, batch_size=1):
@@ -51,7 +51,10 @@ def convert_conv2d_weights_to_HWIO_static(model):
                 module.out_channels,
                 module.weight,
                 module.stride,
-                (module._reversed_padding_repeated_twice[-1], module._reversed_padding_repeated_twice[-3]),
+                (
+                    module._reversed_padding_repeated_twice[-1],
+                    module._reversed_padding_repeated_twice[-3],
+                ),
                 module.dilation,
                 module.groups,
                 module.transposed,
@@ -75,7 +78,10 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
             inputs[0],
             module.weight,
             module.stride,
-            (module._reversed_padding_repeated_twice[-1], module._reversed_padding_repeated_twice[-3]),
+            (
+                module._reversed_padding_repeated_twice[-1],
+                module._reversed_padding_repeated_twice[-3],
+            ),
             module.dilation,
             module.groups,
             module.transposed,
@@ -87,7 +93,7 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
             weight_data = weight_data.permute(3, 2, 0, 1)
             module.weight.data = weight_data.resize_(weight_data.size())
 
-     # Register hooks to process each Conv2d layer
+    # Register hooks to process each Conv2d layer
     hooks = []
     for module in model.modules():
         if type(module) is torch.nn.Conv2d:
@@ -97,7 +103,7 @@ def convert_conv2d_weights_to_HWIO_dynamic(model, input):
     with torch.no_grad():
         model(input)
 
-     # Remove hooks
+    # Remove hooks
     for hook in hooks:
         hook.remove()
 
@@ -122,9 +128,7 @@ def run_model(
 
     # Convert model and input to channel last memory format
     model = model.to(device="cpu", memory_format=torch.channels_last)
-    input_tensor = input_tensor.to(
-        device="cpu", memory_format=torch.channels_last
-    )
+    input_tensor = input_tensor.to(device="cpu", memory_format=torch.channels_last)
 
     if convert_weights_to_hwio:
         # Heuristic changes slightly for the static version

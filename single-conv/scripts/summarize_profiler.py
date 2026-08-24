@@ -3,37 +3,43 @@
 import argparse
 import itertools
 import sys
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
 
-def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_method : str = None, old_method : str = None, relative : bool = False):
+def perf_log_to_df(
+    input_log: Path,
+    incorrect_convs: pd.DataFrame = None,
+    new_method: str = None,
+    old_method: str = None,
+    relative: bool = False,
+):
 
     data = defaultdict(list)
     counters = set()
-    with open(input_log, 'r') as f:
+    with open(input_log, "r") as f:
         perf_stat_seen = 0
         for line in f:
-            if line.strip() == '' or "started on" in line:
+            if line.strip() == "" or "started on" in line:
                 continue
 
             if "/process_time/real_time" in line:
-                id = line.split(',')[0].replace('"', '').split('/')[0]
-                conv_type = id.split(' ')[0]
-                conv_parameters = " ".join(id.split(' ')[1:])
-                data['conv_parameters'].append(conv_parameters)
-                data['conv_type'].append(conv_type)
-                data['error_occurred'].append(line.split(',')[8])
+                id = line.split(",")[0].replace('"', "").split("/")[0]
+                conv_type = id.split(" ")[0]
+                conv_parameters = " ".join(id.split(" ")[1:])
+                data["conv_parameters"].append(conv_parameters)
+                data["conv_type"].append(conv_type)
+                data["error_occurred"].append(line.split(",")[8])
             else:
-                counter = line.split(',')[2]
-                if '/' in counter:
+                counter = line.split(",")[2]
+                if "/" in counter:
                     counter = counter.split("/")[1]
                 counters.add(counter)
-                count = line.split(',')[0]
+                count = line.split(",")[0]
                 if count == "<not counted>" or count == "<not supported>":
                     count = np.nan
                 data[counter].append(count)
@@ -44,7 +50,9 @@ def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_
     df = df.loc[df["error_occurred"] != "true"]
     # Remove row where results were incorrect
     if incorrect_convs is not None:
-        df = df.merge(incorrect_convs, how="left", on=["conv_type", "conv_parameters"], indicator=True)
+        df = df.merge(
+            incorrect_convs, how="left", on=["conv_type", "conv_parameters"], indicator=True
+        )
         df = df.loc[df["_merge"] == "left_only"]
         df = df.drop(columns=["_merge", "max_diff", "tolerance"])
 
@@ -72,15 +80,21 @@ def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_
 
     for counter in sorted(counters):
         joined_results = pd.merge(
-            df_dict[method_names[0]][["conv_parameters", counter]].rename(columns={counter: method_names[0]}),
-            df_dict[method_names[1]][["conv_parameters", counter]].rename(columns={counter: method_names[1]}),
+            df_dict[method_names[0]][["conv_parameters", counter]].rename(
+                columns={counter: method_names[0]}
+            ),
+            df_dict[method_names[1]][["conv_parameters", counter]].rename(
+                columns={counter: method_names[1]}
+            ),
             how="left",
             on="conv_parameters",
             suffixes=(None, None),
         )
         for method_name in method_names[2:]:
             joined_results = joined_results.merge(
-                df_dict[method_name][["conv_parameters", counter]].rename(columns={counter: method_name}),
+                df_dict[method_name][["conv_parameters", counter]].rename(
+                    columns={counter: method_name}
+                ),
                 how="left",
                 on="conv_parameters",
                 suffixes=(None, None),
@@ -92,14 +106,18 @@ def perf_log_to_df(input_log : Path, incorrect_convs : pd.DataFrame = None, new_
                     if method_name == new_method:
                         continue
                     else:
-                        joined_results[method_name] = joined_results[method_name].astype("Int64") / joined_results[new_method].astype("Int64")
+                        joined_results[method_name] = joined_results[method_name].astype(
+                            "Int64"
+                        ) / joined_results[new_method].astype("Int64")
                 joined_results[new_method] = 1
 
             if old_method is not None:
                 cols = ["conv_parameters", old_method, new_method]
                 joined_results = joined_results[cols].dropna()
 
-        joined_results = joined_results.rename(columns={"conv_parameters": counter}).set_index(counter)
+        joined_results = joined_results.rename(columns={"conv_parameters": counter}).set_index(
+            counter
+        )
         print(tabulate(joined_results, headers="keys", tablefmt="psql", floatfmt=".1f"))
 
 
@@ -110,7 +128,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "Log_Input", type=str, help="Path to the input log file (generated by benchmark_runner with --save-profile)."
+        "Log_Input",
+        type=str,
+        help="Path to the input log file (generated by benchmark_runner with --save-profile).",
     )
     parser.add_argument(
         "--incorrect-convs",
@@ -159,4 +179,3 @@ if __name__ == "__main__":
         incorrect_conv_df = pd.read_csv(incorrect_convs, header=0, index_col=False)
 
     df = perf_log_to_df(input_log, incorrect_conv_df, new_method, old_method, relative)
-

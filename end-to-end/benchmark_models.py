@@ -14,7 +14,15 @@ def run_model_zc_heuristic(source, model_name, batch_size, output_csv):
     os.environ["ZC_HEURISTIC"] = "TRUE"
     os.environ["ZC_WEIGHTS_LAYOUT"] = "HWIO"
     try:
-        run_model(source, model_name, batch_size=batch_size, compile=False, convert_weights_to_hwio=True, csv_output=output_csv, method_name="ZeroCopy2d_Heuristic")
+        run_model(
+            source,
+            model_name,
+            batch_size=batch_size,
+            compile=False,
+            convert_weights_to_hwio=True,
+            csv_output=output_csv,
+            method_name="ZeroCopy2d_Heuristic",
+        )
     except RuntimeError as e:
         with open(f"{output_csv}.err", "a") as f:
             f.write(f"Error running {model_name}, with ZeroCopy2d_Heuristic, {e}\n")
@@ -24,7 +32,15 @@ def run_model_torch(source, model_name, batch_size, output_csv):
     os.environ["ZC_ENABLE"] = "FALSE"
     os.environ["ZC_TIME"] = "FALSE"
     try:
-        run_model(source, model_name, batch_size=batch_size, compile=False, convert_weights_to_hwio=False, csv_output=output_csv, method_name="Torch")
+        run_model(
+            source,
+            model_name,
+            batch_size=batch_size,
+            compile=False,
+            convert_weights_to_hwio=False,
+            csv_output=output_csv,
+            method_name="Torch",
+        )
     except RuntimeError as e:
         with open(f"{output_csv}.err", "a") as f:
             f.write(f"Error running {model_name}, with Torch, {e}\n")

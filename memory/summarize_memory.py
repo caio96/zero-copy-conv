@@ -10,6 +10,7 @@ Outputs:
   - memory_results.csv : mean RSS (MB) and 95% CI for each (executable, layer)
   - Printed tables matching the paper's memory table format (3 comparisons)
 """
+
 import argparse
 from pathlib import Path
 
@@ -47,21 +48,17 @@ def aggregate(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(subset=["max_rss_kb"])
     df["max_rss_mb"] = df["max_rss_kb"] / 1024.0
 
-    agg = (
-        df.groupby(["method", "layer"])["max_rss_mb"]
-        .agg(["mean", "sem", "count"])
-        .reset_index()
-    )
-    ci = st.norm.interval(0.95, loc=agg["mean"],
-                          scale=agg["sem"].clip(lower=1e-12))
+    agg = df.groupby(["method", "layer"])["max_rss_mb"].agg(["mean", "sem", "count"]).reset_index()
+    ci = st.norm.interval(0.95, loc=agg["mean"], scale=agg["sem"].clip(lower=1e-12))
     agg["ci95"] = (ci[1] - ci[0]) / 2
     agg["significant"] = (agg["ci95"] / agg["mean"]) < 0.5  # sanity check
 
     return agg.rename(columns={"mean": "mean_mb", "sem": "sem_mb"})
 
 
-def print_comparison(agg: pd.DataFrame, method_a: str, method_b: str,
-                     ratio_label: str = None) -> pd.DataFrame:
+def print_comparison(
+    agg: pd.DataFrame, method_a: str, method_b: str, ratio_label: str = None
+) -> pd.DataFrame:
     if ratio_label is None:
         ratio_label = f"{method_b} / {method_a}"
 
@@ -81,29 +78,36 @@ def print_comparison(agg: pd.DataFrame, method_a: str, method_b: str,
         mb, ci_b = b.loc[layer_id, "mean_mb"], b.loc[layer_id, "ci95"]
         # Significance: CIs do not overlap (conservative test, same as summarize_performance.py)
         significant = (ma - ci_a > mb + ci_b) or (mb - ci_b > ma + ci_a)
-        rows.append({
-            "Layer": layer_id,
-            "Params": params,
-            f"{method_a} (MB)": round(ma, 2),
-            f"{method_b} (MB)": round(mb, 2),
-            ratio_label: round(mb / ma, 2),
-            "Sig?": "Yes" if significant else "No",
-        })
+        rows.append(
+            {
+                "Layer": layer_id,
+                "Params": params,
+                f"{method_a} (MB)": round(ma, 2),
+                f"{method_b} (MB)": round(mb, 2),
+                ratio_label: round(mb / ma, 2),
+                "Sig?": "Yes" if significant else "No",
+            }
+        )
 
     result = pd.DataFrame(rows)
     if not result.empty:
         n_sig = result["Sig?"].eq("Yes").sum()
         print(result.to_string(index=False))
-        print(f"  → {n_sig}/{len(result)} differences statistically significant (95% CI, non-overlapping intervals)")
+        print(
+            f"  → {n_sig}/{len(result)} differences statistically significant (95% CI, non-overlapping intervals)"
+        )
     return result
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("raw_csv", type=Path,
-                        help="Path to memory_raw.csv from run_memory.sh")
-    parser.add_argument("--out", type=Path, default=None,
-                        help="Output CSV (default: memory_results.csv next to this script)")
+    parser.add_argument("raw_csv", type=Path, help="Path to memory_raw.csv from run_memory.sh")
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="Output CSV (default: memory_results.csv next to this script)",
+    )
     args = parser.parse_args()
 
     out_path = args.out or (Path(__file__).parent / "memory_results.csv")

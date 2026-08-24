@@ -7,6 +7,7 @@ Usage: python summarize_scalability.py RAW_DIR [--out PATH]
   RAW_DIR : directory containing raw_1threads.csv, raw_2threads.csv, etc.
   --out   : output path for data.csv (default: data.csv next to this script)
 """
+
 import argparse
 from pathlib import Path
 
@@ -49,8 +50,7 @@ HEADER_COMMENT = """\
 
 
 def read_raw(path: Path) -> pd.DataFrame:
-    df = pd.read_csv(path, header=0, index_col=False,
-                     dtype={"error_occurred": "boolean"})
+    df = pd.read_csv(path, header=0, index_col=False, dtype={"error_occurred": "boolean"})
     df["error_occurred"] = df["error_occurred"].fillna(False)
     df = df[~df["error_occurred"]]
     df[["method", "params"]] = df["name"].str.split(" ", n=1, expand=True)
@@ -60,11 +60,7 @@ def read_raw(path: Path) -> pd.DataFrame:
 
 
 def aggregate(df: pd.DataFrame) -> pd.DataFrame:
-    agg = (
-        df.groupby(["method", "params"])["real_time"]
-        .agg(["mean", "sem", "count"])
-        .reset_index()
-    )
+    agg = df.groupby(["method", "params"])["real_time"].agg(["mean", "sem", "count"]).reset_index()
     ci = st.norm.interval(0.95, loc=agg["mean"], scale=agg["sem"].clip(lower=1e-12))
     agg["ci95"] = (ci[1] - ci[0]) / 2
     return agg
@@ -72,10 +68,8 @@ def aggregate(df: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("raw_dir", type=Path,
-                        help="Directory with raw_Nthreads.csv files")
-    parser.add_argument("--out", type=Path, default=None,
-                        help="Output path for data.csv")
+    parser.add_argument("raw_dir", type=Path, help="Directory with raw_Nthreads.csv files")
+    parser.add_argument("--out", type=Path, default=None, help="Output path for data.csv")
     args = parser.parse_args()
 
     raw_dir = args.raw_dir
@@ -122,20 +116,23 @@ def main():
                 speedup_ci = speedup * rel_err
                 sig = (speedup - speedup_ci) > 1.0 or (speedup + speedup_ci) < 1.0
                 if not sig:
-                    non_sig.append({
-                        "cores": n, "layer": layer, "method": col,
-                        "speedup": speedup, "ci95": round(speedup_ci, 3),
-                    })
-            rows.append({"cores": n, "layer": layer, "method": col,
-                         "speedup": speedup})
+                    non_sig.append(
+                        {
+                            "cores": n,
+                            "layer": layer,
+                            "method": col,
+                            "speedup": speedup,
+                            "ci95": round(speedup_ci, 3),
+                        }
+                    )
+            rows.append({"cores": n, "layer": layer, "method": col, "speedup": speedup})
 
     if not rows:
         raise SystemExit("No data produced. Check method names in raw CSVs match METHOD_MAP.")
 
     df_long = pd.DataFrame(rows)
     df_wide = (
-        df_long.pivot_table(index=["cores", "layer"], columns="method",
-                            values="speedup")
+        df_long.pivot_table(index=["cores", "layer"], columns="method", values="speedup")
         .reset_index()
         .sort_values(["layer", "cores"])
         .reset_index(drop=True)
@@ -153,17 +150,21 @@ def main():
     print(f"Saved: {out_path}")
     print(df_wide.to_string(index=False))
 
-    total_non_baseline = sum(
-        len(agg_by_cores[n]) for n in agg_by_cores if n > 1
-    )
+    total_non_baseline = sum(len(agg_by_cores[n]) for n in agg_by_cores if n > 1)
     if non_sig:
-        print(f"\n95% CI significance check ({len(non_sig)}/{total_non_baseline} speedups NOT significant):")
+        print(
+            f"\n95% CI significance check ({len(non_sig)}/{total_non_baseline} speedups NOT significant):"
+        )
         for r in non_sig:
-            print(f"  Layer {r['layer']}, {r['method']:10s}, {r['cores']}c: "
-                  f"speedup={r['speedup']:.2f} (CI lower bound ≤ 1.0)")
+            print(
+                f"  Layer {r['layer']}, {r['method']:10s}, {r['cores']}c: "
+                f"speedup={r['speedup']:.2f} (CI lower bound ≤ 1.0)"
+            )
     else:
-        print(f"\nAll {total_non_baseline} speedups at N>1 cores are statistically significant "
-              f"(95% CI lower bound > 1.0).")
+        print(
+            f"\nAll {total_non_baseline} speedups at N>1 cores are statistically significant "
+            f"(95% CI lower bound > 1.0)."
+        )
 
 
 if __name__ == "__main__":
