@@ -56,7 +56,7 @@ def summarize_correctness(df: pd.DataFrame, output_dir, tolerance, only_stats=Fa
     print(tabulate(summary, headers="keys", tablefmt="psql"))
 
     if not only_stats:
-        summary.to_csv(output_dir / "correctness-summary.csv", index=False)
+        summary.to_csv(output_dir / "correctness-summary.csv")
 
 
 if __name__ == "__main__":

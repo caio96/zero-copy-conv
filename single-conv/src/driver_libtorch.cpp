@@ -1,6 +1,8 @@
 #include "utils.hpp"
 #include <benchmark/benchmark.h>
+#include <algorithm>
 #include <cstdlib>
+#include <iterator>
 #include <sstream>
 #include <torch/torch.h>
 

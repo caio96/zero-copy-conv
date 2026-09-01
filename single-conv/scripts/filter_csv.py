@@ -191,54 +191,6 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
     if "transposed" in conv_types:
         filtered_df = pd.concat([filtered_df, df.loc[df["is transposed"] == 1]])
 
-    if "im2col-extra-heuristic" in conv_types:
-        df["output height"] = np.floor(
-            (
-                df["image height"]
-                + df["padding top"]
-                + df["padding bottom"]
-                - df["dilation height"] * (df["filter height"] - 1)
-                - 1
-            )
-            / df["stride height"]
-            + 1
-        )
-        df["output width"] = np.floor(
-            (
-                df["image width"]
-                + df["padding left"]
-                + df["padding right"]
-                - df["dilation width"] * (df["filter width"] - 1)
-                - 1
-            )
-            / df["stride width"]
-            + 1
-        )
-        df["dim k im2col"] = (
-            df["filter width"] * df["filter height"] * df["image channel"] / df["groups"]
-        )
-        df["dim m im2col"] = df["output channel"] / df["groups"]
-        df["dim n im2col"] = df["output height"] * df["output width"]
-        df["dim m"] = df["output height"]
-        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
-        df["dim n"] = df["output channel"] / df["groups"]
-        df["squareness im2col"] = df[["dim m im2col", "dim n im2col", "dim k im2col"]].max(
-            axis=1
-        ) / df[["dim m im2col", "dim n im2col", "dim k im2col"]].min(axis=1)
-        df["squareness"] = df[["dim m", "dim n", "dim k"]].max(axis=1) / df[
-            ["dim m", "dim n", "dim k"]
-        ].min(axis=1)
-        filtered_df = pd.concat(
-            [
-                filtered_df,
-                df.loc[
-                    ((df["filter height"] != 1) | (df["filter width"] != 1))  # not pointwise
-                    & (df["groups"] == 1)  # not grouped
-                    & (df["squareness"] < df["squareness im2col"])
-                ],
-            ]
-        )
-
     if "torch-heuristic" in conv_types:
         df["output height"] = np.floor(
             (
@@ -262,7 +214,6 @@ def include_only_in_df(df: pd.DataFrame, conv_types: list):
             / df["stride width"]
             + 1
         )
-        df["dim k"] = df["filter width"] * df["image channel"] / df["groups"]
         filtered_df = pd.concat(
             [
                 filtered_df,
@@ -309,7 +260,6 @@ def get_categories():
         "dilated",
         "not-dilated",
         "transposed",
-        "im2col-extra-heuristic",
         "torch-heuristic",
     ]
 

@@ -31,12 +31,12 @@ METHODS = [
 ]
 
 PANELS = [
-    (1, r"Layer~\#1 (regular)"),
-    (2, r"Layer~\#2 (regular)"),
-    (3, r"Layer~\#3 (small $IH$)"),
-    (4, r"Layer~\#4 (strided)"),
-    (5, r"Layer~\#5 (depthwise)"),
-    (6, r"Layer~\#6 (dilated)"),
+    (1, "Layer #1 (regular)"),
+    (2, "Layer #2 (regular)"),
+    (3, "Layer #3 (small IH)"),
+    (4, "Layer #4 (strided)"),
+    (5, "Layer #5 (depthwise)"),
+    (6, "Layer #6 (dilated)"),
 ]
 
 N_COLS = 2
@@ -64,19 +64,6 @@ def main():
     output_path = args.output or (script_dir / "scalability.png")
 
     rc("font", **{"family": "serif", "serif": ["Libertine"]})
-    rc("text", usetex=True)
-    rc(
-        "text.latex",
-        preamble="\n".join(
-            [
-                r"\usepackage[utf8]{inputenc}",
-                r"\usepackage[T1]{fontenc}",
-                r"\usepackage{libertine}",
-                r"\usepackage{newtxtext,newtxmath}",
-                r"\usepackage{amsmath}",
-            ]
-        ),
-    )
     plt.rcParams.update({"font.size": 14, "legend.fontsize": 12})
 
     data = pd.read_csv(data_path, comment="#")
@@ -110,7 +97,7 @@ def main():
             if col not in df.columns:
                 continue
             ax.plot(
-                CORES,
+                df["cores"].values,
                 df[col].values,
                 label=label,
                 color=color,

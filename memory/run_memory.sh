@@ -4,7 +4,7 @@
 # Usage: ./run_memory.sh BUILD_DIR OUTPUT_DIR [REPEATS]
 #   BUILD_DIR  : directory containing the benchmark_* executables
 #   OUTPUT_DIR : directory to write memory_raw.csv into (created if absent)
-#   REPEATS    : repetitions per (executable, layer) pair (default: 40)
+#   REPEATS    : repetitions per (executable, layer) pair (default: 10)
 #
 # Each run wraps the executable with /usr/bin/time -v and captures the
 # "Maximum resident set size" metric. One row is written per run.
@@ -43,7 +43,7 @@ EXECUTABLES=(
 
 # Optional executables (included only if present anywhere in BUILD_DIR)
 for OPT in "benchmark_yaconv" "benchmark_zero_copy_blis"; do
-    if find "$BUILD_DIR" -type f -name "${OPT}" 2>/dev/null | grep -q .; then
+    if [[ -n $(find "$BUILD_DIR" -type f -name "${OPT}" 2>/dev/null) ]]; then
         EXECUTABLES+=("$OPT")
         echo "Found optional executable: $OPT"
     fi
@@ -57,7 +57,7 @@ current=0
 
 for EXECUTABLE in "${EXECUTABLES[@]}"; do
     # Search recursively like benchmark_runner.sh does
-    EXE_PATH=$(find "$BUILD_DIR" -type f -name "${EXECUTABLE}" 2>/dev/null | head -1)
+    EXE_PATH=$(find "$BUILD_DIR" -type f -name "${EXECUTABLE}" -print -quit 2>/dev/null)
     if [[ -z "$EXE_PATH" ]]; then
         echo "Warning: ${EXECUTABLE} not found in $BUILD_DIR — skipping."
         continue

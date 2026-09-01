@@ -117,9 +117,7 @@ RUN apt-get update && \
     libomp-15-dev                                      \
     linux-tools-common                                 \
     linux-tools-generic                                \
-    linux-tools-$(uname -r)                            \
     linux-headers-generic                              \
-    linux-headers-$(uname -r)                          \
     nano                                               \
     numactl                                            \
     time                                               \
@@ -167,7 +165,7 @@ COPY zero-copy-conv.zip ${HOME}/zero-copy-conv.zip
 RUN unzip zero-copy-conv.zip -d zero-copy-conv && \
     rm zero-copy-conv.zip && \
     cd zero-copy-conv/single-conv && \
-    mkdir build && cd build && \
+    mkdir -p build && cd build && \
     cmake -DCMAKE_C_COMPILER=clang                                 \
     -DCMAKE_CXX_COMPILER=clang++                             \
     -DBENCHMARK_INSTALL="${HOME}/install/benchmark"          \
@@ -232,8 +230,8 @@ RUN git clone https://github.com/VainF/DeepLabV3Plus-Pytorch.git deeplabv3plus &
     git apply ${HOME}/deeplabv3plus-zconv.patch && \
     mv ${HOME}/deeplabv3plus-zconv.patch ${HOME}/deeplabv3plus
 
-COPY auto-run.sh ${HOME}/auto-run.sh
-COPY auto-run-extra.sh ${HOME}/auto-run-extra.sh
+COPY --chown=${user}:${group} auto-run.sh ${HOME}/auto-run.sh
+COPY --chown=${user}:${group} auto-run-extra.sh ${HOME}/auto-run-extra.sh
 
 # Set home
 WORKDIR ${HOME}

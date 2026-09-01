@@ -213,7 +213,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-name",
         type=str,
-        help="The name of the model to convert. Default: squeezenet1_1 for torch, mobilenetv3_small_100.lamb_in1k for timm.",
+        help="The name of the model to convert. Default: squeezenet1_1 for torch, mobilenetv3_small_100 for timm.",
     )
 
     parser.add_argument(

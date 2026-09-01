@@ -1,6 +1,6 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
-set -x
+set -xeo pipefail
 
 # System configuration (edit these values as needed) ---
 # - CORE_RANGE: CPU core range passed to `numactl` (example: "0-7")
@@ -11,9 +11,9 @@ set -x
 # - REPEAT_COUNT_MODEL: how many times to repeat end-to-end model measurements
 CORE_RANGE="0-7"
 THREADS="8"
-CONV_LAYERS_MAX="10"
+CONV_LAYERS_MAX="-1"
 REPEAT_COUNT_CONV="1"
-MODEL_MAX="10"
+MODEL_MAX="-1"
 REPEAT_COUNT_MODEL="1"
 # ------------------------------------------
 
@@ -40,6 +40,7 @@ if [[ ${CONV_LAYERS_MAX} -gt 0 ]]; then
 fi
 
 # Run multithreaded benchmarks
+rm -f ${HOME}/results/standalone-conv/multithread/outputs.csv
 "${WORKDIR}/scripts/benchmark_runner.sh" --threads ${THREADS} --core-range ${CORE_RANGE} --repeats ${REPEAT_COUNT_CONV} ${HOME}/install/single-conv ${HOME}/results/standalone-conv/multithread/inputs.csv ${HOME}/results/standalone-conv/multithread/outputs.csv
 
 # Summarize multithreaded results
@@ -52,7 +53,6 @@ mkdir -p "${HOME}/results/standalone-conv/multithread/summary"
 # Update parameter for singlethreaded benchmarks (Yaconv)
 THREADS_BACKUP=${THREADS}
 THREADS="1"
-CONV_INPUTS_CSV_BACKUP="${CONV_INPUTS_CSV}"
 CONV_INPUTS_CSV="${WORKDIR}/data/conv_layers_yaconv_supported.csv" # excludes layers not supported by Yaconv and where Yaconv gives errors
 
 # Create results directory for singlethreaded benchmarks (Yaconv)
@@ -69,6 +69,7 @@ if [[ ${CONV_LAYERS_MAX} -gt 0 ]]; then
 fi
 
 # Run singlethreaded benchmarks
+rm -f ${HOME}/results/standalone-conv/singlethread/outputs.csv
 "${WORKDIR}/scripts/benchmark_runner.sh" --threads ${THREADS} --core-range ${CORE_RANGE} --repeats ${REPEAT_COUNT_CONV} ${HOME}/install/single-conv-yaconv ${HOME}/results/standalone-conv/singlethread/inputs.csv ${HOME}/results/standalone-conv/singlethread/outputs.csv
 
 # Summarize singlethreaded results
@@ -92,20 +93,21 @@ mkdir -p "${HOME}/results/end-to-end/torch"
 mkdir -p "${HOME}/results/end-to-end/timm"
 
 # Filter out model that would not run ZConv due to its heuristic
-"${WORKDIR}/filter_models.py" ${CONV_INPUTS_CSV_TORCH} --include torch-heuristic > ${HOME}/results/end-to-end/inputs-torch.csv
-"${WORKDIR}/filter_models.py" ${CONV_INPUTS_CSV_TIMM} --include torch-heuristic > ${HOME}/results/end-to-end/inputs-timm.csv
+"${WORKDIR}/filter_models.py" ${CONV_INPUTS_CSV_TORCH} --include-only-conv-types torch-heuristic > ${HOME}/results/end-to-end/inputs-torch.csv
+"${WORKDIR}/filter_models.py" ${CONV_INPUTS_CSV_TIMM} --include-only-conv-types torch-heuristic > ${HOME}/results/end-to-end/inputs-timm.csv
 
 if [[ ${MODEL_MAX} -gt 0 ]]; then
-    head -n $((MODEL_MAX + 1)) ${HOME}/results/end-to-end/inputs-torch.csv > ${HOME}/results/end-to-end/inputs_temp.csv
+    head -n ${MODEL_MAX} ${HOME}/results/end-to-end/inputs-torch.csv > ${HOME}/results/end-to-end/inputs_temp.csv
     rm ${HOME}/results/end-to-end/inputs-torch.csv
     mv ${HOME}/results/end-to-end/inputs_temp.csv ${HOME}/results/end-to-end/inputs-torch.csv
 
-    head -n $((MODEL_MAX + 1)) ${HOME}/results/end-to-end/inputs-timm.csv > ${HOME}/results/end-to-end/inputs_temp.csv
+    head -n ${MODEL_MAX} ${HOME}/results/end-to-end/inputs-timm.csv > ${HOME}/results/end-to-end/inputs_temp.csv
     rm ${HOME}/results/end-to-end/inputs-timm.csv
     mv ${HOME}/results/end-to-end/inputs_temp.csv ${HOME}/results/end-to-end/inputs-timm.csv
 fi
 
 # Run multithreaded benchmarks for Torch models
+rm -f ${HOME}/results/end-to-end/torch/outputs.csv
 OMP_NUM_THREADS=${THREADS} numactl -C ${CORE_RANGE} "${WORKDIR}/benchmark_models.py" --repeats ${REPEAT_COUNT_MODEL} --filter-models ${HOME}/results/end-to-end/inputs-torch.csv torch ${HOME}/results/end-to-end/torch/outputs.csv
 
 # Summarize Torch model results
@@ -113,6 +115,7 @@ mkdir -p "${HOME}/results/end-to-end/torch/summary"
 "${WORKDIR}/summarize_performance_end_to_end.py" ${HOME}/results/end-to-end/torch/outputs.csv "${HOME}/results/end-to-end/torch/summary" --clip-positive-outliers --clip-negative-outliers --preset-comparisons --plot-type speedup --ignore-significance
 
 # Run multithreaded benchmarks for Timm models
+rm -f ${HOME}/results/end-to-end/timm/outputs.csv
 OMP_NUM_THREADS=${THREADS} numactl -C ${CORE_RANGE} "${WORKDIR}/benchmark_models.py" --repeats ${REPEAT_COUNT_MODEL} --filter-models ${HOME}/results/end-to-end/inputs-timm.csv timm ${HOME}/results/end-to-end/timm/outputs.csv
 
 # Summarize Timm model results

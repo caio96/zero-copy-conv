@@ -4,7 +4,7 @@
 # Usage: ./run_scalability.sh BUILD_DIR OUTPUT_DIR [REPEATS]
 #   BUILD_DIR  : directory containing the benchmark_* executables
 #   OUTPUT_DIR : directory to write raw CSVs into (created if absent)
-#   REPEATS    : repetitions per configuration (default: 40)
+#   REPEATS    : repetitions per configuration (default: 10)
 #
 # Outputs one CSV per core count: OUTPUT_DIR/raw_1threads.csv, raw_2threads.csv, ...
 # Run summarize_scalability.py afterwards to produce data.csv.

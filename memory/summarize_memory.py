@@ -14,7 +14,6 @@ Outputs:
 import argparse
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import scipy.stats as st
 
@@ -37,9 +36,9 @@ EXE_TO_METHOD = {
     "benchmark_libtorch_zerocopy": "LibTorch-ZConv",
 }
 
-# Yaconv does not support groups or dilation; its RSS for Layers 5-6 is
-# only the process overhead (SkipWithError). Exclude those rows.
-YACONV_UNSUPPORTED_LAYERS = {5, 6}
+# Yaconv does not support strides, groups or dilation; its RSS for Layers 4-6
+# is only the process overhead (SkipWithError). Exclude those rows.
+YACONV_UNSUPPORTED_LAYERS = {4, 5, 6}
 
 
 def aggregate(df: pd.DataFrame) -> pd.DataFrame:

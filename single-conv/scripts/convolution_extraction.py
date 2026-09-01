@@ -20,7 +20,7 @@ def save_conv_params(model, model_name, input, conv_parameters):
             *(module.in_channels, inputs[0].shape[2], inputs[0].shape[3]),
             module.out_channels,
             *module.kernel_size,
-            *module._reversed_padding_repeated_twice,
+            *(module._reversed_padding_repeated_twice[i] for i in (2, 3, 0, 1)),
             *module.stride,
             *module.dilation,
             module.groups,

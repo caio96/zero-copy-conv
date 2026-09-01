@@ -178,4 +178,4 @@ if __name__ == "__main__":
             sys.exit(-1)
         incorrect_conv_df = pd.read_csv(incorrect_convs, header=0, index_col=False)
 
-    df = perf_log_to_df(input_log, incorrect_conv_df, new_method, old_method, relative)
+    perf_log_to_df(input_log, incorrect_conv_df, new_method, old_method, relative)

@@ -506,7 +506,9 @@ def compare_methods(
         methods = [
             col.replace("mean_time_", "") for col in joined_results.columns if "mean_time" in col
         ]
-        graph_execution_times(joined_results, methods, output_dir, old_method, new_method)
+        graph_execution_times(
+            joined_results, methods, output_dir, old_method_name, new_method_name
+        )
 
         if plot_type == "time_diff":
             speedup_results = speedup_results.sort_values(by="time_diff", ascending=False)

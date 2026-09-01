@@ -17,6 +17,7 @@ This Docker configuration builds the tools required to run and evaluate ZConv.
 ## Requirements
 
 The built Docker image requires about 8 GB of disk space.
+The benchmarks are compiled with `-march=native` and BLIS is configured with `auto`, so the image is specific to the CPU that builds it: build it on the same machine where the evaluation will run (a prebuilt image moved to a different CPU can fail with SIGILL).
 
 ## Files
 
@@ -26,15 +27,22 @@ The built Docker image requires about 8 GB of disk space.
 - `deeplabv3plus-zconv.patch`: patch to deeplabv3plus to enable running it with ZConv
 - `auto-run.sh`: script to automatically run the main evaluation in the container
 - `auto-run-extra.sh`: script to run the additional scalability and memory experiments
+- `.dockerignore`: keeps `*.tar` files (such as the Pascal VOC archive) out of the build context
 
 ## Build
 
-Before building, add the following files to the `./docker` directory:
+Before building, add the following file to the `./docker` directory:
 
-- `VOCtrainval_11-May-2012.tar`: Pascal VOC 2012 train/val archive (images and annotations). This dataset is used by deeplabv3plus in the end-to-end evaluation. Original host: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
-- `zero-copy-conv.zip`: this repository, archived into a zip file.
+- `zero-copy-conv.zip`: this repository, archived into a **flat** zip file (the archive must contain `single-conv/`, `end-to-end/`, ... at its top level, with no enclosing `zero-copy-conv/` directory, because the Dockerfile runs `unzip zero-copy-conv.zip -d zero-copy-conv` and then `cd zero-copy-conv/single-conv`). GitHub's "Download ZIP" and `zip -r zero-copy-conv.zip zero-copy-conv/` both produce a nested top-level directory and will break the build. Create it from the root of this repository with:
 
-You can download the Pascal VOC 2012 train/val archive (`VOCtrainval_11-May-2012.tar`) from the official Pascal host or a mirror.
+```bash
+cd /path/to/zero-copy-conv
+git archive --format=zip -o docker/zero-copy-conv.zip HEAD
+```
+
+You will also need the Pascal VOC 2012 train/val archive (`VOCtrainval_11-May-2012.tar`), used by deeplabv3plus in the end-to-end evaluation.
+It is *not* baked into the image; it is bind-mounted into the container and extracted there (see [Run](#run)).
+Download it from the official Pascal host or a mirror: http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
 
 Then build the Docker image with:
 
@@ -45,7 +53,9 @@ docker build -t zconv .
 
 ## Run
 
-The container is created with privileged access so that the `numactl` and `perf` commands work inside it.
+The container is created with privileged access so that `numactl` works inside it.
+`perf` support is best-effort: the image only installs `linux-tools-common`/`linux-tools-generic`, and Ubuntu's `/usr/bin/perf` dispatches to `/usr/lib/linux-tools/$(uname -r)/perf`, so a matching `linux-tools-$(uname -r)` may have to be installed inside the container for the host's kernel.
+None of the automated scripts use `perf`; it is only reached through `benchmark_runner.sh --save-profile`.
 
 ```bash
 # Create the container
@@ -57,7 +67,17 @@ docker start artifact
 # Attach to it
 docker exec -it artifact bash
 # Stop it
-docker stop
+docker stop artifact
+```
+
+The Pascal VOC archive is only mounted, never extracted by the image.
+Extract it once inside the container so that deeplabv3plus finds it under its default `--data_root` (`./datasets/data` relative to the `~/deeplabv3plus` clone):
+
+```bash
+# Inside the container
+mkdir -p ~/deeplabv3plus/datasets/data
+tar xf ~/VOCtrainval_11-May-2012.tar -C ~/deeplabv3plus/datasets/data
+# This creates ~/deeplabv3plus/datasets/data/VOCdevkit/VOC2012
 ```
 
 ## Perf support
@@ -66,6 +86,9 @@ To enable running perf, execute in the host:
 ```bash
 sudo sh -c 'echo 1 > /proc/sys/kernel/perf_event_paranoid'
 ```
+
+Profiling runs are started with `benchmark_runner.sh --save-profile`.
+The events it collects default to a set of Intel hybrid-core event names; override them by exporting `PERF_EVENTS` with a comma-separated list (no spaces) of events valid for your CPU before running the script.
 
 ## Automatic run
 
@@ -112,7 +135,7 @@ Note:
 
 ## Files
 
-- `data`: Contains convolution layer parameters obtained with the script `util/convolution_extraction`. Timm 1.0.13 and TorchVision 0.20.1 were used.
+- `data`: Contains convolution layer parameters obtained with the script `single-conv/scripts/convolution_extraction.py`. Timm 1.0.13 and TorchVision 0.20.1 were used.
 - `include` contains utility function headers
 - `src`
   - `driver` is the main file that uses Google Benchmark to call a convolution benchmark. The defines passed at compile time control which convolution method is called
@@ -154,7 +177,8 @@ cmake -DCMAKE_C_COMPILER=clang                                \
 
 ## Running Benchmarks
 
-After building, the `this-repo/build/bin/` directory will contain one executable per convolution method with the name `benchmark_[method_name]`.
+After building, the build directory (`this-repo/single-conv/build/`) will contain one executable per convolution method with the name `benchmark_[method_name]`.
+If you additionally run `cmake --install . --prefix /some/prefix`, the same executables are installed into `/some/prefix/bin/` (this is what the Docker image does, producing `~/install/single-conv/bin/`).
 The executables can be run with `--help` to show the parameters they take. If run with no parameters, a default configuration is run.
 
 ### Multithreading
@@ -190,7 +214,7 @@ More custom layer configurations are found in `data/`
 
 ## Verifying correctness
 
-Also in the `this-repo/build/bin/` directory, the `correctness` executable allows verifying if outputs match.
+Also next to the `benchmark_*` executables (in the build directory, or in `bin/` under the install prefix), the `correctness` executable allows verifying if outputs match.
 The output does not say if the results are correct or not, it rather shows the maximum absolute difference between two elements in the output.
 The reference outputs are from LibTorch (with the ZeroCopy convolution implementation disabled).
 This executable can also be run with `--help` and it takes the same parameters as the `benchmark_` executables.
@@ -200,13 +224,13 @@ This executable can also be run with `--help` and it takes the same parameters a
 Scripts gather convolutional layer parameters, run benchmarks, and summarize results.
 All scripts can take the `-h` flag to show usage information.
 
-1. Run `convolution_extraction` to generate a csv file containing convolution parameters, or use the csv files provided (`data/conv_layers.csv`)
+1. Run `convolution_extraction` to generate a csv file containing convolution parameters, or use the csv files provided (`data/conv_layers_all.csv`; `data/conv_layers_timm.csv`, `data/conv_layers_torch.csv` and `data/conv_layers_yaconv_supported.csv` are subsets of it)
 2. Run `filter_csv` to remove parameters that cause errors in the csv generated in step 1 and to optionally filter convolution types
 3. Build this repo
 4. Run `benchmark_runner` with the build dir and the csv from step 2 to test performance or correctness
-    - This script will use the `benchmark_*` executables found in the build dir (except the naive one), remove executables if you do not want to execute them
+    - This script will use the `benchmark_*` executables found in the build dir, remove executables if you do not want to execute them
 5. Run `summarize_correctness` or `summarize_performance` depending on the type of run with the output csv generated by the runner to summary CSVs
-6. Modify the heuristic in `summarize_performance` run it on the output of the runner with `--use-heuristic` enabled to see the effects of the heuristic
+6. To see the effect of the heuristic that decides when ZConv is used, re-run `summarize_performance` on the same runner output with `--include-only-conv-types torch-heuristic`. This restricts the summary to the layers the heuristic selects, and is what `docker/auto-run.sh` uses for the LibTorch vs LibTorch-ZConv comparison. The heuristic itself is the `torch-heuristic` category implemented in `include_only_in_df` in `single-conv/scripts/filter_csv.py`; edit it there to change the heuristic (`summarize_performance` imports that function). The same category names are also accepted by `filter_csv` in step 2 (`--include-only-conv-types` / `--exclude-conv-types`).
 
 ---
 
@@ -237,6 +261,7 @@ Thus setting them before the end-to-end scripts has no effect.
 ## Running Models
 
 Use the script `run_torch_model.py` to run a PyTorch model.
+- The model source (`torch` or `timm`) is a required positional argument
 - Enable ZeroCopy2d with `--zc-enable`
 - For more options, run `run_torch_model.py -h`
 - Multithreading works the same as explained in this [section](#multithreading).
@@ -247,9 +272,10 @@ Use the script `run_torch_model.py` to run a PyTorch model.
 # Check how to use flags
 ./run_torch_model.py -h
 # Run mobilenet_v3_large with default PyTorch, 8 threads, using cores 0 to 7
-OMP_NUM_THREADS=8 numactl -C 0-7 ./run_torch_model.py --model-name mobilenet_v3_large
+# (the first positional argument is the model source: `torch` or `timm`, and it is required)
+OMP_NUM_THREADS=8 numactl -C 0-7 ./run_torch_model.py torch --model-name mobilenet_v3_large
 # Run mobilenet_v3_large with ZeroCopy2d enabled, 8 threads, using cores 0 to 7
-OMP_NUM_THREADS=8 numactl -C 0-7 ./run_torch_model.py --model-name mobilenet_v3_large --zc-enable
+OMP_NUM_THREADS=8 numactl -C 0-7 ./run_torch_model.py torch --model-name mobilenet_v3_large --zc-enable
 ```
 
 ## Workflow
@@ -262,11 +288,27 @@ Workflow:
 2. Run `benchmark_models` to test performance of running models with and without ZeroCopy2d
 3. Run `summarize_performance_end_to_end` with the output csv generated by the `benchmark_models` to get a summary csv
 
+## Running DeepLabV3+ on Pascal VOC
+
+The segmentation experiment lives in the patched DeepLabV3+ clone at `~/deeplabv3plus` and is **not** part of `auto-run.sh`; it must be invoked manually.
+It requires the Pascal VOC data to have been extracted first (see [Run](#run)).
+The patch adds `~/deeplabv3plus/run_models.sh`, which takes no arguments and loops over six `deeplabv3plus_*` models, running each one twice (once with default PyTorch and once with `--zc-enable`).
+It hardcodes `OMP_NUM_THREADS=8` and `numactl -C 0-7`; edit the script if your machine needs a different core range.
+Results are printed to stdout only (a `Validation time:` line and the metrics summary per run), so redirect them to keep them:
+
+```bash
+# Inside the container
+mkdir -p ~/results
+cd ~/deeplabv3plus
+./run_models.sh 2>&1 | tee ~/results/deeplabv3plus.log
+```
+
 ---
 
 # Scalability Testing
 
-Measures how each convolution method scales from 1 to 8 CPU cores for the six representative layers from Table 6 of the paper.
+Measures how Im2col, LibTorch, LibTorch-ZConv and ZConv scale from 1 to 8 CPU cores for the six representative layers from Table 6 of the paper.
+(Yaconv is single-threaded by design and the ZConv-BLIS variant is not built for this experiment, so neither appears in this comparison.)
 Speedup is reported relative to the single-core execution of each method.
 
 ## Files
@@ -292,13 +334,12 @@ python3 ./scalability/plot_scalability.py --data ~/results/scalability/data.csv 
 
 Measures peak resident set size (RSS) for each convolution method over the six representative layers.
 Executables must be built with `USE_FIXED_ITERATIONS=ON` so that each run allocates its working buffers a fixed number of times, giving stable RSS measurements.
-Uses `python3 measure_rss.py` (which relies on `resource.getrusage`) to capture peak RSS without requiring GNU `time`.
+Peak RSS is captured by wrapping each run with GNU `/usr/bin/time -v` (from the apt `time` package, which is installed in the image) and reading its "Maximum resident set size" line.
 
 ## Files
 
 - `memory/layers.csv`: the six benchmark layers
 - `memory/run_memory.sh BUILD_DIR OUTPUT_DIR [REPEATS]`: runs each executable with RSS measurement and writes `memory_raw.csv`
-- `memory/measure_rss.py`: helper that runs a command and prints its peak RSS in kB
 - `memory/summarize_memory.py memory_raw.csv [--out results.csv]`: computes mean RSS per method and layer and prints the three comparison tables (Im2col vs ZConv, Yaconv vs ZConv-BLIS, LibTorch vs LibTorch-ZConv)
 
 ## Workflow
@@ -315,4 +356,19 @@ sed 's/^benchmark_zero_copy,/benchmark_zero_copy_blis,/' ~/results/memory/yaconv
 python3 ./memory/summarize_memory.py ~/results/memory/memory_raw.csv --out ~/results/memory/memory_results.csv
 ```
 
-Both experiments are automated by `docker/auto-run-extra.sh`, which runs them sequentially using the appropriate install directories.
+Both experiments are automated by `auto-run-extra.sh`, which runs them sequentially using the appropriate install directories.
+To run it in the container:
+
+```bash
+# 1. Attach to the container
+docker exec -it artifact bash
+# 2. (optional but recommended) Update the variables at the top of `auto-run-extra.sh` to suit your environment:
+# - `REPEAT_COUNT_SCALABILITY` controls repeats per (layer, thread-count) pair
+# - `REPEAT_COUNT_MEMORY` controls repeats per (executable, layer) pair
+vim auto-run-extra.sh # edit with your preferred terminal editor
+# 3. Run it
+./auto-run-extra.sh
+```
+
+The scalability thread counts (1, 2, 4 and 8) and the core pinning used by the scalability and memory runs are fixed and cannot be configured in `auto-run-extra.sh`.
+They are set inside `scalability/run_scalability.sh` (thread counts and the matching `0-$((THREADS - 1))` core range) and `memory/run_memory.sh` (single core, `numactl --physcpubind 0`); edit those scripts if your machine needs different values.
