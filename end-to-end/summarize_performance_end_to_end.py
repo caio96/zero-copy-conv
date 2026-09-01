@@ -432,8 +432,8 @@ def plot_speedup(
                 verticalalignment="center",
             )
     else:
-        top = pos_speedup.max() if clip_pos else None
-        bottom = neg_speedup.min() if clip_neg else None
+        top = pos_speedup.max() if clip_pos and not pos_speedup.empty else None
+        bottom = neg_speedup.min() if clip_neg and not neg_speedup.empty else None
         ax.set_ylim(top=top, bottom=bottom)
 
     # save figure

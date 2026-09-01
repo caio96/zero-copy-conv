@@ -157,7 +157,13 @@ USER ${uid}:${gid}
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
 # Install python dependencies
-RUN pip install scipy matplotlib pandas tabulate timm==1.0.13 visdom scikit-learn
+# visdom 0.2.4 is sdist-only and its setup.py imports pkg_resources, which recent
+# setuptools no longer provides, so it is built without isolation against a
+# setuptools that still ships it. pandas is capped below 3.0 because the summary
+# scripts were written against the 2.x API.
+RUN pip install "setuptools<81" wheel && \
+    pip install --no-build-isolation "visdom==0.2.4" && \
+    pip install scipy matplotlib "pandas<3" tabulate timm==1.0.13 scikit-learn
 
 # Install zconv single conv eval binaries
 WORKDIR ${HOME}
